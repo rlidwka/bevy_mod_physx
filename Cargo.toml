@@ -1,0 +1,14 @@
+[package]
+name = "bevy_physx"
+version = "0.0.1"
+authors = ["Alex Kocharin <alex@kocharin.ru>"]
+description = "PhysX plugin for Bevy"
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+
+[lib]
+name = "bevy_physx"
+path = "src/lib.rs"
+
+[dependencies]
