@@ -12,3 +12,6 @@ name = "bevy_physx"
 path = "src/lib.rs"
 
 [dependencies]
+bevy = "0.9.1"
+physx = "0.16.0"
+physx-sys = "0.8.1"
