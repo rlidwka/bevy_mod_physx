@@ -2,12 +2,14 @@ use std::ptr::null;
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::scene::Scene;
-use physx::traits::Class;
-use physx_sys::{phys_PxCreateDynamic, PxScene_addActor_mut, phys_PxCreateStatic};
+use physx::traits::{Class, PxFlags};
+use physx_sys::{PxScene_addActor_mut, PxPhysics_createShape_mut, PxRigidBodyExt_updateMassAndInertia_mut_1};
+
+use crate::components::BPxShapeHandle;
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};
-use super::components::{BPxActor, BPxRigidDynamic, BPxRigidStatic, BPxVelocity};
+use super::components::{BPxActor, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxVelocity};
 use super::resources::{BPxScene, BPxPhysics, BPxTimeSync};
 
 pub fn scene_simulate(time: Res<Time>, mut scene: ResMut<BPxScene>, mut timesync: ResMut<BPxTimeSync>) {
@@ -23,70 +25,96 @@ pub fn create_dynamic_actors(
     mut commands: Commands,
     mut physics: ResMut<BPxPhysics>,
     mut scene: ResMut<BPxScene>,
-    new_actors: Query<(Entity, &BPxActor, &GlobalTransform, Option<&BPxVelocity>), (Without<BPxRigidDynamic>, Without<BPxRigidStatic>)>,
+    new_actors: Query<(Entity, &BPxActor, Option<&BPxShape>, &GlobalTransform, Option<&BPxVelocity>), (Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>)>,
     geometries: Res<Assets<BPxGeometry>>,
     mut materials: ResMut<Assets<BPxMaterial>>,
 ) {
-    for (entity, actor_cfg, transform, velocity) in new_actors.iter() {
+    for (entity, actor_cfg, shape_cfg, transform, velocity) in new_actors.iter() {
         match actor_cfg {
-            BPxActor::Dynamic { geometry, material, density, shape_offset } => {
+            BPxActor::Dynamic { density } => {
+                let Some(BPxShape { geometry, material }) = shape_cfg else { panic!() };
+
                 let geometry = geometries.get(geometry).expect("geometry not found for BPxGeometry");
                 let material = materials.get_mut(material).expect("material not found for BPxMaterial");
 
-                let mut actor : Owner<PxRigidDynamic> = unsafe {
-                    RigidDynamic::from_raw(
-                        phys_PxCreateDynamic(
+                let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&transform.to_physx(), ()).unwrap();
+
+                // create via unsafe raw function call instead of physics.create_shape() because it can't do boxed dyns
+                let mut shape = unsafe {
+                    Shape::from_raw(
+                        PxPhysics_createShape_mut(
                             physics.physics_mut().as_mut_ptr(),
-                            transform.to_physx().as_ptr(),
                             geometry.as_ptr(),
-                            material.as_mut_ptr(),
-                            *density,
-                            shape_offset.to_physx().as_ptr(),
+                            material.as_ptr(),
+                            true,
+                            (ShapeFlag::SceneQueryShape | ShapeFlag::SimulationShape | ShapeFlag::Visualization).into_px(),
                         ),
-                        (),
-                    )
-                }.unwrap();
+                        ()
+                    ).unwrap()
+                };
+
+                actor.attach_shape(&mut shape);
+
+                unsafe {
+                    PxRigidBodyExt_updateMassAndInertia_mut_1(
+                        actor.as_mut_ptr(),
+                        *density,
+                        null(),
+                        false
+                    );
+                }
 
                 if let Some(BPxVelocity { linvel, angvel }) = velocity {
                     actor.set_linear_velocity(&linvel.to_physx(), false);
                     actor.set_angular_velocity(&angvel.to_physx(), false);
                 }
 
+                // unsafe raw function call is required to avoid consuming actor
                 unsafe {
                     PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
                 }
 
                 commands.entity(entity)
-                    .insert(BPxRigidDynamic::new(actor));
+                    .insert(BPxRigidDynamicHandle::new(actor))
+                    .insert(BPxShapeHandle::new(shape));
             }
 
-            BPxActor::Static { geometry, material, shape_offset } => {
+            BPxActor::Static => {
+                let Some(BPxShape { geometry, material }) = shape_cfg else { panic!() };
+
                 let geometry = geometries.get(geometry).expect("geometry not found for BPxGeometry");
                 let material = materials.get_mut(material).expect("material not found for BPxMaterial");
 
-                let mut actor : Owner<PxRigidStatic> = unsafe {
-                    RigidStatic::from_raw(
-                        phys_PxCreateStatic(
+                let mut actor : Owner<PxRigidStatic> = physics.create_static(transform.to_physx(), ()).unwrap();
+
+                // create via unsafe raw function call instead of physics.create_shape() because it can't do boxed dyns
+                let mut shape = unsafe {
+                    Shape::from_raw(
+                        PxPhysics_createShape_mut(
                             physics.physics_mut().as_mut_ptr(),
-                            transform.to_physx().as_ptr(),
                             geometry.as_ptr(),
-                            material.as_mut_ptr(),
-                            shape_offset.to_physx().as_ptr(),
+                            material.as_ptr(),
+                            true,
+                            (ShapeFlag::SceneQueryShape | ShapeFlag::SimulationShape | ShapeFlag::Visualization).into_px(),
                         ),
-                        (),
-                    )
-                }.unwrap();
+                        ()
+                    ).unwrap()
+                };
+
+                actor.attach_shape(&mut shape);
 
                 if velocity.is_some() {
                     bevy::log::warn!("ignoring BPxVelocity component from a static actor");
                 }
 
+                // unsafe raw function call is required to avoid consuming actor
                 unsafe {
                     PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
                 }
 
                 commands.entity(entity)
-                    .insert(BPxRigidStatic::new(actor));
+                    .insert(BPxRigidStaticHandle::new(actor))
+                    .insert(BPxShapeHandle::new(shape));
             }
 
             BPxActor::Plane { normal, offset, material } => {
@@ -99,12 +127,13 @@ pub fn create_dynamic_actors(
                     bevy::log::warn!("ignoring BPxVelocity component from a static actor");
                 }
 
+                // unsafe raw function call is required to avoid consuming actor
                 unsafe {
                     PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
                 }
 
                 commands.entity(entity)
-                    .insert(BPxRigidStatic::new(actor));
+                    .insert(BPxRigidStaticHandle::new(actor));
             }
         }
     }
@@ -112,7 +141,7 @@ pub fn create_dynamic_actors(
 
 pub fn writeback_actors(
     global_transforms: Query<&GlobalTransform>,
-    mut actors: Query<(&BPxRigidDynamic, Option<&Parent>, Option<&mut Transform>, Option<&mut BPxVelocity>)>
+    mut actors: Query<(&BPxRigidDynamicHandle, Option<&Parent>, Option<&mut Transform>, Option<&mut BPxVelocity>)>
 ) {
     for (actor, parent, transform, velocity) in actors.iter_mut() {
         let xform = actor.get_global_pose();

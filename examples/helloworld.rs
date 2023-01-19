@@ -6,7 +6,7 @@ use physx::prelude::*;
 
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxVelocity};
+use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape};
 use bevy_physx::resources::BPxPhysics;
 
 fn main() {
@@ -27,8 +27,6 @@ fn main() {
     .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
     .add_system(bevy::window::close_on_esc)
     .add_plugin(BPxPlugin {
-        vehicles: true,
-        cooking: true,
         debugger: true,
         ..default()
     })
@@ -125,11 +123,10 @@ fn spawn_stacks(
                                 transform,
                                 ..default()
                             })
-                            .insert(BPxActor::Dynamic {
+                            .insert(BPxActor::Dynamic { density: 10. })
+                            .insert(BPxShape {
                                 material: px_material.clone(),
                                 geometry: px_geometry.clone(),
-                                density: 10.,
-                                shape_offset: default(),
                             });
                     }
                 }
@@ -163,11 +160,10 @@ fn spawn_dynamic(
             transform,
             ..default()
         })
-        .insert(BPxActor::Dynamic {
+        .insert(BPxActor::Dynamic { density: 10. })
+        .insert(BPxShape {
             material: px_material.clone(),
             geometry: px_geometry.clone(),
-            density: 10.,
-            shape_offset: default(),
         })
         .insert(BPxVelocity::linear(Vec3::new(0., -6.25, -12.5)))
         .insert(Name::new("Ball"));

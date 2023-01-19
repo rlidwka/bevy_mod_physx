@@ -1,5 +1,11 @@
+use std::{ptr::drop_in_place, ops::{Deref, DerefMut}};
+
 use bevy::prelude::*;
 use physx::prelude::*;
+use physx::traits::Class;
+use physx_sys::PxShape_release_mut;
+use crate::PxShape;
+
 use super::{assets::{BPxGeometry, BPxMaterial}, PxRigidDynamic, PxRigidStatic};
 
 pub struct BPxActorDynamic {
@@ -54,17 +60,8 @@ impl Default for BPxActorPlane {
 
 #[derive(Component)]
 pub enum BPxActor {
-    Dynamic {
-        geometry: Handle<BPxGeometry>,
-        material: Handle<BPxMaterial>,
-        density: f32,
-        shape_offset: Transform,
-    },
-    Static {
-        geometry: Handle<BPxGeometry>,
-        material: Handle<BPxMaterial>,
-        shape_offset: Transform,
-    },
+    Dynamic { density: f32 },
+    Static,
     Plane {
         normal: Vec3,
         offset: f32,
@@ -72,19 +69,65 @@ pub enum BPxActor {
     },
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub struct BPxRigidDynamic(Owner<PxRigidDynamic>);
+#[derive(Component)]
+pub struct BPxShape {
+    pub geometry: Handle<BPxGeometry>,
+    pub material: Handle<BPxMaterial>,
+}
 
-impl BPxRigidDynamic {
+#[derive(Component)]
+pub struct BPxShapeHandle(Option<Owner<PxShape>>);
+
+impl BPxShapeHandle {
+    pub fn new(px_shape: Owner<PxShape>) -> Self {
+        Self(Some(px_shape))
+    }
+}
+
+impl Drop for BPxShapeHandle {
+    fn drop(&mut self) {
+        // TODO: remove this entire drop when this gets fixed:
+        // https://github.com/EmbarkStudios/physx-rs/issues/180
+        let mut shape = self.0.take().unwrap();
+        unsafe {
+            drop_in_place(shape.get_user_data_mut());
+            PxShape_release_mut(shape.as_mut_ptr());
+        }
+        std::mem::forget(shape);
+    }
+}
+
+impl Deref for BPxShapeHandle {
+    type Target = PxShape;
+
+    fn deref(&self) -> &Self::Target {
+        // TODO: replace with Deref/DerefMut derive when this gets fixed:
+        // https://github.com/EmbarkStudios/physx-rs/issues/180
+        self.0.as_ref().unwrap()
+    }
+}
+
+impl DerefMut for BPxShapeHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        // TODO: replace with Deref/DerefMut derive when this gets fixed:
+        // https://github.com/EmbarkStudios/physx-rs/issues/180
+        self.0.as_mut().unwrap()
+    }
+}
+
+#[derive(Component, Deref, DerefMut)]
+pub struct BPxRigidDynamicHandle(Owner<PxRigidDynamic>);
+
+impl BPxRigidDynamicHandle {
     pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>) -> Self {
         Self(px_rigid_dynamic)
     }
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct BPxRigidStatic(Owner<PxRigidStatic>);
+pub struct BPxRigidStaticHandle(Owner<PxRigidStatic>);
 
-impl BPxRigidStatic {
+impl BPxRigidStaticHandle {
     pub fn new(px_rigid_static: Owner<PxRigidStatic>) -> Self {
         Self(px_rigid_static)
     }
