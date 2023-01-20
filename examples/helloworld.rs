@@ -80,7 +80,7 @@ fn spawn_plane(
             material,
             ..default()
         })
-        .insert(BPxActor::Plane {
+        .insert(BPxActor::StaticPlane {
             material: px_material,
             normal: Vec3::Y,
             offset: 0.,
@@ -92,9 +92,7 @@ fn spawn_stacks(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut physics: ResMut<BPxPhysics>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
-    mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
     const WIDTH: f32 = 0.5;
     const SIZE: usize = 10;
@@ -103,7 +101,6 @@ fn spawn_stacks(
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
 
     let px_geometry = px_geometries.add(PxBoxGeometry::new(WIDTH / 2., WIDTH / 2., WIDTH / 2.).into());
-    let px_material = px_materials.add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into());
 
     for i in 0..5 {
         commands.spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., -1.25 * i as f32)))
@@ -125,8 +122,8 @@ fn spawn_stacks(
                             })
                             .insert(BPxActor::Dynamic { density: 10. })
                             .insert(BPxShape {
-                                material: px_material.clone(),
                                 geometry: px_geometry.clone(),
+                                material: default(),
                             });
                     }
                 }

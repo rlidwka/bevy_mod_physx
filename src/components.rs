@@ -2,11 +2,11 @@ use std::{ptr::drop_in_place, ops::{Deref, DerefMut}};
 
 use bevy::prelude::*;
 use physx::prelude::*;
-use physx::traits::Class;
-use physx_sys::PxShape_release_mut;
-use crate::PxShape;
-
-use super::{assets::{BPxGeometry, BPxMaterial}, PxRigidDynamic, PxRigidStatic};
+use physx::traits::{Class, PxFlags};
+use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut};
+use super::{PxRigidStatic, PxRigidDynamic, PxShape};
+use super::assets::{BPxGeometry, BPxMaterial};
+use super::resources::BPxPhysics;
 
 pub struct BPxActorDynamic {
     pub geometry: Handle<BPxGeometry>,
@@ -42,34 +42,18 @@ impl Default for BPxActorStatic {
     }
 }
 
-pub struct BPxActorPlane {
-    pub normal: Vec3,
-    pub offset: f32,
-    pub material: Handle<BPxMaterial>,
-}
-
-impl Default for BPxActorPlane {
-    fn default() -> Self {
-        Self {
-            normal: Vec3::Y,
-            offset: 0.,
-            material: Default::default(),
-        }
-    }
-}
-
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub enum BPxActor {
     Dynamic { density: f32 },
     Static,
-    Plane {
+    StaticPlane {
         normal: Vec3,
         offset: f32,
         material: Handle<BPxMaterial>,
     },
 }
 
-#[derive(Component)]
+#[derive(Component, Clone)]
 pub struct BPxShape {
     pub geometry: Handle<BPxGeometry>,
     pub material: Handle<BPxMaterial>,
@@ -81,6 +65,33 @@ pub struct BPxShapeHandle(Option<Owner<PxShape>>);
 impl BPxShapeHandle {
     pub fn new(px_shape: Owner<PxShape>) -> Self {
         Self(Some(px_shape))
+    }
+
+    pub fn create_shape(physics: &mut BPxPhysics, geometry: &BPxGeometry, material: &BPxMaterial) -> Self {
+        let geometry_ptr = match geometry {
+            BPxGeometry::Sphere(geom)  => { geom.as_ptr() },
+            BPxGeometry::Plane(geom)   => { geom.as_ptr() },
+            BPxGeometry::Capsule(geom) => { geom.as_ptr() },
+            BPxGeometry::Box(geom)     => { geom.as_ptr() },
+            BPxGeometry::ConvexMesh(_)   => { todo!() },
+            BPxGeometry::TriangleMesh(_) => { todo!() },
+        };
+
+        // physics->create_shape() requires mutable access to material - why?
+        let shape : Owner<PxShape> = unsafe {
+            Shape::from_raw(
+                PxPhysics_createShape_mut(
+                    physics.physics_mut().as_mut_ptr(),
+                    geometry_ptr,
+                    material.as_ptr(),
+                    true,
+                    (ShapeFlag::SceneQueryShape | ShapeFlag::SimulationShape | ShapeFlag::Visualization).into_px(),
+                ),
+                ()
+            ).unwrap()
+        };
+
+        Self::new(shape)
     }
 }
 

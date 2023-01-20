@@ -17,6 +17,8 @@ use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
 use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync};
 
+use crate::resources::BPxDefaultMaterial;
+
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<(), PxMaterial>;
 type PxArticulationLink = physx::articulation_link::PxArticulationLink<(), PxShape>;
@@ -64,6 +66,7 @@ impl Plugin for BPxPlugin {
 
         app.insert_resource(scene);
         app.insert_resource(BPxTimeSync::new(self.timestep));
+        app.insert_resource(BPxDefaultMaterial::default());
 
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);

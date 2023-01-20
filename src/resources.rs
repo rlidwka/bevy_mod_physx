@@ -5,6 +5,8 @@ use physx::traits::Class;
 use physx_sys::{phys_PxInitVehicleSDK, phys_PxVehicleSetBasisVectors, phys_PxVehicleSetUpdateMode, PxVehicleUpdateMode, phys_PxCloseVehicleSDK};
 use std::ops::{Deref, DerefMut};
 use std::ptr::null_mut;
+use crate::assets::BPxMaterial;
+
 use super::prelude::*;
 use super::{PxShape, PxScene};
 
@@ -113,3 +115,6 @@ impl BPxTimeSync {
         }
     }
 }
+
+#[derive(Resource, Deref, DerefMut, Default)]
+pub struct BPxDefaultMaterial(Option<Handle<BPxMaterial>>);
