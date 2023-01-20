@@ -183,25 +183,6 @@ pub fn create_dynamic_actors(
                 commands.entity(entity)
                     .insert(BPxRigidStaticHandle::new(actor));
             }
-
-            BPxActor::StaticPlane { normal, offset, material } => {
-                let material = materials.get_mut(material).expect("material not found for BPxMaterial");
-                let mut actor = physics
-                    .create_plane(normal.to_physx(), *offset, material, ())
-                    .unwrap();
-
-                if velocity.is_some() {
-                    bevy::log::warn!("ignoring BPxVelocity component from a static actor");
-                }
-
-                // unsafe raw function call is required to avoid consuming actor
-                unsafe {
-                    PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
-                }
-
-                commands.entity(entity)
-                    .insert(BPxRigidStaticHandle::new(actor));
-            }
         }
     }
 }

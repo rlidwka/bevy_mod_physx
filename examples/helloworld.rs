@@ -68,10 +68,12 @@ fn spawn_plane(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut physics: ResMut<BPxPhysics>,
+    mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
     let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0 }));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
+    let px_geometry = px_geometries.add(PxPlaneGeometry::new().into());
     let px_material = px_materials.add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into());
 
     commands.spawn_empty()
@@ -80,10 +82,17 @@ fn spawn_plane(
             material,
             ..default()
         })
-        .insert(BPxActor::StaticPlane {
-            material: px_material,
-            normal: Vec3::Y,
-            offset: 0.,
+        .with_children(|builder| {
+            builder.spawn_empty()
+                .insert(TransformBundle::from_transform(
+                    // physx default plane is rotated compared to bevy plane, we undo that
+                    Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
+                ))
+                .insert(BPxActor::Static)
+                .insert(BPxShape {
+                    geometry: px_geometry,
+                    material: px_material,
+                });
         })
         .insert(Name::new("Plane"));
 }

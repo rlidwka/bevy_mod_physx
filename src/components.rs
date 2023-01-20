@@ -46,11 +46,6 @@ impl Default for BPxActorStatic {
 pub enum BPxActor {
     Dynamic { density: f32 },
     Static,
-    StaticPlane {
-        normal: Vec3,
-        offset: f32,
-        material: Handle<BPxMaterial>,
-    },
 }
 
 #[derive(Component, Clone)]

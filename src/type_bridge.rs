@@ -51,10 +51,6 @@ impl IntoBevyQuat for PxQuat {
 
 impl IntoPxTransform for Transform {
     fn to_physx(&self) -> PxTransform {
-        if self.scale != Vec3::new(1., 1., 1.) {
-            bevy::log::warn!("PhysX bridge doesn't support Transform scale (only rotation and translation)");
-        }
-
         PxTransform::from_translation_rotation(
             &self.translation.to_physx(),
             &self.rotation.to_physx(),
@@ -64,11 +60,7 @@ impl IntoPxTransform for Transform {
 
 impl IntoPxTransform for GlobalTransform {
     fn to_physx(&self) -> PxTransform {
-        let (scale, rotation, translation) = self.to_scale_rotation_translation();
-
-        if scale != Vec3::new(1., 1., 1.) {
-            bevy::log::warn!("PhysX bridge doesn't support Transform scale (only rotation and translation)");
-        }
+        let (_scale, rotation, translation) = self.to_scale_rotation_translation();
 
         PxTransform::from_translation_rotation(
             &translation.to_physx(),
