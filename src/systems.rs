@@ -51,7 +51,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     entity: Entity,
     actor: &mut T,
     physics: &mut BPxPhysics,
-    geometries: &Res<Assets<BPxGeometry>>,
+    geometries: &mut ResMut<Assets<BPxGeometry>>,
     materials: &mut ResMut<Assets<BPxMaterial>>,
     query: &Query<
         (Entity, Option<&BPxActor>, Option<&Children>, Option<&BPxShape>, Option<&GlobalTransform>),
@@ -66,7 +66,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
 
     for (entity, shape_cfg, gtransform) in found_shapes {
         let BPxShape { geometry, material } = shape_cfg;
-        let geometry = geometries.get(&geometry).expect("geometry not found for BPxGeometry");
+        let geometry = geometries.get_mut(&geometry).expect("geometry not found for BPxGeometry");
         let mut material = materials.get_mut(&material);
 
         if material.is_none() {
@@ -112,7 +112,7 @@ pub fn create_dynamic_actors(
         (Entity, &BPxActor, &GlobalTransform, Option<&BPxVelocity>),
         (Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>)
     >,
-    geometries: Res<Assets<BPxGeometry>>,
+    mut geometries: ResMut<Assets<BPxGeometry>>,
     mut materials: ResMut<Assets<BPxMaterial>>,
     mut default_material: ResMut<BPxDefaultMaterial>,
 ) {
@@ -126,7 +126,7 @@ pub fn create_dynamic_actors(
                     entity,
                     actor.as_mut(),
                     physics.as_mut(),
-                    &geometries,
+                    &mut geometries,
                     &mut materials,
                     &query,
                     &transform,
@@ -164,7 +164,7 @@ pub fn create_dynamic_actors(
                     entity,
                     actor.as_mut(),
                     physics.as_mut(),
-                    &geometries,
+                    &mut geometries,
                     &mut materials,
                     &query,
                     &transform,

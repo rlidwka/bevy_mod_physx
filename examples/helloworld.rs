@@ -2,7 +2,6 @@ mod flying_camera;
 
 use bevy::prelude::*;
 use flying_camera::*;
-use physx::prelude::*;
 
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
@@ -73,8 +72,8 @@ fn spawn_plane(
 ) {
     let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0 }));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
-    let px_geometry = px_geometries.add(PxPlaneGeometry::new().into());
-    let px_material = px_materials.add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into());
+    let px_geometry = px_geometries.add(BPxGeometry::halfspace());
+    let px_material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
         .insert(PbrBundle {
@@ -109,7 +108,7 @@ fn spawn_stacks(
     let mesh = meshes.add(Mesh::from(shape::Cube { size: WIDTH }));
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
 
-    let px_geometry = px_geometries.add(PxBoxGeometry::new(WIDTH / 2., WIDTH / 2., WIDTH / 2.).into());
+    let px_geometry = px_geometries.add(BPxGeometry::cuboid(WIDTH, WIDTH, WIDTH));
 
     for i in 0..5 {
         commands.spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., -1.25 * i as f32)))
@@ -154,8 +153,8 @@ fn spawn_dynamic(
     let mesh = meshes.add(Mesh::from(shape::UVSphere { radius: 1.25, ..default() }));
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
 
-    let px_geometry = px_geometries.add(PxSphereGeometry::new(RADIUS).into());
-    let px_material = px_materials.add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into());
+    let px_geometry = px_geometries.add(BPxGeometry::ball(RADIUS));
+    let px_material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
 
     let transform = Transform::from_translation(Vec3::new(0., 5., 12.5));
 

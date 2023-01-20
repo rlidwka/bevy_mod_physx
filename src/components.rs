@@ -3,7 +3,7 @@ use std::{ptr::drop_in_place, ops::{Deref, DerefMut}};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
-use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut};
+use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags, PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new};
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
@@ -62,17 +62,29 @@ impl BPxShapeHandle {
         Self(Some(px_shape))
     }
 
-    pub fn create_shape(physics: &mut BPxPhysics, geometry: &BPxGeometry, material: &BPxMaterial) -> Self {
+    pub fn create_shape(physics: &mut BPxPhysics, geometry: &mut BPxGeometry, material: &mut BPxMaterial) -> Self {
         let geometry_ptr = match geometry {
             BPxGeometry::Sphere(geom)  => { geom.as_ptr() },
             BPxGeometry::Plane(geom)   => { geom.as_ptr() },
             BPxGeometry::Capsule(geom) => { geom.as_ptr() },
             BPxGeometry::Box(geom)     => { geom.as_ptr() },
-            BPxGeometry::ConvexMesh(_)   => { todo!() },
-            BPxGeometry::TriangleMesh(_) => { todo!() },
+            BPxGeometry::ConvexMesh(mesh) => {
+                PxConvexMeshGeometry::new(
+                    mesh.as_mut(),
+                    unsafe { &PxMeshScale_new() },
+                    PxConvexMeshGeometryFlags { mBits: PxConvexMeshGeometryFlag::eTIGHT_BOUNDS as u8 }
+                ).as_ptr()
+            },
+            BPxGeometry::TriangleMesh(mesh) => {
+                PxTriangleMeshGeometry::new(
+                    mesh.as_mut(),
+                    unsafe { &PxMeshScale_new() },
+                    PxMeshGeometryFlags { mBits: PxMeshGeometryFlag::eDOUBLE_SIDED as u8 }
+                ).as_ptr()
+            },
         };
 
-        // physics->create_shape() requires mutable access to material - why?
+        //let shape = physics.create_shape(geometry, materials, is_exclusive, shape_flags, user_data)
         let shape : Owner<PxShape> = unsafe {
             Shape::from_raw(
                 PxPhysics_createShape_mut(
