@@ -25,10 +25,7 @@ fn main() {
     }))
     .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
     .add_system(bevy::window::close_on_esc)
-    .add_plugin(BPxPlugin {
-        debugger: true,
-        ..default()
-    })
+    .add_plugin(BPxPlugin::default())
     .add_plugin(FlyingCameraPlugin)
     .add_startup_system(spawn_light)
     .add_startup_system(spawn_camera)

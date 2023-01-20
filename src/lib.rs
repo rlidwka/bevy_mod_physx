@@ -86,9 +86,9 @@ impl Plugin for BPxPlugin {
 impl Default for BPxPlugin {
     fn default() -> Self {
         Self {
-            vehicles: false,
-            cooking: false,
-            debugger: false,
+            vehicles: true,
+            cooking: true,
+            debugger: true,
             gravity: Vec3::new(0.0, -9.81, 0.0),
             timestep: 1. / 60.,
         }

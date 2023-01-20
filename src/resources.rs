@@ -18,10 +18,21 @@ pub struct BPxPhysics {
 
 impl BPxPhysics {
     pub fn new(enable_debugger: bool, enable_vsdk: bool) -> Self {
+        let mut physics;
+
         let mut builder = physx::physics::PhysicsFoundationBuilder::default();
         builder.enable_visual_debugger(enable_debugger);
+        builder.with_extensions(true);
+        physics = builder.build();
 
-        let mut physics = builder.build().expect("building PhysX foundation failed");
+        if physics.is_none() && enable_debugger {
+            // failed to connect, try without debugger
+            let mut builder = physx::physics::PhysicsFoundationBuilder::default();
+            builder.with_extensions(true);
+            physics = builder.build();
+        }
+
+        let mut physics = physics.expect("building PhysX foundation failed");
 
         if enable_vsdk {
             unsafe {
