@@ -5,7 +5,7 @@ use flying_camera::*;
 
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape};
+use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape, BPxMassProperties};
 use bevy_physx::resources::BPxPhysics;
 
 fn main() {
@@ -125,7 +125,8 @@ fn spawn_stacks(
                                 transform,
                                 ..default()
                             })
-                            .insert(BPxActor::Dynamic { density: 10. })
+                            .insert(BPxActor::Dynamic)
+                            .insert(BPxMassProperties::density(10.))
                             .insert(BPxShape {
                                 geometry: px_geometry.clone(),
                                 material: default(),
@@ -162,7 +163,8 @@ fn spawn_dynamic(
             transform,
             ..default()
         })
-        .insert(BPxActor::Dynamic { density: 10. })
+        .insert(BPxActor::Dynamic)
+        .insert(BPxMassProperties::density(10.))
         .insert(BPxShape {
             material: px_material.clone(),
             geometry: px_geometry.clone(),

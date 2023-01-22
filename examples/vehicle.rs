@@ -5,7 +5,7 @@ use flying_camera::*;
 
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxShape};
+use bevy_physx::components::{BPxActor, BPxShape, BPxVehicle, BPxVehicleWheel, BPxVehicleWheelData, BPxVehicleSuspensionData, BPxMassProperties};
 use bevy_physx::resources::{BPxPhysics, BPxCooking};
 
 fn main() {
@@ -101,28 +101,29 @@ fn spawn_vehicle(
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
     const HULL_VERTICES : [Vec3; 18] = [
-        Vec3::new(-0.92657, 1.44990,  2.83907),
-        Vec3::new( 0.92657, 1.44990,  2.83907),
-        Vec3::new(-0.73964, 1.85914, -0.41819),
-        Vec3::new( 0.73964, 1.85914, -0.41819),
-        Vec3::new(-0.96609, 1.11038, -2.57245),
-        Vec3::new( 0.96609, 1.11038, -2.57245),
-        Vec3::new(-0.62205, 1.01440, -2.84896),
-        Vec3::new( 0.62205, 1.01440, -2.84896),
-        Vec3::new(-0.92108, 0.63051,  2.74199),
-        Vec3::new( 0.92108, 0.63051,  2.74199),
-        Vec3::new(-0.65192, 0.46546, -2.74609),
-        Vec3::new( 0.65192, 0.46546, -2.74609),
-        Vec3::new(-0.98115, 0.46546, -2.48097),
-        Vec3::new( 0.98115, 0.46546, -2.48097),
-        Vec3::new(-0.90621, 0.38511,  1.06282),
-        Vec3::new( 0.90621, 0.38511,  1.06282),
-        Vec3::new(-0.90621, 0.34191, -1.26607),
-        Vec3::new( 0.90621, 0.34191, -1.26607),
+        Vec3::new(-0.92657, 1.44990, -2.83907),
+        Vec3::new( 0.92657, 1.44990, -2.83907),
+        Vec3::new(-0.73964, 1.85914,  0.41819),
+        Vec3::new( 0.73964, 1.85914,  0.41819),
+        Vec3::new(-0.96609, 1.11038,  2.57245),
+        Vec3::new( 0.96609, 1.11038,  2.57245),
+        Vec3::new(-0.62205, 1.01440,  2.84896),
+        Vec3::new( 0.62205, 1.01440,  2.84896),
+        Vec3::new(-0.92108, 0.63051, -2.74199),
+        Vec3::new( 0.92108, 0.63051, -2.74199),
+        Vec3::new(-0.65192, 0.46546,  2.74609),
+        Vec3::new( 0.65192, 0.46546,  2.74609),
+        Vec3::new(-0.98115, 0.46546,  2.48097),
+        Vec3::new( 0.98115, 0.46546,  2.48097),
+        Vec3::new(-0.90621, 0.38511, -1.06282),
+        Vec3::new( 0.90621, 0.38511, -1.06282),
+        Vec3::new(-0.90621, 0.34191,  1.26607),
+        Vec3::new( 0.90621, 0.34191,  1.26607),
     ];
 
-    pub const WHEEL_HALF_WIDTH: f32 = 0.16813;
-    pub const WHEEL_RADIUS: f32 = 0.458974;
+    pub const WHEEL_MASS: f32 = 30.;
+    pub const WHEEL_HALF_WIDTH: f32 = 0.17;
+    pub const WHEEL_RADIUS: f32 = 0.49;
     pub const WHEEL_SEGMENTS: usize = 16;
 
     const WHEEL_OFFSETS : [Vec3; 4] = [
@@ -145,7 +146,9 @@ fn spawn_vehicle(
             scene: assets.load("cybertruck/hull.glb#Scene0"),
             ..default()
         })
-        .insert(BPxActor::Dynamic { density: 10. })
+        .insert(BPxActor::Dynamic)
+        .insert(BPxMassProperties::mass_with_center(2800., Vec3::new(0., 0.7, 0.)))
+        .insert(BPxVehicle)
         .insert(BPxShape {
             material: material.clone(),
             geometry: hull_geometry,
@@ -164,6 +167,25 @@ fn spawn_vehicle(
                             }),
                             scale: Vec3::ONE,
                         },
+                        ..default()
+                    })
+                    .insert(BPxVehicleWheel {
+                        wheel_data: BPxVehicleWheelData {
+                            mass: WHEEL_MASS,
+                            radius: WHEEL_RADIUS,
+                            width: WHEEL_HALF_WIDTH * 2.,
+                            moi: 0.5 * WHEEL_MASS * WHEEL_RADIUS * WHEEL_RADIUS,
+                            ..default()
+                        },
+                        suspension_data: BPxVehicleSuspensionData {
+                            max_compression: 0.3,
+                            max_droop: 0.1,
+                            spring_strength: 35000.,
+                            spring_damper_rate: 4500.,
+                            ..default()
+                        },
+                        susp_force_app_point_offset: WHEEL_OFFSETS[wheel_idx] - Vec3::Y * 0.3,
+                        tire_force_app_point_offset: WHEEL_OFFSETS[wheel_idx] - Vec3::Y * 0.3,
                         ..default()
                     })
                     .insert(BPxShape {

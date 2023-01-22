@@ -3,6 +3,7 @@ use physx::prelude::*;
 
 pub trait IntoPxVec3 {
     fn to_physx(&self) -> PxVec3;
+    fn to_physx_sys(&self) -> physx_sys::PxVec3;
 }
 
 pub trait IntoBevyVec3 {
@@ -28,6 +29,10 @@ pub trait IntoBevyTransform {
 impl IntoPxVec3 for Vec3 {
     fn to_physx(&self) -> PxVec3 {
         PxVec3::new(self.x, self.y, self.z)
+    }
+
+    fn to_physx_sys(&self) -> physx_sys::PxVec3 {
+        physx_sys::PxVec3 { x: self.x, y: self.y, z: self.z }
     }
 }
 

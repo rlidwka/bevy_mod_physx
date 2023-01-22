@@ -3,48 +3,14 @@ use std::{ptr::drop_in_place, ops::{Deref, DerefMut}};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
-use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags, PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new};
+use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags, PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData, PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData};
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
 
-pub struct BPxActorDynamic {
-    pub geometry: Handle<BPxGeometry>,
-    pub material: Handle<BPxMaterial>,
-    pub density: f32,
-    pub shape_offset: Transform,
-}
-
-impl Default for BPxActorDynamic {
-    fn default() -> Self {
-        Self {
-            geometry: Default::default(),
-            material: Default::default(),
-            density: 1.0,
-            shape_offset: Transform::IDENTITY,
-        }
-    }
-}
-
-pub struct BPxActorStatic {
-    pub geometry: Handle<BPxGeometry>,
-    pub material: Handle<BPxMaterial>,
-    pub shape_offset: Transform,
-}
-
-impl Default for BPxActorStatic {
-    fn default() -> Self {
-        Self {
-            geometry: Default::default(),
-            material: Default::default(),
-            shape_offset: Transform::IDENTITY,
-        }
-    }
-}
-
 #[derive(Component, Clone)]
 pub enum BPxActor {
-    Dynamic { density: f32 },
+    Dynamic,
     Static,
 }
 
@@ -172,5 +138,197 @@ impl BPxVelocity {
 
     pub fn angular(angvel: Vec3) -> Self {
         Self { angvel, ..default() }
+    }
+}
+
+#[derive(Component, Clone)]
+pub struct BPxVehicle;
+
+#[derive(Debug, Component, Clone)]
+pub struct BPxVehicleWheel {
+    pub wheel_data: BPxVehicleWheelData,
+    pub tire_data: BPxVehicleTireData,
+    pub suspension_data: BPxVehicleSuspensionData,
+    pub susp_travel_direction: Vec3,
+    pub susp_force_app_point_offset: Vec3,
+    pub tire_force_app_point_offset: Vec3,
+}
+
+impl Default for BPxVehicleWheel {
+    fn default() -> Self {
+        Self {
+            wheel_data: default(),
+            tire_data: default(),
+            suspension_data: default(),
+            susp_travel_direction: Vec3::new(0., -1., 0.),
+            susp_force_app_point_offset: Vec3::ZERO,
+            tire_force_app_point_offset: Vec3::ZERO,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BPxVehicleWheelData {
+    pub radius: f32,
+    pub width: f32,
+    pub mass: f32,
+    pub moi: f32,
+    pub damping_rate: f32,
+    pub max_brake_torque: f32,
+    pub max_hand_brake_torque: f32,
+    pub max_steer: f32,
+    pub toe_angle: f32,
+}
+
+impl BPxVehicleWheelData {
+    pub fn to_physx(&self) -> PxVehicleWheelData {
+        let mut wheel_data = unsafe { PxVehicleWheelData_new() };
+        wheel_data.mRadius = self.radius;
+        wheel_data.mWidth = self.width;
+        wheel_data.mMass = self.mass;
+        wheel_data.mMOI = self.moi;
+        wheel_data.mDampingRate = self.damping_rate;
+        wheel_data.mMaxBrakeTorque = self.max_brake_torque;
+        wheel_data.mMaxHandBrakeTorque = self.max_hand_brake_torque;
+        wheel_data.mMaxSteer = self.max_steer;
+        wheel_data.mToeAngle = self.toe_angle;
+        wheel_data
+    }
+
+    pub fn from_physx(wheel_data: PxVehicleWheelData) -> Self {
+        Self {
+            radius: wheel_data.mRadius,
+            width: wheel_data.mWidth,
+            mass: wheel_data.mMass,
+            moi: wheel_data.mMOI,
+            damping_rate: wheel_data.mDampingRate,
+            max_brake_torque: wheel_data.mMaxBrakeTorque,
+            max_hand_brake_torque: wheel_data.mMaxBrakeTorque,
+            max_steer: wheel_data.mMaxSteer,
+            toe_angle: wheel_data.mToeAngle,
+        }
+    }
+}
+
+impl Default for BPxVehicleWheelData {
+    fn default() -> Self {
+        Self::from_physx(unsafe { PxVehicleWheelData_new() })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BPxVehicleTireData {
+    pub lat_stiff_x: f32,
+    pub lat_stiff_y: f32,
+    pub longitudinal_stiffness_per_unit_gravity: f32,
+    pub camber_stiffness_per_unit_gravity: f32,
+    pub friction_vs_slip_graph: [[f32; 2]; 3],
+    pub tire_type: u32,
+}
+
+impl BPxVehicleTireData {
+    pub fn to_physx(&self) -> PxVehicleTireData {
+        let mut tire_data = unsafe { PxVehicleTireData_new() };
+        tire_data.mLatStiffX = self.lat_stiff_x;
+        tire_data.mLatStiffY = self.lat_stiff_y;
+        tire_data.mLongitudinalStiffnessPerUnitGravity = self.longitudinal_stiffness_per_unit_gravity;
+        tire_data.mCamberStiffnessPerUnitGravity = self.camber_stiffness_per_unit_gravity;
+        tire_data.mFrictionVsSlipGraph = self.friction_vs_slip_graph;
+        tire_data.mType = self.tire_type;
+        tire_data
+    }
+
+    pub fn from_physx(tire_data: PxVehicleTireData) -> Self {
+        Self {
+            lat_stiff_x: tire_data.mLatStiffX,
+            lat_stiff_y: tire_data.mLatStiffY,
+            longitudinal_stiffness_per_unit_gravity: tire_data.mLongitudinalStiffnessPerUnitGravity,
+            camber_stiffness_per_unit_gravity: tire_data.mCamberStiffnessPerUnitGravity,
+            friction_vs_slip_graph: tire_data.mFrictionVsSlipGraph,
+            tire_type: tire_data.mType,
+        }
+    }
+}
+
+impl Default for BPxVehicleTireData {
+    fn default() -> Self {
+        Self::from_physx(unsafe { PxVehicleTireData_new() })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BPxVehicleSuspensionData {
+    pub spring_strength: f32,
+    pub spring_damper_rate: f32,
+    pub max_compression: f32,
+    pub max_droop: f32,
+    // this will be automatically calculated
+    //pub sprung_mass: f32,
+    pub camber_at_rest: f32,
+    pub camber_at_max_compression: f32,
+    pub camber_at_max_droop: f32,
+}
+
+impl BPxVehicleSuspensionData {
+    pub fn to_physx(&self) -> PxVehicleSuspensionData {
+        let mut susp_data = unsafe { PxVehicleSuspensionData_new() };
+        susp_data.mSpringStrength = self.spring_strength;
+        susp_data.mSpringDamperRate = self.spring_damper_rate;
+        susp_data.mMaxCompression = self.max_compression;
+        susp_data.mMaxDroop = self.max_droop;
+        //susp_data.mSprungMass = self.sprung_mass;
+        susp_data.mCamberAtRest = self.camber_at_rest;
+        susp_data.mCamberAtMaxCompression = self.max_compression;
+        susp_data.mCamberAtMaxDroop = self.camber_at_max_droop;
+        susp_data
+    }
+
+    pub fn from_physx(susp_data: PxVehicleSuspensionData) -> Self {
+        Self {
+            spring_strength: susp_data.mSpringStrength,
+            spring_damper_rate: susp_data.mSpringDamperRate,
+            max_compression: susp_data.mMaxCompression,
+            max_droop: susp_data.mMaxDroop,
+            //sprung_mass: susp_data.mSprungMass,
+            camber_at_rest: susp_data.mCamberAtRest,
+            camber_at_max_compression: susp_data.mCamberAtMaxCompression,
+            camber_at_max_droop: susp_data.mCamberAtMaxDroop,
+        }
+    }
+}
+
+impl Default for BPxVehicleSuspensionData {
+    fn default() -> Self {
+        Self::from_physx(unsafe { PxVehicleSuspensionData_new() })
+    }
+}
+
+#[derive(Component, Debug, Clone)]
+pub enum BPxMassProperties {
+    Density {
+        density: f32,
+        center: Vec3,
+    },
+    Mass {
+        mass: f32,
+        center: Vec3,
+    },
+}
+
+impl BPxMassProperties {
+    pub fn density(density: f32) -> Self {
+        Self::Density { density, center: Vec3::ZERO }
+    }
+
+    pub fn mass(mass: f32) -> Self {
+        Self::Mass { mass, center: Vec3::ZERO }
+    }
+
+    pub fn density_with_center(density: f32, center: Vec3) -> Self {
+        Self::Density { density, center }
+    }
+
+    pub fn mass_with_center(mass: f32, center: Vec3) -> Self {
+        Self::Mass { mass, center }
     }
 }
