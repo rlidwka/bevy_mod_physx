@@ -42,6 +42,12 @@ impl IntoBevyVec3 for PxVec3 {
     }
 }
 
+impl IntoBevyVec3 for physx_sys::PxVec3 {
+    fn to_bevy(&self) -> Vec3 {
+        Vec3::new(self.x, self.y, self.z)
+    }
+}
+
 impl IntoPxQuat for Quat {
     fn to_physx(&self) -> PxQuat {
         PxQuat::new(self.x, self.y, self.z, self.w)

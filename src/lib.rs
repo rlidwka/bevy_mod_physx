@@ -17,7 +17,7 @@ use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
 use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync};
 
-use crate::resources::BPxDefaultMaterial;
+use crate::resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<(), PxMaterial>;
@@ -62,6 +62,10 @@ impl Plugin for BPxPlugin {
 
         if self.cooking {
             app.insert_resource(BPxCooking::new(&mut physics));
+        }
+
+        if self.vehicles {
+            app.insert_non_send_resource(BPxVehicleRaycastBuffer::default());
         }
 
         app.insert_resource(scene);

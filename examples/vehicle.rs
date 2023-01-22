@@ -10,28 +10,28 @@ use bevy_physx::resources::{BPxPhysics, BPxCooking};
 
 fn main() {
     App::new()
-    .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
-    .insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 1.0 / 5.0f32,
-    })
-    .insert_resource(Msaa::default())
-    .add_plugins(DefaultPlugins.set(WindowPlugin {
-        window: WindowDescriptor {
-            present_mode: bevy::window::PresentMode::Immediate,
+        .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
+        .insert_resource(AmbientLight {
+            color: Color::WHITE,
+            brightness: 1.0 / 5.0f32,
+        })
+        .insert_resource(Msaa::default())
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            window: WindowDescriptor {
+                present_mode: bevy::window::PresentMode::Immediate,
+                ..default()
+            },
             ..default()
-        },
-        ..default()
-    }))
-    .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
-    .add_system(bevy::window::close_on_esc)
-    .add_plugin(BPxPlugin::default())
-    .add_plugin(FlyingCameraPlugin)
-    .add_startup_system(spawn_light)
-    .add_startup_system(spawn_camera)
-    .add_startup_system(spawn_plane)
-    .add_startup_system(spawn_vehicle)
-    .run();
+        }))
+        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
+        .add_system(bevy::window::close_on_esc)
+        .add_plugin(BPxPlugin::default())
+        .add_plugin(FlyingCameraPlugin)
+        .add_startup_system(spawn_light)
+        .add_startup_system(spawn_camera)
+        .add_startup_system(spawn_plane)
+        .add_startup_system(spawn_vehicle)
+        .run();
 }
 
 fn spawn_light(mut commands: Commands) {
@@ -151,7 +151,7 @@ fn spawn_vehicle(
         .insert(BPxVehicle)
         .insert(BPxShape {
             material: material.clone(),
-            geometry: hull_geometry,
+            geometry: hull_geometry.clone(),
         })
         .with_children(|builder| {
             for wheel_idx in 0..4 {

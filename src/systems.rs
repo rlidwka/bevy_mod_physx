@@ -1,4 +1,4 @@
-use std::ptr::null;
+use std::ptr::{null, null_mut};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::scene::Scene;
@@ -10,9 +10,13 @@ use physx_sys::{
     PxVehicleWheelsSimData_setTireForceAppPointOffset_mut, PxVehicleWheelsSimData_setSuspForceAppPointOffset_mut,
     PxVehicleWheelsSimData_setWheelCentreOffset_mut, PxVehicleWheelsSimData_setSuspTravelDirection_mut,
     PxVehicleWheelsSimData_setSuspensionData_mut, PxVehicleWheelsSimData_setTireData_mut,
-    PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1
+    PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
+    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts,
 };
 
+
+use crate::components::BPxVehicleHandle;
+use crate::resources::BPxVehicleRaycastBuffer;
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};
@@ -32,10 +36,49 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Without<BPxShapeHandle>, Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>)
 >;
 
-pub fn scene_simulate(time: Res<Time>, mut scene: ResMut<BPxScene>, mut timesync: ResMut<BPxTimeSync>) {
+pub fn scene_simulate(
+    time: Res<Time>,
+    mut scene: ResMut<BPxScene>,
+    mut timesync: ResMut<BPxTimeSync>,
+    mut raycastbuf: ResMut<BPxVehicleRaycastBuffer>,
+    mut vehicles: Query<&mut BPxVehicleHandle>,
+) {
     timesync.advance_bevy_time(&time);
 
     if let Some(delta) = timesync.check_advance_physx_time() {
+        let mut wheel_count = 0;
+        let mut vehicles = vehicles.iter_mut().map(|v| {
+            wheel_count += v.wheels;
+            v.ptr
+        }).collect::<Vec<_>>();
+
+        if vehicles.len() > 0 {
+            raycastbuf.alloc(&mut scene, wheel_count);
+
+            let gravity = unsafe { PxScene_getGravity(scene.as_ptr()) };
+
+            unsafe {
+                phys_PxVehicleSuspensionRaycasts(
+                    raycastbuf.get_batch_query(),
+                    vehicles.len() as u32,
+                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
+                    wheel_count as u32,
+                    raycastbuf.get_query_results(),
+                    vec![true; vehicles.len()].as_ptr(),
+                );
+
+                phys_PxVehicleUpdates(
+                    delta,
+                    gravity.as_ptr(),
+                    null(),
+                    vehicles.len() as u32,
+                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
+                    null_mut(),
+                    null_mut(),
+                );
+            }
+        }
+
         scene.simulate(delta, None, None);
         scene.fetch_results(true).unwrap();
     }
@@ -152,18 +195,36 @@ pub fn create_dynamic_actors(
                 );
 
                 if let Some(_) = vehicle_cfg {
+                    let center_of_mass = match mass_props {
+                        Some(BPxMassProperties::Density { density: _, center }) => *center,
+                        Some(BPxMassProperties::Mass { mass: _, center }) => *center,
+                        None => Vec3::ZERO,
+                    };
+
+                    // this is needed to correctly calculate wheel offsets in the very first frame
+                    actor.set_c_mass_local_pose(&Transform::from_translation(center_of_mass).to_physx());
+
                     let wheel_count = wheels.len() as u32;
                     let wheel_sim_data = unsafe { PxVehicleWheelsSimData_allocate_mut(wheel_count).as_mut().unwrap() };
                     let mut suspension_spring_masses = vec![0f32; wheel_count as usize];
 
                     unsafe {
                         let wheel_offsets = wheels.iter().map(|w| w.2.translation.to_physx_sys()).collect::<Vec<_>>();
+                        let gravity = PxScene_getGravity(scene.as_ptr()).to_bevy().abs();
+                        let max_gravity_element = gravity.max_element();
+
                         phys_PxVehicleComputeSprungMasses(
                             wheel_count,
                             wheel_offsets.as_ptr(),
-                            PxVec3::new(0., 0., 0.).as_ptr(),
+                            center_of_mass.to_physx_sys().as_ptr(),
                             actor.get_mass(),
-                            1,
+                            if max_gravity_element == gravity.x {
+                                0 // X
+                            } else if max_gravity_element == gravity.y {
+                                1 // Y
+                            } else {
+                                2 // Z
+                            },
                             suspension_spring_masses.as_mut_ptr()
                         );
                     }
@@ -201,7 +262,7 @@ pub fn create_dynamic_actors(
 
                             PxVehicleWheelsSimData_setWheelCentreOffset_mut(
                                 wheel_sim_data, wheel_idx,
-                                transform.translation.to_physx_sys().as_ptr()
+                                (transform.translation - center_of_mass).to_physx_sys().as_ptr()
                             );
 
                             PxVehicleWheelsSimData_setSuspForceAppPointOffset_mut(
@@ -221,6 +282,9 @@ pub fn create_dynamic_actors(
 
                     let vehicle = unsafe { PxVehicleNoDrive_allocate_mut(wheel_count) };
                     unsafe { PxVehicleNoDrive_setup_mut(vehicle, physics.as_mut_ptr(), actor.as_mut_ptr(), wheel_sim_data); }
+
+                    commands.entity(entity)
+                        .insert(BPxVehicleHandle { ptr: vehicle as *mut _, wheels: wheel_count as usize });
                 }
 
                 match mass_props {

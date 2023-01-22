@@ -1,9 +1,15 @@
-use std::{ptr::drop_in_place, ops::{Deref, DerefMut}};
+use std::ptr::drop_in_place;
+use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
-use physx_sys::{PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags, PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData, PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData};
+use physx_sys::{
+    PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags,
+    PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData,
+    PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData,
+    PxVehicleWheels,
+};
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
@@ -114,6 +120,26 @@ pub struct BPxRigidStaticHandle(Owner<PxRigidStatic>);
 impl BPxRigidStaticHandle {
     pub fn new(px_rigid_static: Owner<PxRigidStatic>) -> Self {
         Self(px_rigid_static)
+    }
+}
+
+#[derive(Component)]
+pub struct BPxVehicleHandle {
+    // it should be Owner<PxVehicleXXXX> when physx implements vehicles,
+    // for now we drop pointer manually, similar to what Owner does
+    pub ptr: *mut PxVehicleWheels,
+    pub wheels: usize,
+}
+
+// need some advice on soundness of implementing Send for *mut X
+unsafe impl Send for BPxVehicleHandle {}
+unsafe impl Sync for BPxVehicleHandle {}
+
+impl Drop for BPxVehicleHandle {
+    fn drop(&mut self) {
+        unsafe {
+            drop_in_place(self.ptr);
+        }
     }
 }
 
