@@ -20,10 +20,10 @@ use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync};
 use crate::resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer};
 
 type PxMaterial = physx::material::PxMaterial<()>;
-type PxShape = physx::shape::PxShape<(), PxMaterial>;
+type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
 type PxArticulationLink = physx::articulation_link::PxArticulationLink<(), PxShape>;
-type PxRigidStatic = physx::rigid_static::PxRigidStatic<(), PxShape>;
-type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<(), PxShape>;
+type PxRigidStatic = physx::rigid_static::PxRigidStatic<Entity, PxShape>;
+type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<Entity, PxShape>;
 type PxArticulation = physx::articulation::PxArticulation<(), PxArticulationLink>;
 type PxArticulationReducedCoordinate =
     physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<(), PxArticulationLink>;

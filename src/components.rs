@@ -34,7 +34,7 @@ impl BPxShapeHandle {
         Self(Some(px_shape))
     }
 
-    pub fn create_shape(physics: &mut BPxPhysics, geometry: &mut BPxGeometry, material: &mut BPxMaterial) -> Self {
+    pub fn create_shape(physics: &mut BPxPhysics, geometry: &mut BPxGeometry, material: &mut BPxMaterial, user_data: Entity) -> Self {
         let geometry_ptr = match geometry {
             BPxGeometry::Sphere(geom)  => { geom.as_ptr() },
             BPxGeometry::Plane(geom)   => { geom.as_ptr() },
@@ -66,7 +66,7 @@ impl BPxShapeHandle {
                     true,
                     (ShapeFlag::SceneQueryShape | ShapeFlag::SimulationShape | ShapeFlag::Visualization).into_px(),
                 ),
-                ()
+                user_data
             ).unwrap()
         };
 

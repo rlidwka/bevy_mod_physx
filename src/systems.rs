@@ -11,7 +11,7 @@ use physx_sys::{
     PxVehicleWheelsSimData_setWheelCentreOffset_mut, PxVehicleWheelsSimData_setSuspTravelDirection_mut,
     PxVehicleWheelsSimData_setSuspensionData_mut, PxVehicleWheelsSimData_setTireData_mut,
     PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts,
+    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose,
 };
 
 
@@ -144,7 +144,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }
 
         let material = material.unwrap(); // we create default material above, so we guarantee it exists
-        let mut shape_handle = BPxShapeHandle::create_shape(physics, geometry, material);
+        let mut shape_handle = BPxShapeHandle::create_shape(physics, geometry, material, entity);
 
         unsafe {
             PxShape_setLocalPose_mut(
@@ -180,7 +180,7 @@ pub fn create_dynamic_actors(
     for (entity, actor_cfg, transform, mass_props, vehicle_cfg, velocity) in new_actors.iter() {
         match actor_cfg {
             BPxActor::Dynamic => {
-                let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&transform.to_physx(), ()).unwrap();
+                let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&transform.to_physx(), entity).unwrap();
 
                 let wheels = find_and_attach_nested_shapes(
                     &mut commands,
@@ -283,6 +283,11 @@ pub fn create_dynamic_actors(
                     let vehicle = unsafe { PxVehicleNoDrive_allocate_mut(wheel_count) };
                     unsafe { PxVehicleNoDrive_setup_mut(vehicle, physics.as_mut_ptr(), actor.as_mut_ptr(), wheel_sim_data); }
 
+                    unsafe {
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 2, -1000.);
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 3, -1000.);
+                    }
+
                     commands.entity(entity)
                         .insert(BPxVehicleHandle { ptr: vehicle as *mut _, wheels: wheel_count as usize });
                 }
@@ -322,7 +327,7 @@ pub fn create_dynamic_actors(
             }
 
             BPxActor::Static => {
-                let mut actor : Owner<PxRigidStatic> = physics.create_static(transform.to_physx(), ()).unwrap();
+                let mut actor : Owner<PxRigidStatic> = physics.create_static(transform.to_physx(), entity).unwrap();
 
                 find_and_attach_nested_shapes(
                     &mut commands,
@@ -358,24 +363,44 @@ pub fn create_dynamic_actors(
 
 pub fn writeback_actors(
     global_transforms: Query<&GlobalTransform>,
-    mut actors: Query<(&BPxRigidDynamicHandle, Option<&Parent>, Option<&mut Transform>, Option<&mut BPxVelocity>)>
+    parents: Query<&Parent>,
+    mut writeback_transform: Query<&mut Transform>,
+    mut actors: Query<(Entity, &BPxRigidDynamicHandle, Option<&Parent>, Option<&mut BPxVelocity>)>
 ) {
-    for (actor, parent, transform, velocity) in actors.iter_mut() {
+    for (actor_entity, actor, parent, velocity) in actors.iter_mut() {
         let xform = actor.get_global_pose();
+        let mut actor_xform = xform.to_bevy();
 
-        if let Some(mut transform) = transform {
-            let mut new_xform = xform.to_bevy();
+        if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+            let (_scale, inv_rotation, inv_translation) =
+                parent_transform.affine().inverse().to_scale_rotation_translation();
 
-            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+            actor_xform.rotation = inv_rotation * actor_xform.rotation;
+            actor_xform.translation = inv_rotation * actor_xform.translation + inv_translation;
+        }
+
+        if let Ok(mut transform) = writeback_transform.get_mut(actor_entity) {
+            // avoid triggering bevy's change tracking if no change
+            if actor_xform != *transform { *transform = actor_xform; }
+        }
+
+        for shape in actor.get_shapes() {
+            let shape_entity = *shape.get_user_data();
+            let shape_local_xform = unsafe { PxShape_getLocalPose(shape.as_ptr()) }.to_bevy();
+            let mut shape_xform = actor_xform * shape_local_xform;
+
+            if let Some(parent_transform) = parents.get(shape_entity).ok().and_then(|p| global_transforms.get(**p).ok()) {
                 let (_scale, inv_rotation, inv_translation) =
                     parent_transform.affine().inverse().to_scale_rotation_translation();
 
-                new_xform.rotation = inv_rotation * new_xform.rotation;
-                new_xform.translation = inv_rotation * new_xform.translation + inv_translation;
+                shape_xform.rotation = inv_rotation * shape_xform.rotation;
+                shape_xform.translation = inv_rotation * shape_xform.translation + inv_translation;
             }
 
-            // avoid triggering bevy's change tracking if no change
-            if new_xform != *transform { *transform = new_xform; }
+            if let Ok(mut transform) = writeback_transform.get_mut(shape_entity) {
+                // avoid triggering bevy's change tracking if no change
+                if shape_xform != *transform { *transform = shape_xform; }
+            }
         }
 
         if let Some(mut velocity) = velocity {

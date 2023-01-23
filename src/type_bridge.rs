@@ -60,6 +60,12 @@ impl IntoBevyQuat for PxQuat {
     }
 }
 
+impl IntoBevyQuat for physx_sys::PxQuat {
+    fn to_bevy(&self) -> Quat {
+        Quat::from_xyzw(self.x, self.y, self.z, self.w)
+    }
+}
+
 impl IntoPxTransform for Transform {
     fn to_physx(&self) -> PxTransform {
         PxTransform::from_translation_rotation(
@@ -85,6 +91,16 @@ impl IntoBevyTransform for PxTransform {
         Transform {
             translation: self.translation().to_bevy(),
             rotation: self.rotation().to_bevy(),
+            scale: Vec3::splat(1.),
+        }
+    }
+}
+
+impl IntoBevyTransform for physx_sys::PxTransform {
+    fn to_bevy(&self) -> Transform {
+        Transform {
+            translation: self.p.to_bevy(),
+            rotation: self.q.to_bevy(),
             scale: Vec3::splat(1.),
         }
     }
