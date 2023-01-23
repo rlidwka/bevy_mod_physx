@@ -6,7 +6,8 @@ use flying_camera::*;
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxShape, BPxVehicle, BPxVehicleWheel, BPxVehicleWheelData, BPxVehicleSuspensionData, BPxMassProperties};
-use bevy_physx::resources::{BPxPhysics, BPxCooking};
+use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
+use physx_sys::PxVehicleDrivableSurfaceType;
 
 fn main() {
     App::new()
@@ -97,6 +98,7 @@ fn spawn_vehicle(
     assets: Res<AssetServer>,
     mut physics: ResMut<BPxPhysics>,
     mut cooking: ResMut<BPxCooking>,
+    mut friction_pairs: ResMut<BPxVehicleFrictionPairs>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
@@ -140,6 +142,9 @@ fn spawn_vehicle(
         BPxGeometry::cylinder(&mut physics, &mut cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
     );
     let material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
+
+    friction_pairs.setup(&[ px_materials.get(&material).unwrap() ], &[ PxVehicleDrivableSurfaceType { mType: 0 } ]);
+    friction_pairs.set_type_pair_friction(0, 0, 1000.);
 
     commands.spawn_empty()
         .insert(SceneBundle {

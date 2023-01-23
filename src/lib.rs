@@ -15,9 +15,7 @@ pub mod resources;
 
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
-use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync};
-
-use crate::resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer};
+use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync, BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -65,7 +63,8 @@ impl Plugin for BPxPlugin {
         }
 
         if self.vehicles {
-            app.insert_non_send_resource(BPxVehicleRaycastBuffer::default());
+            app.insert_resource(BPxVehicleRaycastBuffer::default());
+            app.insert_resource(BPxVehicleFrictionPairs::default());
         }
 
         app.insert_resource(scene);

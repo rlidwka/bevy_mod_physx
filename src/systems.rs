@@ -14,17 +14,13 @@ use physx_sys::{
     PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose,
 };
 
-
-use crate::components::BPxVehicleHandle;
-use crate::resources::BPxVehicleRaycastBuffer;
-
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::components::{
     BPxActor, BPxMassProperties, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxShapeHandle,
-    BPxVehicle, BPxVehicleWheel, BPxVelocity
+    BPxVehicle, BPxVehicleWheel, BPxVelocity, BPxVehicleHandle
 };
-use super::resources::{BPxDefaultMaterial, BPxPhysics, BPxScene, BPxTimeSync};
+use super::resources::{BPxDefaultMaterial, BPxPhysics, BPxScene, BPxTimeSync, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVehicle>, Option<&'a BPxVelocity>),
@@ -41,6 +37,7 @@ pub fn scene_simulate(
     mut scene: ResMut<BPxScene>,
     mut timesync: ResMut<BPxTimeSync>,
     mut raycastbuf: ResMut<BPxVehicleRaycastBuffer>,
+    friction_pairs: Res<BPxVehicleFrictionPairs>,
     mut vehicles: Query<&mut BPxVehicleHandle>,
 ) {
     timesync.advance_bevy_time(&time);
@@ -70,7 +67,7 @@ pub fn scene_simulate(
                 phys_PxVehicleUpdates(
                     delta,
                     gravity.as_ptr(),
-                    null(),
+                    **friction_pairs,
                     vehicles.len() as u32,
                     vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
                     null_mut(),

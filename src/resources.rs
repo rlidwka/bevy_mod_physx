@@ -2,7 +2,15 @@ use bevy::prelude::*;
 use physx::cooking::{PxCooking, PxCookingParams};
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{phys_PxInitVehicleSDK, phys_PxVehicleSetBasisVectors, phys_PxVehicleSetUpdateMode, PxVehicleUpdateMode, phys_PxCloseVehicleSDK, PxRaycastHit, PxBatchQueryDesc_new, PxRaycastQueryResult, PxFilterData, PxQueryHitType, PxHitFlags, PxScene_createBatchQuery_mut, PxBatchQuery};
+use physx_sys::{
+    phys_PxInitVehicleSDK, phys_PxVehicleSetBasisVectors, phys_PxVehicleSetUpdateMode, PxVehicleUpdateMode,
+    phys_PxCloseVehicleSDK, PxRaycastHit, PxBatchQueryDesc_new, PxRaycastQueryResult, PxFilterData, PxQueryHitType,
+    PxHitFlags, PxScene_createBatchQuery_mut, PxBatchQuery, PxVehicleDrivableSurfaceToTireFrictionPairs,
+    PxVehicleDrivableSurfaceToTireFrictionPairs_allocate_mut, PxVehicleDrivableSurfaceType,
+    PxVehicleDrivableSurfaceToTireFrictionPairs_setup_mut, PxVehicleDrivableSurfaceToTireFrictionPairs_release_mut,
+    PxVehicleDrivableSurfaceToTireFrictionPairs_setTypePairFriction_mut,
+    PxVehicleDrivableSurfaceToTireFrictionPairs_getTypePairFriction
+};
 use std::ffi::c_void;
 use std::ops::{Deref, DerefMut};
 use std::ptr::{null_mut, drop_in_place};
@@ -194,6 +202,70 @@ impl Drop for BPxVehicleRaycastBuffer {
     fn drop(&mut self) {
         if !self.batch_query.is_null() {
             unsafe { drop_in_place(self.batch_query); }
+        }
+    }
+}
+
+#[derive(Resource, Deref, DerefMut)]
+pub struct BPxVehicleFrictionPairs(
+    *mut PxVehicleDrivableSurfaceToTireFrictionPairs
+);
+
+unsafe impl Send for BPxVehicleFrictionPairs {}
+unsafe impl Sync for BPxVehicleFrictionPairs {}
+
+impl BPxVehicleFrictionPairs {
+    pub fn setup(&mut self, drivable_surface_materials: &[&BPxMaterial], drivable_surface_types: &[PxVehicleDrivableSurfaceType]) {
+        if !self.0.is_null() {
+            unsafe { drop_in_place(self.0); }
+        }
+
+        self.0 = unsafe {
+            PxVehicleDrivableSurfaceToTireFrictionPairs_allocate_mut(
+                drivable_surface_materials.len() as u32,
+                drivable_surface_types.len() as u32,
+            )
+        };
+
+        let mut materials_px = drivable_surface_materials.iter().map(|m| (*m).as_ptr()).collect::<Vec<_>>();
+
+        unsafe {
+            PxVehicleDrivableSurfaceToTireFrictionPairs_setup_mut(
+                self.0,
+                drivable_surface_materials.len() as u32,
+                drivable_surface_types.len() as u32,
+                materials_px.as_mut_ptr(),
+                drivable_surface_types.as_ptr(),
+            );
+        }
+    }
+
+    pub fn set_type_pair_friction(&mut self, surface_type: u32, tire_type: u32, value: f32) {
+        unsafe {
+            PxVehicleDrivableSurfaceToTireFrictionPairs_setTypePairFriction_mut(self.0, surface_type, tire_type, value);
+        }
+    }
+
+    pub fn get_type_pair_friction(&mut self, surface_type: u32, tire_type: u32) -> f32 {
+        unsafe {
+            PxVehicleDrivableSurfaceToTireFrictionPairs_getTypePairFriction(self.0, surface_type, tire_type)
+        }
+    }
+}
+
+impl Default for BPxVehicleFrictionPairs {
+    fn default() -> Self {
+        Self(unsafe { PxVehicleDrivableSurfaceToTireFrictionPairs_allocate_mut(0, 0) })
+    }
+}
+
+impl Drop for BPxVehicleFrictionPairs {
+    fn drop(&mut self) {
+        if !self.0.is_null() {
+            unsafe {
+                PxVehicleDrivableSurfaceToTireFrictionPairs_release_mut(self.0);
+                drop_in_place(self.0);
+            }
         }
     }
 }
