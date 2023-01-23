@@ -78,6 +78,7 @@ impl Plugin for BPxPlugin {
         struct PhysXStage;
 
         let mut stage = SystemStage::parallel();
+        stage.add_system(systems::vehicle_no_drive_update.before(systems::scene_simulate));
         stage.add_system(systems::scene_simulate);
         stage.add_system(systems::create_dynamic_actors.after(systems::scene_simulate));
         stage.add_system(systems::writeback_actors.after(systems::scene_simulate));

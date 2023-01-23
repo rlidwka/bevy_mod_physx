@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ptr::{null, null_mut};
 use bevy::prelude::*;
 use physx::prelude::*;
@@ -11,19 +12,19 @@ use physx_sys::{
     PxVehicleWheelsSimData_setWheelCentreOffset_mut, PxVehicleWheelsSimData_setSuspTravelDirection_mut,
     PxVehicleWheelsSimData_setSuspensionData_mut, PxVehicleWheelsSimData_setTireData_mut,
     PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
+    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut, PxVehicleNoDrive, PxVehicleNoDrive_setBrakeTorque_mut, PxVehicleNoDrive_setSteerAngle_mut,
 };
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::components::{
     BPxActor, BPxMassProperties, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxShapeHandle,
-    BPxVehicle, BPxVehicleWheel, BPxVelocity, BPxVehicleHandle
+    BPxVehicleNoDrive, BPxVehicleWheel, BPxVelocity, BPxVehicleHandle
 };
 use super::resources::{BPxDefaultMaterial, BPxPhysics, BPxScene, BPxTimeSync, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVehicle>, Option<&'a BPxVelocity>),
+    (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVehicleNoDrive>, Option<&'a BPxVelocity>),
     (Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>)
 >;
 
@@ -113,14 +114,11 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     query: &ShapesQuery,
     actor_transform: &GlobalTransform,
     default_material: &mut ResMut<BPxDefaultMaterial>,
-) -> Vec<(i32, BPxVehicleWheel, Transform)> {
+) {
     let mut found_shapes = vec![];
     find_nested_shapes(entity, query, &mut found_shapes, 0);
 
-    let mut shape_index = 0;
-    let mut wheels = vec![];
-
-    for (entity, shape_cfg, wheel_cfg, gtransform) in found_shapes {
+    for (entity, shape_cfg, _, gtransform) in found_shapes {
         let BPxShape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
         let geometry = geometries.get_mut(&geometry).expect("geometry not found for BPxGeometry");
         let mut material = materials.get_mut(&material);
@@ -160,18 +158,11 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
             }
         }
 
-        shape_index += 1;
         actor.attach_shape(&mut shape_handle);
-
-        if let Some(wheel_cfg) = wheel_cfg {
-            wheels.push((shape_index - 1, wheel_cfg, relative_transform));
-        }
 
         commands.entity(entity)
             .insert(shape_handle);
     }
-
-    wheels
 }
 
 pub fn create_dynamic_actors(
@@ -184,12 +175,12 @@ pub fn create_dynamic_actors(
     mut materials: ResMut<Assets<BPxMaterial>>,
     mut default_material: ResMut<BPxDefaultMaterial>,
 ) {
-    for (entity, actor_cfg, transform, mass_props, vehicle_cfg, velocity) in new_actors.iter() {
+    for (entity, actor_cfg, actor_transform, mass_props, vehicle_cfg, velocity) in new_actors.iter() {
         match actor_cfg {
             BPxActor::Dynamic => {
-                let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&transform.to_physx(), entity).unwrap();
+                let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&actor_transform.to_physx(), entity).unwrap();
 
-                let wheels = find_and_attach_nested_shapes(
+                find_and_attach_nested_shapes(
                     &mut commands,
                     entity,
                     actor.as_mut(),
@@ -197,16 +188,31 @@ pub fn create_dynamic_actors(
                     &mut geometries,
                     &mut materials,
                     &query,
-                    &transform,
+                    &actor_transform,
                     &mut default_material,
                 );
 
-                if let Some(_) = vehicle_cfg {
+                if let Some(vehicle_cfg) = vehicle_cfg {
                     let center_of_mass = match mass_props {
                         Some(BPxMassProperties::Density { density: _, center }) => *center,
                         Some(BPxMassProperties::Mass { mass: _, center }) => *center,
                         None => Vec3::ZERO,
                     };
+
+                    let mut shape_mapping = HashMap::new();
+                    for (idx, shape) in actor.get_shapes().into_iter().enumerate() {
+                        shape_mapping.insert(*shape.get_user_data(), idx);
+                    }
+
+                    let wheels = vehicle_cfg.get_wheels().into_iter().map(|wheel| {
+                        let (_, _, _, _, wheel_cfg, gtransform) = query.get(*wheel).ok()?;
+                        let relative_transform = gtransform.map(|gtransform| {
+                            let xform = actor_transform.affine().inverse() * gtransform.affine();
+                            Transform::from_matrix(xform.into())
+                        }).unwrap_or_default();
+
+                        Some((shape_mapping.get(&wheel)?, wheel_cfg?, relative_transform))
+                    }).collect::<Vec<_>>();
 
                     // this is needed to correctly calculate wheel offsets in the very first frame
                     actor.set_c_mass_local_pose(&Transform::from_translation(center_of_mass).to_physx());
@@ -216,7 +222,10 @@ pub fn create_dynamic_actors(
                     let mut suspension_spring_masses = vec![0f32; wheel_count as usize];
 
                     unsafe {
-                        let wheel_offsets = wheels.iter().map(|w| w.2.translation.to_physx_sys()).collect::<Vec<_>>();
+                        let wheel_offsets = wheels.iter().map(|w| {
+                            w.and_then(|w| Some(w.2.translation.to_physx_sys())).unwrap_or_else(|| Vec3::ZERO.to_physx_sys())
+                        }).collect::<Vec<_>>();
+
                         let gravity = PxScene_getGravity(scene.as_ptr()).to_bevy().abs();
                         let max_gravity_element = gravity.max_element();
 
@@ -236,7 +245,8 @@ pub fn create_dynamic_actors(
                         );
                     }
 
-                    for (wheel_idx, (shape_idx, wheel_cfg, transform)) in wheels.into_iter().enumerate() {
+                    for (wheel_idx, wheel_params) in wheels.into_iter().enumerate() {
+                        let Some((shape_idx, wheel_cfg, transform)) = wheel_params else { continue; };
                         let wheel_idx = wheel_idx as u32;
 
                         wheel_cfg.wheel_data.to_physx();
@@ -283,19 +293,12 @@ pub fn create_dynamic_actors(
                             );
 
                             //PxVehicleWheelsSimData_setSceneQueryFilterData_mut(wheel_sim_data, wheel_idx, sq_filter_data);
-                            PxVehicleWheelsSimData_setWheelShapeMapping_mut(wheel_sim_data, wheel_idx, shape_idx);
+                            PxVehicleWheelsSimData_setWheelShapeMapping_mut(wheel_sim_data, wheel_idx, *shape_idx as i32);
                         }
                     }
 
                     let vehicle = unsafe { PxVehicleNoDrive_allocate_mut(wheel_count) };
                     unsafe { PxVehicleNoDrive_setup_mut(vehicle, physics.as_mut_ptr(), actor.as_mut_ptr(), wheel_sim_data); }
-
-                    unsafe {
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 0, 1000.);
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 1, 1000.);
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 2, 1000.);
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 3, 1000.);
-                    }
 
                     commands.entity(entity)
                         .insert(BPxVehicleHandle { ptr: vehicle as *mut _, wheels: wheel_count as usize });
@@ -336,7 +339,7 @@ pub fn create_dynamic_actors(
             }
 
             BPxActor::Static => {
-                let mut actor : Owner<PxRigidStatic> = physics.create_static(transform.to_physx(), entity).unwrap();
+                let mut actor : Owner<PxRigidStatic> = physics.create_static(actor_transform.to_physx(), entity).unwrap();
 
                 find_and_attach_nested_shapes(
                     &mut commands,
@@ -346,7 +349,7 @@ pub fn create_dynamic_actors(
                     &mut geometries,
                     &mut materials,
                     &query,
-                    &transform,
+                    &actor_transform,
                     &mut default_material,
                 );
 
@@ -393,8 +396,17 @@ pub fn writeback_actors(
             if actor_xform != *transform { *transform = actor_xform; }
         }
 
+        // this is actor transform from the previous frame
+        let actor_xform = Transform::from(global_transforms.get(actor_entity).copied().unwrap_or(GlobalTransform::IDENTITY));
+
         for shape in actor.get_shapes() {
             let shape_entity = *shape.get_user_data();
+            if shape_entity == actor_entity {
+                // we already updated actor entity above,
+                // and in this case local transform will always be IDENTITY
+                continue;
+            }
+
             let shape_local_xform = unsafe { PxShape_getLocalPose(shape.as_ptr()) }.to_bevy();
             let mut shape_xform = actor_xform * shape_local_xform;
 
@@ -420,6 +432,20 @@ pub fn writeback_actors(
 
             // avoid triggering bevy's change tracking if no change
             if newvel != *velocity { *velocity = newvel; }
+        }
+    }
+}
+
+pub fn vehicle_no_drive_update(
+    mut query: Query<(&BPxVehicleNoDrive, &mut BPxVehicleHandle), Or<(Changed<BPxVehicleNoDrive>, Added<BPxVehicleHandle>)>>
+) {
+    for (vehicle, handle) in query.iter_mut() {
+        for (idx, _entity) in vehicle.get_wheels().into_iter().enumerate() {
+            unsafe {
+                PxVehicleNoDrive_setDriveTorque_mut(handle.ptr as *mut PxVehicleNoDrive, idx as u32, vehicle.get_drive_torque(idx));
+                PxVehicleNoDrive_setBrakeTorque_mut(handle.ptr as *mut PxVehicleNoDrive, idx as u32, vehicle.get_brake_torque(idx));
+                PxVehicleNoDrive_setSteerAngle_mut(handle.ptr as *mut PxVehicleNoDrive, idx as u32, vehicle.get_steer_angle(idx));
+            }
         }
     }
 }

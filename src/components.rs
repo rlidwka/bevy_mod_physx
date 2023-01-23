@@ -186,7 +186,54 @@ impl BPxVelocity {
 }
 
 #[derive(Component, Clone)]
-pub struct BPxVehicle;
+pub struct BPxVehicleNoDrive {
+    wheels: Vec<Entity>,
+    controls: Vec<BPxVehicleNoDriveWheelControl>,
+}
+
+impl BPxVehicleNoDrive {
+    pub fn new(wheels: &[Entity]) -> Self {
+        Self {
+            wheels: wheels.to_vec(),
+            controls: wheels.into_iter().map(|_| default()).collect::<Vec<_>>(),
+        }
+    }
+
+    pub fn get_wheels(&self) -> &[Entity] {
+        &self.wheels
+    }
+
+    pub fn set_drive_torque(&mut self, wheel_id: usize, drive_torque: f32) {
+        self.controls[wheel_id].drive_torque = drive_torque;
+    }
+
+    pub fn set_brake_torque(&mut self, wheel_id: usize, brake_torque: f32) {
+        self.controls[wheel_id].brake_torque = brake_torque;
+    }
+
+    pub fn set_steer_angle(&mut self, wheel_id: usize, steer_angle: f32) {
+        self.controls[wheel_id].steer_angle = steer_angle;
+    }
+
+    pub fn get_drive_torque(&self, wheel_id: usize) -> f32 {
+        self.controls[wheel_id].drive_torque
+    }
+
+    pub fn get_brake_torque(&self, wheel_id: usize) -> f32 {
+        self.controls[wheel_id].brake_torque
+    }
+
+    pub fn get_steer_angle(&self, wheel_id: usize) -> f32 {
+        self.controls[wheel_id].steer_angle
+    }
+}
+
+#[derive(Clone, Default)]
+struct BPxVehicleNoDriveWheelControl {
+    drive_torque: f32,
+    brake_torque: f32,
+    steer_angle: f32,
+}
 
 #[derive(Debug, Component, Clone)]
 pub struct BPxVehicleWheel {

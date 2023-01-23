@@ -18,3 +18,4 @@ physx-sys = "0.8.1"
 
 [dev-dependencies]
 bevy-inspector-egui = "0.17.0"
+bevy_infinite_grid = "0.6.0"
