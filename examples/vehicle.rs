@@ -5,9 +5,24 @@ use flying_camera::*;
 
 use bevy_physx::BPxPlugin;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxShape, BPxVehicle, BPxVehicleWheel, BPxVehicleWheelData, BPxVehicleSuspensionData, BPxMassProperties};
+use bevy_physx::components::{BPxActor, BPxShape, BPxVehicle, BPxVehicleWheel, BPxVehicleWheelData, BPxVehicleSuspensionData, BPxMassProperties, BPxFilterData};
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
 use physx_sys::PxVehicleDrivableSurfaceType;
+
+const DRIVABLE_SURFACE: u32 = 0xffff0000;
+//const UNDRIVABLE_SURFACE: u32 = 0x0000ffff;
+
+const COLLISION_FLAG_GROUND: u32 = 1 << 0;
+//const COLLISION_FLAG_WHEEL: u32 = 1 << 1;
+const COLLISION_FLAG_CHASSIS: u32 = 1 << 2;
+const COLLISION_FLAG_OBSTACLE: u32 = 1 << 3;
+const COLLISION_FLAG_DRIVABLE_OBSTACLE: u32 = 1 << 4;
+
+const COLLISION_FLAG_GROUND_AGAINST: u32 = COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
+//const COLLISION_FLAG_WHEEL_AGAINST: u32 = COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE;
+//const COLLISION_FLAG_CHASSIS_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
+//const COLLISION_FLAG_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
+//const COLLISION_FLAG_DRIVABLE_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 
 fn main() {
     App::new()
@@ -88,6 +103,8 @@ fn spawn_plane(
                 .insert(BPxShape {
                     geometry: px_geometry,
                     material: px_material,
+                    query_filter_data: BPxFilterData::new(0, 0, 0, DRIVABLE_SURFACE),
+                    simulation_filter_data: BPxFilterData::new(COLLISION_FLAG_GROUND, COLLISION_FLAG_GROUND_AGAINST, 0, 0),
                 });
         })
         .insert(Name::new("Plane"));
@@ -126,7 +143,7 @@ fn spawn_vehicle(
     pub const WHEEL_MASS: f32 = 30.;
     pub const WHEEL_HALF_WIDTH: f32 = 0.17;
     pub const WHEEL_RADIUS: f32 = 0.49;
-    pub const WHEEL_SEGMENTS: usize = 16;
+    pub const WHEEL_SEGMENTS: usize = 24;
 
     const WHEEL_OFFSETS : [Vec3; 4] = [
         Vec3::new( 0.888138, 0.44912,  1.98057),
@@ -157,6 +174,7 @@ fn spawn_vehicle(
         .insert(BPxShape {
             material: material.clone(),
             geometry: hull_geometry.clone(),
+            ..default()
         })
         .with_children(|builder| {
             for wheel_idx in 0..4 {
@@ -196,6 +214,7 @@ fn spawn_vehicle(
                     .insert(BPxShape {
                         material: material.clone(),
                         geometry: wheel_geometry.clone(),
+                        ..default()
                     });
             }
         })

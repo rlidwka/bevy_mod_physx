@@ -8,7 +8,7 @@ use physx_sys::{
     PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags,
     PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData,
     PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData,
-    PxVehicleWheels,
+    PxVehicleWheels, PxFilterData, PxFilterData_new_2,
 };
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
@@ -20,10 +20,28 @@ pub enum BPxActor {
     Static,
 }
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Default)]
 pub struct BPxShape {
     pub geometry: Handle<BPxGeometry>,
     pub material: Handle<BPxMaterial>,
+    pub query_filter_data: BPxFilterData,
+    pub simulation_filter_data: BPxFilterData,
+}
+
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
+pub struct BPxFilterData([ u32; 4 ]);
+
+impl BPxFilterData {
+    pub fn new(word0: u32, word1: u32, word2: u32, word3: u32) -> Self {
+        Self([ word0, word1, word2, word3 ])
+    }
+}
+
+impl From<BPxFilterData> for PxFilterData {
+    fn from(value: BPxFilterData) -> Self {
+        let [ word0, word1, word2, word3 ] = value.0;
+        unsafe { PxFilterData_new_2(word0, word1, word2, word3) }
+    }
 }
 
 #[derive(Component)]
@@ -304,7 +322,7 @@ impl BPxVehicleSuspensionData {
         susp_data.mMaxDroop = self.max_droop;
         //susp_data.mSprungMass = self.sprung_mass;
         susp_data.mCamberAtRest = self.camber_at_rest;
-        susp_data.mCamberAtMaxCompression = self.max_compression;
+        susp_data.mCamberAtMaxCompression = self.camber_at_max_compression;
         susp_data.mCamberAtMaxDroop = self.camber_at_max_droop;
         susp_data
     }

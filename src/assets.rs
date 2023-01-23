@@ -140,7 +140,7 @@ impl BPxGeometry {
     }
 
     pub fn cylinder(physics: &mut BPxPhysics, cooking: &BPxCooking, half_height: f32, radius: f32, segments: usize) -> Self {
-        let mut points = [Vec3::default(); 2 * 16];
+        let mut points = vec![Vec3::default(); 2 * segments];
 
         for i in 0..segments {
             let cos_theta = (i as f32 * std::f32::consts::PI * 2. / segments as f32).cos();

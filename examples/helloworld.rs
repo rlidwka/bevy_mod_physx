@@ -88,6 +88,7 @@ fn spawn_plane(
                 .insert(BPxShape {
                     geometry: px_geometry,
                     material: px_material,
+                    ..default()
                 });
         })
         .insert(Name::new("Plane"));
@@ -129,7 +130,7 @@ fn spawn_stacks(
                             .insert(BPxMassProperties::density(10.))
                             .insert(BPxShape {
                                 geometry: px_geometry.clone(),
-                                material: default(),
+                                ..default()
                             });
                     }
                 }
@@ -168,6 +169,7 @@ fn spawn_dynamic(
         .insert(BPxShape {
             material: px_material.clone(),
             geometry: px_geometry.clone(),
+            ..default()
         })
         .insert(BPxVelocity::linear(Vec3::new(0., -6.25, -12.5)))
         .insert(Name::new("Ball"));

@@ -11,7 +11,7 @@ use physx_sys::{
     PxVehicleWheelsSimData_setWheelCentreOffset_mut, PxVehicleWheelsSimData_setSuspTravelDirection_mut,
     PxVehicleWheelsSimData_setSuspensionData_mut, PxVehicleWheelsSimData_setTireData_mut,
     PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose,
+    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
 };
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
@@ -121,7 +121,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     let mut wheels = vec![];
 
     for (entity, shape_cfg, wheel_cfg, gtransform) in found_shapes {
-        let BPxShape { geometry, material } = shape_cfg;
+        let BPxShape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
         let geometry = geometries.get_mut(&geometry).expect("geometry not found for BPxGeometry");
         let mut material = materials.get_mut(&material);
 
@@ -148,6 +148,16 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
                 shape_handle.as_mut_ptr(),
                 relative_transform.to_physx().as_ptr(),
             );
+
+            if query_filter_data != default() {
+                let pxfilterdata : PxFilterData = query_filter_data.into();
+                PxShape_setQueryFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
+            }
+
+            if simulation_filter_data != default() {
+                let pxfilterdata : PxFilterData = simulation_filter_data.into();
+                PxShape_setSimulationFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
+            }
         }
 
         shape_index += 1;
@@ -281,8 +291,10 @@ pub fn create_dynamic_actors(
                     unsafe { PxVehicleNoDrive_setup_mut(vehicle, physics.as_mut_ptr(), actor.as_mut_ptr(), wheel_sim_data); }
 
                     unsafe {
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 2, -1000.);
-                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 3, -1000.);
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 0, 1000.);
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 1, 1000.);
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 2, 1000.);
+                        PxVehicleNoDrive_setDriveTorque_mut(vehicle, 3, 1000.);
                     }
 
                     commands.entity(entity)
