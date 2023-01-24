@@ -40,7 +40,7 @@ type PxScene = physx::scene::PxScene<
     callbacks::OnAdvance,
 >;
 
-pub struct BPxPlugin {
+pub struct PhysXPlugin {
     pub vehicles: bool,
     pub cooking: bool,
     pub debugger: bool,
@@ -48,7 +48,7 @@ pub struct BPxPlugin {
     pub timestep: f32,
 }
 
-impl Plugin for BPxPlugin {
+impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
         let mut physics = BPxPhysics::new(self.debugger, self.vehicles);
         let scene = BPxScene::new(&mut physics, self.gravity);
@@ -87,7 +87,7 @@ impl Plugin for BPxPlugin {
     }
 }
 
-impl Default for BPxPlugin {
+impl Default for PhysXPlugin {
     fn default() -> Self {
         Self {
             vehicles: true,

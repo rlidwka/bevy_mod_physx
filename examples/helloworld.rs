@@ -3,7 +3,7 @@ mod flying_camera;
 use bevy::prelude::*;
 use flying_camera::*;
 
-use bevy_physx::BPxPlugin;
+use bevy_physx::prelude::*;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape, BPxMassProperties};
 use bevy_physx::resources::BPxPhysics;
@@ -25,7 +25,7 @@ fn main() {
         }))
         .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
         .add_system(bevy::window::close_on_esc)
-        .add_plugin(BPxPlugin::default())
+        .add_plugin(PhysXPlugin::default())
         .add_plugin(FlyingCameraPlugin)
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_camera)
