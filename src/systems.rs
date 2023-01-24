@@ -284,12 +284,12 @@ pub fn create_dynamic_actors(
 
                             PxVehicleWheelsSimData_setSuspForceAppPointOffset_mut(
                                 wheel_sim_data, wheel_idx,
-                                wheel_cfg.susp_force_app_point_offset.to_physx_sys().as_ptr()
+                                (transform.translation - center_of_mass + wheel_cfg.susp_force_app_point_offset).to_physx_sys().as_ptr()
                             );
 
                             PxVehicleWheelsSimData_setTireForceAppPointOffset_mut(
                                 wheel_sim_data, wheel_idx,
-                                wheel_cfg.tire_force_app_point_offset.to_physx_sys().as_ptr()
+                                (transform.translation - center_of_mass + wheel_cfg.tire_force_app_point_offset).to_physx_sys().as_ptr()
                             );
 
                             //PxVehicleWheelsSimData_setSceneQueryFilterData_mut(wheel_sim_data, wheel_idx, sq_filter_data);

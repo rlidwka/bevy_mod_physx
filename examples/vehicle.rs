@@ -185,8 +185,8 @@ fn spawn_vehicle(
                         spring_damper_rate: 4500.,
                         ..default()
                     },
-                    susp_force_app_point_offset: wheel_offset - Vec3::Y * 0.3,
-                    tire_force_app_point_offset: wheel_offset - Vec3::Y * 0.3,
+                    susp_force_app_point_offset: Vec3::NEG_Y * 0.3,
+                    tire_force_app_point_offset: Vec3::NEG_Y * 0.3,
                     ..default()
                 })
                 .insert(BPxShape {
