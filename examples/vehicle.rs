@@ -105,7 +105,7 @@ fn spawn_vehicle(
     mut commands: Commands,
     assets: Res<AssetServer>,
     mut physics: ResMut<BPxPhysics>,
-    mut cooking: ResMut<BPxCooking>,
+    cooking: Res<BPxCooking>,
     mut friction_pairs: ResMut<BPxVehicleFrictionPairs>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
@@ -154,10 +154,10 @@ fn spawn_vehicle(
     ];
 
     let hull_geometry = px_geometries.add(
-        BPxGeometry::convex_mesh(&mut physics, &mut cooking, &HULL_VERTICES)
+        BPxGeometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES)
     );
     let wheel_geometry = px_geometries.add(
-        BPxGeometry::cylinder(&mut physics, &mut cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
+        BPxGeometry::cylinder(&mut physics, &cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
     );
     let material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -166,10 +166,10 @@ fn spawn_vehicle(
 
     let mut wheels = vec![];
 
-    for wheel_idx in 0..4 {
+    for (wheel_idx, wheel_offset) in WHEEL_OFFSETS.iter().copied().enumerate() {
         wheels.push(
             commands.spawn_empty()
-                .insert(SpatialBundle::from_transform(Transform::from_translation(WHEEL_OFFSETS[wheel_idx])))
+                .insert(SpatialBundle::from_transform(Transform::from_translation(wheel_offset)))
                 .insert(BPxVehicleWheel {
                     wheel_data: BPxVehicleWheelData {
                         mass: WHEEL_MASS,
@@ -185,8 +185,8 @@ fn spawn_vehicle(
                         spring_damper_rate: 4500.,
                         ..default()
                     },
-                    susp_force_app_point_offset: WHEEL_OFFSETS[wheel_idx] - Vec3::Y * 0.3,
-                    tire_force_app_point_offset: WHEEL_OFFSETS[wheel_idx] - Vec3::Y * 0.3,
+                    susp_force_app_point_offset: wheel_offset - Vec3::Y * 0.3,
+                    tire_force_app_point_offset: wheel_offset - Vec3::Y * 0.3,
                     ..default()
                 })
                 .insert(BPxShape {
@@ -219,8 +219,8 @@ fn spawn_vehicle(
         .insert(BPxMassProperties::mass_with_center(2800., Vec3::new(0., 0.7, 0.)))
         .insert(BPxVehicleNoDrive::new(&wheels))
         .insert(BPxShape {
-            material: material.clone(),
-            geometry: hull_geometry.clone(),
+            material,
+            geometry: hull_geometry,
             ..default()
         })
         .insert(Name::new("Vehicle"))

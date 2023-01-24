@@ -195,7 +195,7 @@ impl BPxVehicleNoDrive {
     pub fn new(wheels: &[Entity]) -> Self {
         Self {
             wheels: wheels.to_vec(),
-            controls: wheels.into_iter().map(|_| default()).collect::<Vec<_>>(),
+            controls: wheels.iter().map(|_| default()).collect::<Vec<_>>(),
         }
     }
 

@@ -50,7 +50,7 @@ pub fn scene_simulate(
             v.ptr
         }).collect::<Vec<_>>();
 
-        if vehicles.len() > 0 {
+        if !vehicles.is_empty() {
             raycastbuf.alloc(&mut scene, wheel_count);
 
             let gravity = unsafe { PxScene_getGravity(scene.as_ptr()) };
@@ -135,7 +135,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
                 ***default_material = Some(material);
             }
 
-            material = materials.get_mut(&default_material.as_ref().as_ref().unwrap());
+            material = materials.get_mut(default_material.as_ref().as_ref().unwrap());
         }
 
         let material = material.unwrap(); // we create default material above, so we guarantee it exists
@@ -188,7 +188,7 @@ pub fn create_dynamic_actors(
                     &mut geometries,
                     &mut materials,
                     &query,
-                    &actor_transform,
+                    actor_transform,
                     &mut default_material,
                 );
 
@@ -204,14 +204,14 @@ pub fn create_dynamic_actors(
                         shape_mapping.insert(*shape.get_user_data(), idx);
                     }
 
-                    let wheels = vehicle_cfg.get_wheels().into_iter().map(|wheel| {
+                    let wheels = vehicle_cfg.get_wheels().iter().map(|wheel| {
                         let (_, _, _, _, wheel_cfg, gtransform) = query.get(*wheel).ok()?;
                         let relative_transform = gtransform.map(|gtransform| {
                             let xform = actor_transform.affine().inverse() * gtransform.affine();
                             Transform::from_matrix(xform.into())
                         }).unwrap_or_default();
 
-                        Some((shape_mapping.get(&wheel)?, wheel_cfg?, relative_transform))
+                        Some((shape_mapping.get(wheel)?, wheel_cfg?, relative_transform))
                     }).collect::<Vec<_>>();
 
                     // this is needed to correctly calculate wheel offsets in the very first frame
@@ -349,7 +349,7 @@ pub fn create_dynamic_actors(
                     &mut geometries,
                     &mut materials,
                     &query,
-                    &actor_transform,
+                    actor_transform,
                     &mut default_material,
                 );
 
@@ -440,7 +440,7 @@ pub fn vehicle_no_drive_update(
     mut query: Query<(&BPxVehicleNoDrive, &mut BPxVehicleHandle), Or<(Changed<BPxVehicleNoDrive>, Added<BPxVehicleHandle>)>>
 ) {
     for (vehicle, handle) in query.iter_mut() {
-        for (idx, _entity) in vehicle.get_wheels().into_iter().enumerate() {
+        for (idx, _entity) in vehicle.get_wheels().iter().enumerate() {
             unsafe {
                 PxVehicleNoDrive_setDriveTorque_mut(handle.ptr as *mut PxVehicleNoDrive, idx as u32, vehicle.get_drive_torque(idx));
                 PxVehicleNoDrive_setBrakeTorque_mut(handle.ptr as *mut PxVehicleNoDrive, idx as u32, vehicle.get_brake_torque(idx));

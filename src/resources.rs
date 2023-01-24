@@ -71,10 +71,7 @@ impl DerefMut for BPxPhysics {
 impl Drop for BPxPhysics {
     fn drop(&mut self) {
         if self.vsdk {
-            unsafe {
-                phys_PxCloseVehicleSDK(null_mut());
-            }
-            return;
+            unsafe { phys_PxCloseVehicleSDK(null_mut()); }
         }
     }
 }
@@ -101,7 +98,7 @@ pub struct BPxCooking(Owner<PxCooking>);
 impl BPxCooking {
     pub fn new(physics: &mut BPxPhysics) -> Self {
         let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
-        let cooking = PxCooking::new(physics.foundation_mut(), &params).expect("failed to create cooking");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
         Self(cooking)
     }
 }

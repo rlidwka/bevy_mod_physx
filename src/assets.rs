@@ -147,7 +147,7 @@ impl BPxGeometry {
             let sin_theta = (i as f32 * std::f32::consts::PI * 2. / segments as f32).sin();
             let y = radius * cos_theta;
             let z = radius * sin_theta;
-            points[2 * i + 0] = Vec3::new(-half_height, y, z);
+            points[2 * i]    = Vec3::new(-half_height, y, z);
             points[2 * i + 1] = Vec3::new(half_height, y, z);
         }
 

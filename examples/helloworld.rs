@@ -135,7 +135,7 @@ fn spawn_stacks(
                     }
                 }
             })
-            .insert(Name::new(format!("Stack {}", i)));
+            .insert(Name::new(format!("Stack {i}")));
     }
 }
 
@@ -159,16 +159,16 @@ fn spawn_dynamic(
 
     commands.spawn_empty()
         .insert(PbrBundle {
-            mesh: mesh.clone(),
-            material: material.clone(),
+            mesh,
+            material,
             transform,
             ..default()
         })
         .insert(BPxActor::Dynamic)
         .insert(BPxMassProperties::density(10.))
         .insert(BPxShape {
-            material: px_material.clone(),
-            geometry: px_geometry.clone(),
+            material: px_material,
+            geometry: px_geometry,
             ..default()
         })
         .insert(BPxVelocity::linear(Vec3::new(0., -6.25, -12.5)))
