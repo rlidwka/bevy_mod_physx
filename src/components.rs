@@ -240,6 +240,7 @@ pub struct BPxVehicleWheel {
     pub wheel_data: BPxVehicleWheelData,
     pub tire_data: BPxVehicleTireData,
     pub suspension_data: BPxVehicleSuspensionData,
+    pub anti_roll_bar: BPxVehicleAntiRollBarData,
     pub susp_travel_direction: Vec3,
     pub susp_force_app_point_offset: Vec3,
     pub tire_force_app_point_offset: Vec3,
@@ -251,6 +252,7 @@ impl Default for BPxVehicleWheel {
             wheel_data: default(),
             tire_data: default(),
             suspension_data: default(),
+            anti_roll_bar: default(),
             susp_travel_direction: Vec3::new(0., -1., 0.),
             susp_force_app_point_offset: Vec3::ZERO,
             tire_force_app_point_offset: Vec3::ZERO,
@@ -392,6 +394,12 @@ impl Default for BPxVehicleSuspensionData {
     fn default() -> Self {
         Self::from_physx(unsafe { PxVehicleSuspensionData_new() })
     }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BPxVehicleAntiRollBarData {
+    pub with_wheel_id: u32,
+    pub stiffness: f32,
 }
 
 #[derive(Component, Debug, Clone)]

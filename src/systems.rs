@@ -12,7 +12,7 @@ use physx_sys::{
     PxVehicleWheelsSimData_setWheelCentreOffset_mut, PxVehicleWheelsSimData_setSuspTravelDirection_mut,
     PxVehicleWheelsSimData_setSuspensionData_mut, PxVehicleWheelsSimData_setTireData_mut,
     PxVehicleWheelsSimData_setWheelData_mut, PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut, PxVehicleNoDrive, PxVehicleNoDrive_setBrakeTorque_mut, PxVehicleNoDrive_setSteerAngle_mut,
+    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts, PxVehicleNoDrive_setDriveTorque_mut, PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut, PxVehicleNoDrive, PxVehicleNoDrive_setBrakeTorque_mut, PxVehicleNoDrive_setSteerAngle_mut, PxVehicleAntiRollBarData_new, PxVehicleWheelsSimData_addAntiRollBarData_mut,
 };
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
@@ -245,6 +245,8 @@ pub fn create_dynamic_actors(
                         );
                     }
 
+                    let mut anti_roll_bars = HashMap::new();
+
                     for (wheel_idx, wheel_params) in wheels.into_iter().enumerate() {
                         let Some((shape_idx, wheel_cfg, transform)) = wheel_params else { continue; };
                         let wheel_idx = wheel_idx as u32;
@@ -294,6 +296,23 @@ pub fn create_dynamic_actors(
 
                             //PxVehicleWheelsSimData_setSceneQueryFilterData_mut(wheel_sim_data, wheel_idx, sq_filter_data);
                             PxVehicleWheelsSimData_setWheelShapeMapping_mut(wheel_sim_data, wheel_idx, *shape_idx as i32);
+                        }
+
+                        if wheel_cfg.anti_roll_bar.stiffness > 0. {
+                            let entry: &mut f32 = anti_roll_bars.entry(
+                                (wheel_idx, wheel_cfg.anti_roll_bar.with_wheel_id)
+                            ).or_default();
+                            *entry += wheel_cfg.anti_roll_bar.stiffness;
+                        }
+                    }
+
+                    for ((wheel0, wheel1), stiffness) in anti_roll_bars.into_iter() {
+                        let mut anti_roll_bars_data = unsafe { PxVehicleAntiRollBarData_new() };
+                        anti_roll_bars_data.mWheel0 = wheel0;
+                        anti_roll_bars_data.mWheel1 = wheel1;
+                        anti_roll_bars_data.mStiffness = stiffness;
+                        unsafe {
+                            PxVehicleWheelsSimData_addAntiRollBarData_mut(wheel_sim_data, &anti_roll_bars_data as *const _);
                         }
                     }
 
