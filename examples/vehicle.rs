@@ -51,7 +51,7 @@ fn main() {
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_plane)
         .add_startup_system(spawn_vehicle)
-        .add_system(apply_controls)
+        .add_system(apply_vehicle_nodrive_controls)
         .run();
 }
 
@@ -228,11 +228,11 @@ fn spawn_vehicle(
         .add_child(camera);
 }
 
-fn apply_controls(
+fn apply_vehicle_nodrive_controls(
     mut player_query: Query<&mut BPxVehicleNoDrive, With<PlayerControlled>>,
     keys: Res<Input<KeyCode>>,
 ) {
-    let mut vehicle = player_query.single_mut();
+    let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
 
     if keys.just_pressed(KeyCode::W) {
         vehicle.set_drive_torque(2, 4000.);
