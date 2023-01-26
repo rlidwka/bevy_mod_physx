@@ -1,13 +1,13 @@
 mod flying_camera;
-
-use bevy::prelude::*;
 use flying_camera::*;
 
+use bevy::prelude::*;
+use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::prelude::*;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxShape, BPxVehicleWheel, BPxVehicleWheelData, BPxVehicleSuspensionData, BPxMassProperties, BPxFilterData, BPxVehicleNoDrive};
+use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicleNoDrive};
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
-use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
+use bevy_physx::vehicles::{VehicleNoDrive, VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData};
 use physx_sys::PxVehicleDrivableSurfaceType;
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
@@ -24,6 +24,42 @@ const COLLISION_FLAG_GROUND_AGAINST: u32 = COLLISION_FLAG_CHASSIS | COLLISION_FL
 //const COLLISION_FLAG_CHASSIS_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 //const COLLISION_FLAG_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 //const COLLISION_FLAG_DRIVABLE_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
+
+pub const GRAVITY_FORCE: Vec3 = Vec3::new(0., -9.81, 0.);
+pub const HULL_MASS: f32 = 2800.;
+pub const CENTER_OF_MASS: Vec3 = Vec3::new(0., 0.7, 0.);
+pub const HULL_VERTICES : [Vec3; 18] = [
+    Vec3::new(-0.92657, 1.44990, -2.83907),
+    Vec3::new( 0.92657, 1.44990, -2.83907),
+    Vec3::new(-0.73964, 1.85914,  0.41819),
+    Vec3::new( 0.73964, 1.85914,  0.41819),
+    Vec3::new(-0.96609, 1.11038,  2.57245),
+    Vec3::new( 0.96609, 1.11038,  2.57245),
+    Vec3::new(-0.62205, 1.01440,  2.84896),
+    Vec3::new( 0.62205, 1.01440,  2.84896),
+    Vec3::new(-0.92108, 0.63051, -2.74199),
+    Vec3::new( 0.92108, 0.63051, -2.74199),
+    Vec3::new(-0.65192, 0.46546,  2.74609),
+    Vec3::new( 0.65192, 0.46546,  2.74609),
+    Vec3::new(-0.98115, 0.46546,  2.48097),
+    Vec3::new( 0.98115, 0.46546,  2.48097),
+    Vec3::new(-0.90621, 0.38511, -1.06282),
+    Vec3::new( 0.90621, 0.38511, -1.06282),
+    Vec3::new(-0.90621, 0.34191,  1.26607),
+    Vec3::new( 0.90621, 0.34191,  1.26607),
+];
+
+pub const WHEEL_MASS: f32 = 250.;
+pub const WHEEL_HALF_WIDTH: f32 = 0.17;
+pub const WHEEL_RADIUS: f32 = 0.49;
+pub const WHEEL_SEGMENTS: usize = 24;
+pub const WHEEL_COUNT: usize = 4;
+pub const WHEEL_OFFSETS : [Vec3; WHEEL_COUNT] = [
+    Vec3::new( 0.888138, 0.44912,  1.98057),
+    Vec3::new(-0.888138, 0.44912,  1.98057),
+    Vec3::new( 0.888138, 0.44912, -1.76053),
+    Vec3::new(-0.888138, 0.44912, -1.76053),
+];
 
 #[derive(Component)]
 struct PlayerControlled;
@@ -46,7 +82,10 @@ fn main() {
         .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
         .add_system(bevy::window::close_on_esc)
         .add_plugin(InfiniteGridPlugin)
-        .add_plugin(PhysXPlugin::default())
+        .add_plugin(PhysXPlugin {
+            gravity: GRAVITY_FORCE,
+            ..default()
+        })
         .add_plugin(FlyingCameraPlugin)
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_plane)
@@ -101,6 +140,49 @@ fn spawn_plane(
     .insert(Name::new("Plane"));
 }
 
+fn create_vehicle_no_drive(wheels: [Entity; WHEEL_COUNT]) -> BPxVehicleNoDrive {
+    let mut wheel_sim_data = VehicleWheelsSimData::new(WHEEL_COUNT as u32).unwrap();
+    let cmass_offsets = WHEEL_OFFSETS.iter().map(|v| *v - CENTER_OF_MASS).collect::<Vec<_>>();
+
+    let suspension_spring_masses = vehicle_compute_sprung_masses(
+        &cmass_offsets.iter().map(|v| v.to_physx()).collect::<Vec<_>>(),
+        CENTER_OF_MASS.to_physx(),
+        HULL_MASS,
+        VehicleUtilGravityDirection::Y,
+    );
+
+    for idx in 0..WHEEL_COUNT as u32 {
+        wheel_sim_data.set_wheel_data(idx, VehicleWheelData {
+            mass: WHEEL_MASS,
+            radius: WHEEL_RADIUS,
+            width: WHEEL_HALF_WIDTH * 2.,
+            moi: 0.5 * WHEEL_MASS * WHEEL_RADIUS * WHEEL_RADIUS,
+            ..default()
+        });
+
+        wheel_sim_data.set_tire_data(idx, VehicleTireData {
+            tire_type: 0,
+            ..default()
+        });
+
+        wheel_sim_data.set_suspension_data(idx, VehicleSuspensionData {
+            max_compression: 0.01,
+            max_droop: 0.03,
+            spring_strength: 35000.,
+            spring_damper_rate: 4500.,
+            sprung_mass: suspension_spring_masses[idx as usize],
+            ..default()
+        });
+
+        wheel_sim_data.set_susp_travel_direction(idx, Vec3::new(0., -1., 0.).to_physx());
+        wheel_sim_data.set_wheel_centre_offset(idx, cmass_offsets[idx as usize].to_physx());
+        wheel_sim_data.set_susp_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
+        wheel_sim_data.set_tire_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
+    }
+
+    BPxVehicleNoDrive::new(wheels.to_vec(), wheel_sim_data)
+}
+
 fn spawn_vehicle(
     mut commands: Commands,
     assets: Res<AssetServer>,
@@ -120,39 +202,6 @@ fn spawn_vehicle(
     .insert(Name::new("Camera"))
     .id();
 
-    const HULL_VERTICES : [Vec3; 18] = [
-        Vec3::new(-0.92657, 1.44990, -2.83907),
-        Vec3::new( 0.92657, 1.44990, -2.83907),
-        Vec3::new(-0.73964, 1.85914,  0.41819),
-        Vec3::new( 0.73964, 1.85914,  0.41819),
-        Vec3::new(-0.96609, 1.11038,  2.57245),
-        Vec3::new( 0.96609, 1.11038,  2.57245),
-        Vec3::new(-0.62205, 1.01440,  2.84896),
-        Vec3::new( 0.62205, 1.01440,  2.84896),
-        Vec3::new(-0.92108, 0.63051, -2.74199),
-        Vec3::new( 0.92108, 0.63051, -2.74199),
-        Vec3::new(-0.65192, 0.46546,  2.74609),
-        Vec3::new( 0.65192, 0.46546,  2.74609),
-        Vec3::new(-0.98115, 0.46546,  2.48097),
-        Vec3::new( 0.98115, 0.46546,  2.48097),
-        Vec3::new(-0.90621, 0.38511, -1.06282),
-        Vec3::new( 0.90621, 0.38511, -1.06282),
-        Vec3::new(-0.90621, 0.34191,  1.26607),
-        Vec3::new( 0.90621, 0.34191,  1.26607),
-    ];
-
-    pub const WHEEL_MASS: f32 = 250.;
-    pub const WHEEL_HALF_WIDTH: f32 = 0.17;
-    pub const WHEEL_RADIUS: f32 = 0.49;
-    pub const WHEEL_SEGMENTS: usize = 24;
-
-    const WHEEL_OFFSETS : [Vec3; 4] = [
-        Vec3::new( 0.888138, 0.44912,  1.98057),
-        Vec3::new(-0.888138, 0.44912,  1.98057),
-        Vec3::new( 0.888138, 0.44912, -1.76053),
-        Vec3::new(-0.888138, 0.44912, -1.76053),
-    ];
-
     let hull_geometry = px_geometries.add(
         BPxGeometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES)
     );
@@ -166,29 +215,10 @@ fn spawn_vehicle(
 
     let mut wheels = vec![];
 
-    for (wheel_idx, wheel_offset) in WHEEL_OFFSETS.iter().copied().enumerate() {
+    for wheel_idx in 0..WHEEL_COUNT as u32 {
         wheels.push(
             commands.spawn_empty()
-                .insert(SpatialBundle::from_transform(Transform::from_translation(wheel_offset)))
-                .insert(BPxVehicleWheel {
-                    wheel_data: BPxVehicleWheelData {
-                        mass: WHEEL_MASS,
-                        radius: WHEEL_RADIUS,
-                        width: WHEEL_HALF_WIDTH * 2.,
-                        moi: 0.5 * WHEEL_MASS * WHEEL_RADIUS * WHEEL_RADIUS,
-                        ..default()
-                    },
-                    suspension_data: BPxVehicleSuspensionData {
-                        max_compression: 0.01,
-                        max_droop: 0.03,
-                        spring_strength: 35000.,
-                        spring_damper_rate: 4500.,
-                        ..default()
-                    },
-                    susp_force_app_point_offset: Vec3::NEG_Y * 0.3,
-                    tire_force_app_point_offset: Vec3::NEG_Y * 0.3,
-                    ..default()
-                })
+                .insert(SpatialBundle::from_transform(Transform::from_translation(WHEEL_OFFSETS[wheel_idx as usize])))
                 .insert(BPxShape {
                     material: material.clone(),
                     geometry: wheel_geometry.clone(),
@@ -216,8 +246,8 @@ fn spawn_vehicle(
         })
         .insert(PlayerControlled)
         .insert(BPxActor::Dynamic)
-        .insert(BPxMassProperties::mass_with_center(2800., Vec3::new(0., 0.7, 0.)))
-        .insert(BPxVehicleNoDrive::new(&wheels))
+        .insert(BPxMassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
+        .insert(create_vehicle_no_drive(wheels[..].try_into().unwrap()))
         .insert(BPxShape {
             material,
             geometry: hull_geometry,
@@ -233,6 +263,7 @@ fn apply_vehicle_nodrive_controls(
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
+    let Some(vehicle) = vehicle.vehicle_mut() else { return; };
 
     if keys.just_pressed(KeyCode::W) {
         vehicle.set_drive_torque(2, 4000.);

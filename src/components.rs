@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::ptr::drop_in_place;
 use std::ops::{Deref, DerefMut};
 
@@ -10,9 +11,13 @@ use physx_sys::{
     PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData,
     PxVehicleWheels, PxFilterData, PxFilterData_new_2, PxVehicleEngineData_new, PxVehicleEngineData, PxVehicleGearsData_new, PxVehicleGearsData, PxVehicleClutchData_new, PxVehicleClutchData, PxVehicleAutoBoxData, PxVehicleAutoBoxData_new, PxVehicleDifferential4WData_new, PxVehicleAckermannGeometryData, PxVehicleAckermannGeometryData_new, PxVehicleDifferential4WData, PxVehicleDriveSimData_setEngineData_mut, PxVehicleDriveSimData_setGearsData_mut, PxVehicleDriveSimData_setClutchData_mut, PxVehicleDriveSimData_setAutoBoxData_mut, PxVehicleDriveSimData_new, PxVehicleDriveSimData, PxVehicleDriveSimDataNW_new, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDriveSimData4W_new, PxVehicleDriveSimData4W_setAckermannGeometryData_mut, PxVehicleDriveSimData4W_setDiffData_mut,
 };
+
+use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive};
+
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
+use super::vehicles::VehicleWheelsSimData;
 
 #[derive(Component, Clone)]
 pub enum BPxActor {
@@ -185,54 +190,61 @@ impl BPxVelocity {
     }
 }
 
-#[derive(Component, Clone)]
+#[derive(Component)]
 pub struct BPxVehicleNoDrive {
-    wheels: Vec<Entity>,
-    controls: Vec<BPxVehicleNoDriveWheelControl>,
+    entities: Vec<Entity>,
+    inner: BPxVehicleNoDriveInner,
 }
 
 impl BPxVehicleNoDrive {
-    pub fn new(wheels: &[Entity]) -> Self {
+    pub fn new(wheels: Vec<Entity>, wheel_data: crate::vehicles::Owner<VehicleWheelsSimData>) -> Self {
         Self {
-            wheels: wheels.to_vec(),
-            controls: wheels.iter().map(|_| default()).collect::<Vec<_>>(),
+            entities: wheels,
+            inner: BPxVehicleNoDriveInner::Uninit(wheel_data),
         }
     }
 
-    pub fn get_wheels(&self) -> &[Entity] {
-        &self.wheels
+    pub fn initialize(&mut self, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) {
+        let BPxVehicleNoDriveInner::Uninit(wheels_data) = &mut self.inner else {
+            panic!("already initialized");
+        };
+
+        let mut shape_mapping = HashMap::new();
+        for (idx, shape) in actor.get_shapes().into_iter().enumerate() {
+            shape_mapping.insert(*shape.get_user_data(), idx as i32);
+        }
+
+        for (wheel_id, entity) in self.entities.iter().enumerate() {
+            wheels_data.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+        }
+
+        let vehicle = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_data).unwrap();
+
+        self.inner = BPxVehicleNoDriveInner::Initialized(vehicle);
     }
 
-    pub fn set_drive_torque(&mut self, wheel_id: usize, drive_torque: f32) {
-        self.controls[wheel_id].drive_torque = drive_torque;
+    pub fn vehicle(&self) -> Option<&PxVehicleNoDrive> {
+        match &self.inner {
+            BPxVehicleNoDriveInner::Uninit(_) => None,
+            BPxVehicleNoDriveInner::Initialized(handle) => Some(handle.as_ref()),
+        }
     }
 
-    pub fn set_brake_torque(&mut self, wheel_id: usize, brake_torque: f32) {
-        self.controls[wheel_id].brake_torque = brake_torque;
+    pub fn vehicle_mut(&mut self) -> Option<&mut PxVehicleNoDrive> {
+        match &mut self.inner {
+            BPxVehicleNoDriveInner::Uninit(_) => None,
+            BPxVehicleNoDriveInner::Initialized(handle) => Some(handle.as_mut()),
+        }
     }
 
-    pub fn set_steer_angle(&mut self, wheel_id: usize, steer_angle: f32) {
-        self.controls[wheel_id].steer_angle = steer_angle;
-    }
-
-    pub fn get_drive_torque(&self, wheel_id: usize) -> f32 {
-        self.controls[wheel_id].drive_torque
-    }
-
-    pub fn get_brake_torque(&self, wheel_id: usize) -> f32 {
-        self.controls[wheel_id].brake_torque
-    }
-
-    pub fn get_steer_angle(&self, wheel_id: usize) -> f32 {
-        self.controls[wheel_id].steer_angle
+    pub fn wheel_count(&self) -> usize {
+        self.entities.len()
     }
 }
 
-#[derive(Clone, Default)]
-struct BPxVehicleNoDriveWheelControl {
-    drive_torque: f32,
-    brake_torque: f32,
-    steer_angle: f32,
+enum BPxVehicleNoDriveInner {
+    Uninit(crate::vehicles::Owner<VehicleWheelsSimData>),
+    Initialized(crate::vehicles::Owner<PxVehicleNoDrive>),
 }
 
 #[derive(Component, Clone)]

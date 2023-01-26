@@ -12,6 +12,7 @@ pub mod components;
 pub mod callbacks;
 pub mod prelude;
 pub mod resources;
+pub mod vehicles;
 
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
@@ -78,7 +79,6 @@ impl Plugin for PhysXPlugin {
         struct PhysXStage;
 
         let mut stage = SystemStage::parallel();
-        stage.add_system(systems::vehicle_no_drive_update.before(systems::scene_simulate));
         stage.add_system(systems::scene_simulate);
         stage.add_system(systems::create_dynamic_actors.after(systems::scene_simulate));
         stage.add_system(systems::writeback_actors.after(systems::scene_simulate));
