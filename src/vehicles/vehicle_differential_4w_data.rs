@@ -56,7 +56,7 @@ impl Default for VehicleDifferential4WData {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum VehicleDifferential4WType {
     LS4WD = 0,

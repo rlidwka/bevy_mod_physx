@@ -9,17 +9,17 @@ use physx_sys::{
     PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags,
     PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData,
     PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData,
-    PxVehicleWheels, PxFilterData, PxFilterData_new_2, PxVehicleEngineData_new, PxVehicleEngineData, PxVehicleGearsData_new, PxVehicleGearsData, PxVehicleClutchData_new, PxVehicleClutchData, PxVehicleAutoBoxData, PxVehicleAutoBoxData_new, PxVehicleDifferential4WData_new, PxVehicleAckermannGeometryData, PxVehicleAckermannGeometryData_new, PxVehicleDifferential4WData, PxVehicleDriveSimData_setEngineData_mut, PxVehicleDriveSimData_setGearsData_mut, PxVehicleDriveSimData_setClutchData_mut, PxVehicleDriveSimData_setAutoBoxData_mut, PxVehicleDriveSimData_new, PxVehicleDriveSimData, PxVehicleDriveSimDataNW_new, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDriveSimData4W_new, PxVehicleDriveSimData4W_setAckermannGeometryData_mut, PxVehicleDriveSimData4W_setDiffData_mut,
+    PxVehicleWheels, PxFilterData, PxFilterData_new_2,
 };
 
-use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive};
+use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData};
 
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
 use super::vehicles::VehicleWheelsSimData;
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BPxActor {
     Dynamic,
     Static,
@@ -247,73 +247,74 @@ enum BPxVehicleNoDriveInner {
     Initialized(crate::vehicles::Owner<PxVehicleNoDrive>),
 }
 
-#[derive(Component, Clone)]
-pub struct BPxVehicle4W {
-    wheels: Vec<Entity>,
-    drive: BPxVehicleDriveSimData4W,
+#[derive(Component)]
+pub struct BPxVehicleDrive4W {
+    entities: Vec<Entity>,
+    //drive: BPxVehicleDriveSimData4W,
 }
 
-impl BPxVehicle4W {
-    pub fn new(wheels: &[Entity], drive: BPxVehicleDriveSimData4W) -> Self {
+#[derive(Component)]
+pub struct BPxVehicleDriveNW {
+    entities: Vec<Entity>,
+    //drive: BPxVehicleDriveSimDataNW,
+}
+
+#[derive(Component)]
+pub struct BPxVehicleDriveTank {
+    entities: Vec<Entity>,
+    inner: BPxVehicleDriveTankInner,
+}
+
+impl BPxVehicleDriveTank {
+    pub fn new(wheels: Vec<Entity>, wheel_data: crate::vehicles::Owner<VehicleWheelsSimData>, drive_data: Box<PxVehicleDriveSimData>) -> Self {
         Self {
-            wheels: wheels.to_vec(),
-            drive
+            entities: wheels,
+            inner: BPxVehicleDriveTankInner::Uninit((wheel_data, drive_data)),
         }
     }
 
-    pub fn get_wheels(&self) -> &[Entity] {
-        &self.wheels
+    pub fn initialize(&mut self, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) {
+        let wheel_count = self.wheel_count() as u32;
+        let BPxVehicleDriveTankInner::Uninit((wheels_data, drive_data)) = &mut self.inner else {
+            panic!("already initialized");
+        };
+
+        let mut shape_mapping = HashMap::new();
+        for (idx, shape) in actor.get_shapes().into_iter().enumerate() {
+            shape_mapping.insert(*shape.get_user_data(), idx as i32);
+        }
+
+        for (wheel_id, entity) in self.entities.iter().enumerate() {
+            wheels_data.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+        }
+
+        let vehicle = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_data, drive_data.as_ref(), wheel_count).unwrap();
+
+        self.inner = BPxVehicleDriveTankInner::Initialized(vehicle);
     }
 
-    pub fn get_drive(&self) -> &BPxVehicleDriveSimData4W {
-        &self.drive
-    }
-}
-
-#[derive(Component, Clone)]
-pub struct BPxVehicleNW {
-    wheels: Vec<Entity>,
-    drive: BPxVehicleDriveSimDataNW,
-}
-
-impl BPxVehicleNW {
-    pub fn new(wheels: &[Entity], drive: BPxVehicleDriveSimDataNW) -> Self {
-        Self {
-            wheels: wheels.to_vec(),
-            drive,
+    pub fn vehicle(&self) -> Option<&PxVehicleDriveTank> {
+        match &self.inner {
+            BPxVehicleDriveTankInner::Uninit(_) => None,
+            BPxVehicleDriveTankInner::Initialized(handle) => Some(handle.as_ref()),
         }
     }
 
-    pub fn get_wheels(&self) -> &[Entity] {
-        &self.wheels
-    }
-
-    pub fn get_drive(&self) -> &BPxVehicleDriveSimDataNW {
-        &self.drive
-    }
-}
-
-#[derive(Component, Clone)]
-pub struct BPxVehicleTank {
-    wheels: Vec<Entity>,
-    drive: BPxVehicleDriveSimData,
-}
-
-impl BPxVehicleTank {
-    pub fn new(wheels: &[Entity], drive: BPxVehicleDriveSimData) -> Self {
-        Self {
-            wheels: wheels.to_vec(),
-            drive,
+    pub fn vehicle_mut(&mut self) -> Option<&mut PxVehicleDriveTank> {
+        match &mut self.inner {
+            BPxVehicleDriveTankInner::Uninit(_) => None,
+            BPxVehicleDriveTankInner::Initialized(handle) => Some(handle.as_mut()),
         }
     }
 
-    pub fn get_wheels(&self) -> &[Entity] {
-        &self.wheels
+    pub fn wheel_count(&self) -> usize {
+        self.entities.len()
     }
+}
 
-    pub fn get_drive(&self) -> &BPxVehicleDriveSimData {
-        &self.drive
-    }
+enum BPxVehicleDriveTankInner {
+    Uninit((crate::vehicles::Owner<VehicleWheelsSimData>, Box<PxVehicleDriveSimData>)),
+    Initialized(crate::vehicles::Owner<PxVehicleDriveTank>),
 }
 
 #[derive(Debug, Component, Clone)]
@@ -510,283 +511,5 @@ impl BPxMassProperties {
 
     pub fn mass_with_center(mass: f32, center: Vec3) -> Self {
         Self::Mass { mass, center }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BPxVehicleDriveSimData {
-    pub engine: BPxVehicleEngineData,
-    pub gears: BPxVehicleGearsData,
-    pub clutch: BPxVehicleClutchData,
-    pub autobox: BPxVehicleAutoBoxData,
-}
-
-impl BPxVehicleDriveSimData {
-    pub fn to_physx(&self) -> PxVehicleDriveSimData {
-        unsafe {
-            let mut drive_data = PxVehicleDriveSimData_new();
-            PxVehicleDriveSimData_setEngineData_mut(&mut drive_data as *mut _, &self.engine.to_physx() as *const _);
-            PxVehicleDriveSimData_setGearsData_mut(&mut drive_data as *mut _, &self.gears.to_physx() as *const _);
-            PxVehicleDriveSimData_setClutchData_mut(&mut drive_data as *mut _, &self.clutch.to_physx() as *const _);
-            PxVehicleDriveSimData_setAutoBoxData_mut(&mut drive_data as *mut _, &self.autobox.to_physx() as *const _);
-            drive_data
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BPxVehicleDriveSimData4W {
-    pub engine: BPxVehicleEngineData,
-    pub gears: BPxVehicleGearsData,
-    pub clutch: BPxVehicleClutchData,
-    pub autobox: BPxVehicleAutoBoxData,
-    pub diff: BPxVehicleDifferential4WData,
-    pub ackermann_geometry: BPxVehicleAckermannGeometryData,
-}
-
-impl BPxVehicleDriveSimData4W {
-    pub fn to_physx(&self) -> PxVehicleDriveSimData4W {
-        unsafe {
-            let mut drive_data = PxVehicleDriveSimData4W_new();
-            PxVehicleDriveSimData_setEngineData_mut(&mut drive_data as *mut PxVehicleDriveSimData4W as *mut _, &self.engine.to_physx() as *const _);
-            PxVehicleDriveSimData_setGearsData_mut(&mut drive_data as *mut PxVehicleDriveSimData4W as *mut _, &self.gears.to_physx() as *const _);
-            PxVehicleDriveSimData_setClutchData_mut(&mut drive_data as *mut PxVehicleDriveSimData4W as *mut _, &self.clutch.to_physx() as *const _);
-            PxVehicleDriveSimData_setAutoBoxData_mut(&mut drive_data as *mut PxVehicleDriveSimData4W as *mut _, &self.autobox.to_physx() as *const _);
-            PxVehicleDriveSimData4W_setDiffData_mut(&mut drive_data as *mut _, &self.diff.to_physx() as *const _);
-            PxVehicleDriveSimData4W_setAckermannGeometryData_mut(&mut drive_data as *mut _, &self.ackermann_geometry.to_physx() as *const _);
-            drive_data
-        }
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BPxVehicleDriveSimDataNW {
-    pub engine: BPxVehicleEngineData,
-    pub gears: BPxVehicleGearsData,
-    pub clutch: BPxVehicleClutchData,
-    pub autobox: BPxVehicleAutoBoxData,
-    //pub diff: BPxVehicleDifferentialNWData,
-}
-
-impl BPxVehicleDriveSimDataNW {
-    pub fn to_physx(&self) -> PxVehicleDriveSimDataNW {
-        unsafe {
-            let mut drive_data = PxVehicleDriveSimDataNW_new();
-            PxVehicleDriveSimData_setEngineData_mut(&mut drive_data as *mut PxVehicleDriveSimDataNW as *mut _, &self.engine.to_physx() as *const _);
-            PxVehicleDriveSimData_setGearsData_mut(&mut drive_data as *mut PxVehicleDriveSimDataNW as *mut _, &self.gears.to_physx() as *const _);
-            PxVehicleDriveSimData_setClutchData_mut(&mut drive_data as *mut PxVehicleDriveSimDataNW as *mut _, &self.clutch.to_physx() as *const _);
-            PxVehicleDriveSimData_setAutoBoxData_mut(&mut drive_data as *mut PxVehicleDriveSimDataNW as *mut _, &self.autobox.to_physx() as *const _);
-            drive_data
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleEngineData {
-    pub moi: f32,
-    pub peak_torque: f32,
-    pub max_omega: f32,
-    pub damping_rate_full_throttle: f32,
-    pub damping_rate_zero_throttle_clutch_engaged: f32,
-    pub damping_rate_zero_throttle_clutch_disengaged: f32,
-}
-
-impl BPxVehicleEngineData {
-    pub fn to_physx(&self) -> PxVehicleEngineData {
-        let mut engine_data = unsafe { PxVehicleEngineData_new() };
-        engine_data.mMOI = self.moi;
-        engine_data.mPeakTorque = self.peak_torque;
-        engine_data.mMaxOmega = self.max_omega;
-        engine_data.mDampingRateFullThrottle = self.damping_rate_full_throttle;
-        engine_data.mDampingRateZeroThrottleClutchEngaged = self.damping_rate_zero_throttle_clutch_engaged;
-        engine_data.mDampingRateZeroThrottleClutchDisengaged = self.damping_rate_zero_throttle_clutch_disengaged;
-        engine_data
-    }
-
-    pub fn from_physx(engine_data: PxVehicleEngineData) -> Self {
-        Self {
-            moi: engine_data.mMOI,
-            peak_torque: engine_data.mPeakTorque,
-            max_omega: engine_data.mMaxOmega,
-            damping_rate_full_throttle: engine_data.mDampingRateFullThrottle,
-            damping_rate_zero_throttle_clutch_engaged: engine_data.mDampingRateZeroThrottleClutchEngaged,
-            damping_rate_zero_throttle_clutch_disengaged: engine_data.mDampingRateZeroThrottleClutchDisengaged,
-        }
-    }
-}
-
-impl Default for BPxVehicleEngineData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleEngineData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleGearsData {
-    pub ratios: [f32; 32],
-    pub final_ratio: f32,
-    pub nb_ratios: u32,
-    pub switch_time: f32,
-}
-
-impl BPxVehicleGearsData {
-    pub fn to_physx(&self) -> PxVehicleGearsData {
-        let mut gears_data = unsafe { PxVehicleGearsData_new() };
-        gears_data.mRatios = self.ratios;
-        gears_data.mFinalRatio = self.final_ratio;
-        gears_data.mNbRatios = self.nb_ratios;
-        gears_data.mSwitchTime = self.switch_time;
-        gears_data
-    }
-
-    pub fn from_physx(gears_data: PxVehicleGearsData) -> Self {
-        Self {
-            ratios: gears_data.mRatios,
-            final_ratio: gears_data.mFinalRatio,
-            nb_ratios: gears_data.mNbRatios,
-            switch_time: gears_data.mSwitchTime,
-        }
-    }
-}
-
-impl Default for BPxVehicleGearsData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleGearsData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleClutchData {
-    pub strength: f32,
-    pub accuracy_mode: u32,
-    pub estimate_iterations: u32,
-}
-
-impl BPxVehicleClutchData {
-    pub fn to_physx(&self) -> PxVehicleClutchData {
-        let mut clutch_data = unsafe { PxVehicleClutchData_new() };
-        clutch_data.mStrength = self.strength;
-        clutch_data.mAccuracyMode = self.accuracy_mode;
-        clutch_data.mEstimateIterations = self.estimate_iterations;
-        clutch_data
-    }
-
-    pub fn from_physx(clutch_data: PxVehicleClutchData) -> Self {
-        Self {
-            strength: clutch_data.mStrength,
-            accuracy_mode: clutch_data.mAccuracyMode,
-            estimate_iterations: clutch_data.mEstimateIterations,
-        }
-    }
-}
-
-impl Default for BPxVehicleClutchData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleClutchData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleAutoBoxData {
-    pub up_ratios: [f32; 32],
-    pub down_ratios: [f32; 32],
-}
-
-impl BPxVehicleAutoBoxData {
-    pub fn to_physx(&self) -> PxVehicleAutoBoxData {
-        let mut autobox_data = unsafe { PxVehicleAutoBoxData_new() };
-        autobox_data.mUpRatios = self.up_ratios;
-        autobox_data.mDownRatios = self.down_ratios;
-        autobox_data
-    }
-
-    pub fn from_physx(autobox_data: PxVehicleAutoBoxData) -> Self {
-        Self {
-            up_ratios: autobox_data.mUpRatios,
-            down_ratios: autobox_data.mDownRatios,
-        }
-    }
-}
-
-impl Default for BPxVehicleAutoBoxData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleAutoBoxData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleDifferential4WData {
-    pub front_rear_split: f32,
-    pub front_left_right_split: f32,
-    pub rear_left_right_split: f32,
-    pub centre_bias: f32,
-    pub front_bias: f32,
-    pub rear_bias: f32,
-    pub diff_type: u32,
-}
-
-impl BPxVehicleDifferential4WData {
-    pub fn to_physx(&self) -> PxVehicleDifferential4WData {
-        let mut diff_data = unsafe { PxVehicleDifferential4WData_new() };
-        diff_data.mFrontRearSplit = self.front_rear_split;
-        diff_data.mFrontLeftRightSplit = self.front_left_right_split;
-        diff_data.mRearLeftRightSplit = self.rear_left_right_split;
-        diff_data.mCentreBias = self.centre_bias;
-        diff_data.mFrontBias = self.front_bias;
-        diff_data.mRearBias = self.rear_bias;
-        diff_data.mType = self.diff_type;
-        diff_data
-    }
-
-    pub fn from_physx(diff_data: PxVehicleDifferential4WData) -> Self {
-        Self {
-            front_rear_split: diff_data.mFrontRearSplit,
-            front_left_right_split: diff_data.mFrontLeftRightSplit,
-            rear_left_right_split: diff_data.mRearLeftRightSplit,
-            centre_bias: diff_data.mCentreBias,
-            front_bias: diff_data.mFrontBias,
-            rear_bias: diff_data.mRearBias,
-            diff_type: diff_data.mType,
-        }
-    }
-}
-
-impl Default for BPxVehicleDifferential4WData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleDifferential4WData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleAckermannGeometryData {
-    pub accuracy: f32,
-    pub front_width: f32,
-    pub rear_width: f32,
-    pub axle_separation: f32,
-}
-
-impl BPxVehicleAckermannGeometryData {
-    pub fn to_physx(&self) -> PxVehicleAckermannGeometryData {
-        let mut ageom_data = unsafe { PxVehicleAckermannGeometryData_new() };
-        ageom_data.mAccuracy = self.accuracy;
-        ageom_data.mFrontWidth = self.front_width;
-        ageom_data.mRearWidth = self.rear_width;
-        ageom_data.mAxleSeparation = self.axle_separation;
-        ageom_data
-    }
-
-    pub fn from_physx(ageom_data: PxVehicleAckermannGeometryData) -> Self {
-        Self {
-            accuracy: ageom_data.mAccuracy,
-            front_width: ageom_data.mFrontWidth,
-            rear_width: ageom_data.mRearWidth,
-            axle_separation: ageom_data.mAxleSeparation,
-        }
-    }
-}
-
-impl Default for BPxVehicleAckermannGeometryData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleAckermannGeometryData_new() })
     }
 }

@@ -94,7 +94,7 @@ impl Drop for PxVehicleDriveNW {
     }
 }
 
-DeriveClassForNewType!(PxVehicleDriveNW: PxVehicleDriveNW, PxVehicleDrive, PxBase);
+DeriveClassForNewType!(PxVehicleDriveNW: PxVehicleDriveNW, PxVehicleDrive, PxVehicleWheels, PxBase);
 
 impl<T> VehicleDriveNW for T where T: Class<physx_sys::PxVehicleDriveNW> + VehicleDrive {}
 
@@ -154,28 +154,5 @@ pub trait VehicleDriveNW: Class<physx_sys::PxVehicleDriveNW> + VehicleDrive {
     /// Set a vehicle to its rest state. Aside from the rigid body transform, this will set the vehicle and rigid body to the state they were in immediately after setup or create.
     fn set_to_rest_state(&mut self) {
         unsafe { PxVehicleDriveNW_setToRestState_mut(self.as_mut_ptr()) }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
-#[repr(u32)]
-pub enum VehicleDriveTankControlModel {
-    Standard = 0,
-    Special = 1,
-}
-
-impl From<VehicleDriveTankControlModel> for physx_sys::PxVehicleDriveTankControlModel::Enum {
-    fn from(value: VehicleDriveTankControlModel) -> Self {
-        value as u32
-    }
-}
-
-impl From<physx_sys::PxVehicleDriveTankControlModel::Enum> for VehicleDriveTankControlModel {
-    fn from(ty: physx_sys::PxVehicleDriveTankControlModel::Enum) -> Self {
-        match ty {
-            0 => Self::Standard,
-            1 => Self::Special,
-            _ => panic!("invalid enum variant"),
-        }
     }
 }

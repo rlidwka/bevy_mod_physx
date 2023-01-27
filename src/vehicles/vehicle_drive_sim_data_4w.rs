@@ -6,7 +6,7 @@ use physx::{
 use physx_sys::{
     PxVehicleAckermannGeometryData,
     PxVehicleDifferential4WData,
-    //PxVehicleDriveSimData4W_new,
+    PxVehicleDriveSimData4W_new,
     PxVehicleDriveSimData4W_getDiffData,
     PxVehicleDriveSimData4W_getAckermannGeometryData,
     PxVehicleDriveSimData4W_setDiffData_mut,
@@ -26,6 +26,12 @@ use super::{
 #[derive(Clone)]
 pub struct PxVehicleDriveSimData4W {
     obj: physx_sys::PxVehicleDriveSimData4W,
+}
+
+impl Default for PxVehicleDriveSimData4W {
+    fn default() -> Self {
+        Self { obj: unsafe { PxVehicleDriveSimData4W_new() } }
+    }
 }
 
 DeriveClassForNewType!(PxVehicleDriveSimData4W: PxVehicleDriveSimData4W);

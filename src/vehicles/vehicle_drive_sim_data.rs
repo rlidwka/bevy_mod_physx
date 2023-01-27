@@ -16,7 +16,7 @@ use physx_sys::{
     PxVehicleDriveSimData_setClutchData_mut,
     PxVehicleDriveSimData_getAutoBoxData,
     PxVehicleDriveSimData_setAutoBoxData_mut,
-    //PxVehicleDriveSimData_new,
+    PxVehicleDriveSimData_new,
     //PxVehicleDriveSimData_new_1,
     //PxVehicleDriveSimData_getBinaryMetaData_mut,
     //PxVehicleDriveSimData_delete,
@@ -35,11 +35,17 @@ pub struct PxVehicleDriveSimData {
     obj: physx_sys::PxVehicleDriveSimData,
 }
 
+impl Default for PxVehicleDriveSimData {
+    fn default() -> Self {
+        Self { obj: unsafe { PxVehicleDriveSimData_new() } }
+    }
+}
+
 DeriveClassForNewType!(PxVehicleDriveSimData: PxVehicleDriveSimData);
 
 impl<T> VehicleDriveSimData for T where T: Class<physx_sys::PxVehicleDriveSimData> {}
 
-pub trait VehicleDriveSimData: Class<physx_sys::PxVehicleDriveSimData> {
+pub trait VehicleDriveSimData: Class<physx_sys::PxVehicleDriveSimData> + Sized {
     /// Return the engine data.
     fn get_engine_data(&self) -> VehicleEngineData {
         unsafe { (*PxVehicleDriveSimData_getEngineData(self.as_ptr())).into() }

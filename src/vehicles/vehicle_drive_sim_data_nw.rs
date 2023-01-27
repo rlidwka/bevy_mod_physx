@@ -4,7 +4,7 @@ use physx::{
 };
 
 use physx_sys::{
-    //PxVehicleDriveSimDataNW_new,
+    PxVehicleDriveSimDataNW_new,
     PxVehicleDriveSimDataNW_getDiffData,
     PxVehicleDriveSimDataNW_setDiffData_mut,
     //PxVehicleDriveSimDataNW_new_1,
@@ -21,6 +21,12 @@ use super::{
 #[derive(Clone)]
 pub struct PxVehicleDriveSimDataNW {
     obj: physx_sys::PxVehicleDriveSimDataNW,
+}
+
+impl Default for PxVehicleDriveSimDataNW {
+    fn default() -> Self {
+        Self { obj: unsafe { PxVehicleDriveSimDataNW_new() } }
+    }
 }
 
 DeriveClassForNewType!(PxVehicleDriveSimDataNW: PxVehicleDriveSimDataNW);

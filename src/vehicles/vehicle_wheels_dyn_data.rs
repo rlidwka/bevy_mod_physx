@@ -4,7 +4,7 @@ use physx::{
 };
 
 use physx_sys::{
-    //PxVehicleWheelsDynData_new_alloc,
+    PxVehicleWheelsDynData_new_alloc,
     //PxVehicleWheelsDynData_delete,
     PxVehicleWheelsDynData_setToRestState_mut,
     //PxVehicleWheelsDynData_setTireForceShaderFunction_mut,
@@ -23,6 +23,8 @@ use physx_sys::{
     //PxVehicleWheelsDynData_getWheel4DynData,
 };
 
+use super::Owner;
+
 #[repr(transparent)]
 #[derive(Clone)]
 pub struct VehicleWheelsDynData {
@@ -32,6 +34,26 @@ pub struct VehicleWheelsDynData {
 DeriveClassForNewType!(VehicleWheelsDynData: PxVehicleWheelsDynData);
 
 impl VehicleWheelsDynData {
+    pub fn new() -> Option<Owner<Self>> {
+        unsafe {
+            VehicleWheelsDynData::from_raw(
+                PxVehicleWheelsDynData_new_alloc()
+            )
+        }
+    }
+
+    /// Create a new Owner wrapper around a raw pointer.
+    /// # Safety
+    /// Owner's own the pointer they wrap, using the pointer after dropping the Owner,
+    /// or creating multiple Owners from the same pointer will cause UB.  Use `into_ptr` to
+    /// retrieve the pointer and consume the Owner without dropping the pointee.
+    /// Initializes user data.
+    unsafe fn from_raw(
+        ptr: *mut physx_sys::PxVehicleWheelsDynData,
+    ) -> Option<Owner<Self>> {
+        Owner::from_raw(ptr as *mut Self)
+    }
+
     /// Set all wheels to their rest state.
     pub fn set_to_rest_state(&mut self) {
         unsafe { PxVehicleWheelsDynData_setToRestState_mut(self.as_mut_ptr()) }

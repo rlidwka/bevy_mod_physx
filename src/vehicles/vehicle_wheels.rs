@@ -58,7 +58,7 @@ pub trait VehicleWheels: Class<physx_sys::PxVehicleWheels> + Base {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum VehicleTypes {
     Drive4W = 0,

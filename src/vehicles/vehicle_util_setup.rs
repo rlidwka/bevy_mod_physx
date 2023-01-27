@@ -87,7 +87,7 @@ pub fn vehicle_copy_dynamics_data(wheel_map: &PxVehicleCopyDynamicsMap, src: &im
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum VehicleUtilGravityDirection {
     X = 0,

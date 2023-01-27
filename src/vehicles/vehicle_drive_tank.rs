@@ -95,7 +95,7 @@ impl Drop for PxVehicleDriveTank {
     }
 }
 
-DeriveClassForNewType!(PxVehicleDriveTank: PxVehicleDriveTank, PxVehicleDrive, PxBase);
+DeriveClassForNewType!(PxVehicleDriveTank: PxVehicleDriveTank, PxVehicleDrive, PxVehicleWheels, PxBase);
 
 impl<T> VehicleDriveTank for T where T: Class<physx_sys::PxVehicleDriveTank> + VehicleDrive {}
 
@@ -168,7 +168,7 @@ pub trait VehicleDriveTank: Class<physx_sys::PxVehicleDriveTank> + VehicleDrive 
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
 pub enum VehicleDriveTankControlModel {
     Standard = 0,

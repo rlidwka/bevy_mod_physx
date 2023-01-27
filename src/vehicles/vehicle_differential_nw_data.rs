@@ -4,7 +4,7 @@ use physx::{
 };
 
 use physx_sys::{
-    //PxVehicleDifferentialNWData_new,
+    PxVehicleDifferentialNWData_new,
     PxVehicleDifferentialNWData_setDrivenWheel_mut,
     PxVehicleDifferentialNWData_getIsDrivenWheel,
     //PxVehicleDifferentialNWData_new_1,
@@ -16,6 +16,12 @@ use physx_sys::{
 #[derive(Clone)]
 pub struct VehicleDifferentialNWData {
     pub(crate) obj: physx_sys::PxVehicleDifferentialNWData,
+}
+
+impl Default for VehicleDifferentialNWData {
+    fn default() -> Self {
+        Self { obj: unsafe { PxVehicleDifferentialNWData_new() } }
+    }
 }
 
 DeriveClassForNewType!(VehicleDifferentialNWData: PxVehicleDifferentialNWData);

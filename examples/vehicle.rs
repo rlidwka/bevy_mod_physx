@@ -5,9 +5,9 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::prelude::*;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicleNoDrive};
+use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicleNoDrive, BPxVehicleDriveTank};
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
-use bevy_physx::vehicles::{VehicleNoDrive, VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData};
+use bevy_physx::vehicles::{VehicleNoDrive, VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData, VehicleDriveSimData, Owner, PxVehicleDriveSimData, VehicleDriveDynData, VehicleGearsRatio};
 use physx_sys::PxVehicleDrivableSurfaceType;
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
@@ -91,6 +91,7 @@ fn main() {
         .add_startup_system(spawn_plane)
         .add_startup_system(spawn_vehicle)
         .add_system(apply_vehicle_nodrive_controls)
+        .add_system(apply_vehicle_tank_controls)
         .run();
 }
 
@@ -140,8 +141,8 @@ fn spawn_plane(
     .insert(Name::new("Plane"));
 }
 
-fn create_vehicle_no_drive(wheels: [Entity; WHEEL_COUNT]) -> BPxVehicleNoDrive {
-    let mut wheel_sim_data = VehicleWheelsSimData::new(WHEEL_COUNT as u32).unwrap();
+fn create_wheels_sim_data(wheels: [Entity; WHEEL_COUNT]) -> Owner<VehicleWheelsSimData> {
+    let mut wheels_sim_data = VehicleWheelsSimData::new(WHEEL_COUNT as u32).unwrap();
     let cmass_offsets = WHEEL_OFFSETS.iter().map(|v| *v - CENTER_OF_MASS).collect::<Vec<_>>();
 
     let suspension_spring_masses = vehicle_compute_sprung_masses(
@@ -152,7 +153,7 @@ fn create_vehicle_no_drive(wheels: [Entity; WHEEL_COUNT]) -> BPxVehicleNoDrive {
     );
 
     for idx in 0..WHEEL_COUNT as u32 {
-        wheel_sim_data.set_wheel_data(idx, VehicleWheelData {
+        wheels_sim_data.set_wheel_data(idx, VehicleWheelData {
             mass: WHEEL_MASS,
             radius: WHEEL_RADIUS,
             width: WHEEL_HALF_WIDTH * 2.,
@@ -160,12 +161,12 @@ fn create_vehicle_no_drive(wheels: [Entity; WHEEL_COUNT]) -> BPxVehicleNoDrive {
             ..default()
         });
 
-        wheel_sim_data.set_tire_data(idx, VehicleTireData {
+        wheels_sim_data.set_tire_data(idx, VehicleTireData {
             tire_type: 0,
             ..default()
         });
 
-        wheel_sim_data.set_suspension_data(idx, VehicleSuspensionData {
+        wheels_sim_data.set_suspension_data(idx, VehicleSuspensionData {
             max_compression: 0.01,
             max_droop: 0.03,
             spring_strength: 35000.,
@@ -174,13 +175,13 @@ fn create_vehicle_no_drive(wheels: [Entity; WHEEL_COUNT]) -> BPxVehicleNoDrive {
             ..default()
         });
 
-        wheel_sim_data.set_susp_travel_direction(idx, Vec3::new(0., -1., 0.).to_physx());
-        wheel_sim_data.set_wheel_centre_offset(idx, cmass_offsets[idx as usize].to_physx());
-        wheel_sim_data.set_susp_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
-        wheel_sim_data.set_tire_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
+        wheels_sim_data.set_susp_travel_direction(idx, Vec3::new(0., -1., 0.).to_physx());
+        wheels_sim_data.set_wheel_centre_offset(idx, cmass_offsets[idx as usize].to_physx());
+        wheels_sim_data.set_susp_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
+        wheels_sim_data.set_tire_force_app_point_offset(idx, (cmass_offsets[idx as usize] - Vec3::Y * 0.3).to_physx());
     }
 
-    BPxVehicleNoDrive::new(wheels.to_vec(), wheel_sim_data)
+    wheels_sim_data
 }
 
 fn spawn_vehicle(
@@ -239,6 +240,10 @@ fn spawn_vehicle(
         );
     }
 
+    let wheels_sim_data = create_wheels_sim_data(wheels[..].try_into().unwrap());
+    let drive_sim_data = PxVehicleDriveSimData::default();
+    let vehicle = BPxVehicleDriveTank::new(wheels.to_vec(), wheels_sim_data, Box::new(drive_sim_data));
+
     commands.spawn_empty()
         .insert(SceneBundle {
             scene: assets.load("cybertruck/hull.glb#Scene0"),
@@ -247,7 +252,7 @@ fn spawn_vehicle(
         .insert(PlayerControlled)
         .insert(BPxActor::Dynamic)
         .insert(BPxMassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
-        .insert(create_vehicle_no_drive(wheels[..].try_into().unwrap()))
+        .insert(vehicle)
         .insert(BPxShape {
             material,
             geometry: hull_geometry,
@@ -303,5 +308,24 @@ fn apply_vehicle_nodrive_controls(
     if keys.just_released(KeyCode::D) {
         vehicle.set_steer_angle(0, 0.);
         vehicle.set_steer_angle(1, 0.);
+    }
+}
+
+fn apply_vehicle_tank_controls(
+    mut player_query: Query<&mut BPxVehicleDriveTank, With<PlayerControlled>>,
+    keys: Res<Input<KeyCode>>,
+) {
+    let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
+    let Some(vehicle) = vehicle.vehicle_mut() else { return; };
+
+    if keys.just_pressed(KeyCode::W) {
+        /*vehicle.drive_dyn_data_mut().set_use_auto_gears(true);
+
+        if vehicle.drive_dyn_data_mut().get_current_gear() < VehicleGearsRatio::First {
+            vehicle.drive_dyn_data_mut().set_current_gear(VehicleGearsRatio::First);
+        }*/
+
+        vehicle.drive_dyn_data_mut().set_gear_up(true);
+        vehicle.drive_dyn_data_mut().set_engine_rotation_speed(1000000.);
     }
 }

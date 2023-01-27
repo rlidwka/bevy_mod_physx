@@ -58,7 +58,7 @@ impl Default for VehicleGearsData {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u32)]
 pub enum VehicleGearsRatio {
     Reverse = 0,

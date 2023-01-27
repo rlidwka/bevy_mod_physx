@@ -24,7 +24,7 @@ use physx_sys::{
     PxVehicleDriveDynData_getEngineRotationSpeed,
     PxVehicleDriveDynData_getGearSwitchTime,
     PxVehicleDriveDynData_getAutoBoxSwitchTime,
-    //PxVehicleDriveDynData_new,
+    PxVehicleDriveDynData_new,
     //PxVehicleDriveDynData_new_1,
     PxVehicleDriveDynData_getNbAnalogInput,
     PxVehicleDriveDynData_setGearChange_mut,
@@ -39,6 +39,12 @@ use super::VehicleGearsRatio;
 #[derive(Clone)]
 pub struct PxVehicleDriveDynData {
     obj: physx_sys::PxVehicleDriveDynData,
+}
+
+impl Default for PxVehicleDriveDynData {
+    fn default() -> Self {
+        Self { obj: unsafe { PxVehicleDriveDynData_new() } }
+    }
 }
 
 DeriveClassForNewType!(PxVehicleDriveDynData: PxVehicleDriveDynData);
