@@ -9,14 +9,22 @@ use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterDat
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
 use physx::prelude::*;
 use physx::vehicles::{
+    PxVehicleDrive4WRawInputData,
     PxVehicleDriveNWRawInputData,
+    PxVehicleDriveSimData4W,
     PxVehicleDriveSimDataNW,
+    VehicleAckermannGeometryData,
+    VehicleClutchData,
+    VehicleDifferential4WData,
+    VehicleDifferential4WType,
     VehicleDifferentialNWData,
+    VehicleDrive4WControl,
     VehicleDrive4WRawInputData,
     VehicleDriveDynData,
     VehicleDriveNWControl,
     VehicleDriveNWRawInputData,
     VehicleDriveSimData,
+    VehicleDriveSimData4W,
     VehicleDriveSimDataNW,
     VehicleDriveTankControl,
     VehicleDriveTankRawInputData,
@@ -74,7 +82,7 @@ pub const HULL_VERTICES : [Vec3; 18] = [
     Vec3::new( 0.90621, 0.34191,  1.26607),
 ];
 
-pub const WHEEL_MASS: f32 = 250.;
+pub const WHEEL_MASS: f32 = 30.;
 pub const WHEEL_HALF_WIDTH: f32 = 0.17;
 pub const WHEEL_RADIUS: f32 = 0.49;
 pub const WHEEL_SEGMENTS: usize = 24;
@@ -102,6 +110,14 @@ struct PlayerControlledDriveNW {
     steer_table: Option<VehicleSteerVsForwardSpeedTable>,
     smoothing: Option<VehicleKeySmoothingData>,
     input: Option<Owner<PxVehicleDriveNWRawInputData>>,
+}
+
+#[derive(Component, Default)]
+struct PlayerControlledDrive4W {
+    initialized: bool,
+    steer_table: Option<VehicleSteerVsForwardSpeedTable>,
+    smoothing: Option<VehicleKeySmoothingData>,
+    input: Option<Owner<PxVehicleDrive4WRawInputData>>,
 }
 
 fn main() {
@@ -133,6 +149,7 @@ fn main() {
         .add_system(apply_vehicle_nodrive_controls)
         .add_system(apply_vehicle_tank_controls)
         .add_system(apply_vehicle_drive_nw_controls)
+        .add_system(apply_vehicle_drive_4w_controls)
         .run();
 }
 
@@ -226,6 +243,7 @@ fn create_wheels_sim_data() -> Owner<VehicleWheelsSimData> {
     wheels_sim_data
 }
 
+#[allow(unused)]
 fn create_drive_nw_sim_data() -> Box<PxVehicleDriveSimDataNW> {
     let mut diff = VehicleDifferentialNWData::default();
     diff.set_driven_wheel(0, true);
@@ -233,19 +251,50 @@ fn create_drive_nw_sim_data() -> Box<PxVehicleDriveSimDataNW> {
     diff.set_driven_wheel(2, true);
     diff.set_driven_wheel(3, true);
 
-    let mut drive_sim_data_nw = PxVehicleDriveSimDataNW::default();
-    drive_sim_data_nw.set_diff_data(diff);
-    drive_sim_data_nw.set_engine_data(VehicleEngineData {
+    let mut drive_sim_data = PxVehicleDriveSimDataNW::default();
+    drive_sim_data.set_diff_data(diff);
+    drive_sim_data.set_engine_data(VehicleEngineData {
         peak_torque: 500.,
         max_omega: 600.,
         ..default()
     });
-    drive_sim_data_nw.set_gears_data(VehicleGearsData {
+    drive_sim_data.set_gears_data(VehicleGearsData {
         switch_time: 0.1,
         ..default()
     });
 
-    Box::new(drive_sim_data_nw)
+    Box::new(drive_sim_data)
+}
+
+#[allow(unused)]
+fn create_drive_4w_sim_data() -> Box<PxVehicleDriveSimData4W> {
+    let mut drive_sim_data = PxVehicleDriveSimData4W::default();
+
+    drive_sim_data.set_diff_data(VehicleDifferential4WData {
+        diff_type: VehicleDifferential4WType::OpenRearWD,
+        ..default()
+    });
+    drive_sim_data.set_engine_data(VehicleEngineData {
+        peak_torque: 500.,
+        max_omega: 600.,
+        ..default()
+    });
+    drive_sim_data.set_gears_data(VehicleGearsData {
+        switch_time: 0.1,
+        ..default()
+    });
+    drive_sim_data.set_clutch_data(VehicleClutchData {
+        strength: 10.,
+        ..default()
+    });
+    drive_sim_data.set_ackermann_geometry_data(VehicleAckermannGeometryData {
+        front_width: (WHEEL_OFFSETS[1] - WHEEL_OFFSETS[0]).x.abs(),
+        rear_width: (WHEEL_OFFSETS[3] - WHEEL_OFFSETS[2]).x.abs(),
+        axle_separation: (WHEEL_OFFSETS[2] - WHEEL_OFFSETS[0]).z.abs(),
+        ..default()
+    });
+
+    Box::new(drive_sim_data)
 }
 
 fn spawn_vehicle(
@@ -333,12 +382,22 @@ fn spawn_vehicle(
 
         ////////////////////////////////////////////////////////
         // uncomment this to test vehicle with N wheels
-        .insert(BPxVehicle::DriveNW {
+        /*.insert(BPxVehicle::DriveNW {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
             drive_sim_data: create_drive_nw_sim_data(),
         })
-        .insert(PlayerControlledDriveNW::default())
+        .insert(PlayerControlledDriveNW::default())*/
+        ////////////////////////////////////////////////////////
+
+        ////////////////////////////////////////////////////////
+        // uncomment this to test vehicle with 4 wheels
+        .insert(BPxVehicle::Drive4W {
+            wheels: wheels.clone(),
+            wheels_sim_data: create_wheels_sim_data(),
+            drive_sim_data: create_drive_4w_sim_data(),
+        })
+        .insert(PlayerControlledDrive4W::default())
         ////////////////////////////////////////////////////////
 
         .insert(BPxShape {
@@ -501,6 +560,54 @@ fn apply_vehicle_drive_nw_controls(
         input.set_digital_brake(keys.pressed(KeyCode::S));
         input.set_digital_steer_left(keys.pressed(KeyCode::A));
         input.set_digital_steer_right(keys.pressed(KeyCode::D));
+
+        let timestep = timestep.as_secs_f32();
+        let smoothing = controls.smoothing.as_ref().unwrap();
+        let input = controls.input.as_ref().unwrap();
+        let steer_table = controls.steer_table.as_ref().unwrap();
+
+        vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(steer_table, smoothing, input, timestep, false);
+    }
+}
+
+fn apply_vehicle_drive_4w_controls(
+    mut player_query: Query<(&mut BPxVehicleHandle, &mut PlayerControlledDrive4W)>,
+    mut tick: EventReader<Tick>,
+    keys: Res<Input<KeyCode>>,
+) {
+    let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
+    let BPxVehicleHandle::Drive4W(vehicle) = vehicle.as_mut() else { return; };
+
+    if !controls.initialized {
+        controls.initialized = true;
+        vehicle.drive_dyn_data_mut().set_current_gear(VehicleGearsRatio::First);
+        vehicle.drive_dyn_data_mut().set_use_auto_gears(true);
+
+        let mut smoothing = VehicleKeySmoothingData::new();
+        smoothing.set_rise_rates(&[6., 6., 6., 2.5, 2.5]);
+        smoothing.set_fall_rates(&[10., 10., 10., 5., 5.]);
+        controls.smoothing = Some(smoothing);
+
+        let mut steer_table = VehicleSteerVsForwardSpeedTable::new();
+        steer_table.set_data(&[
+            (0., 0.75),
+            (5., 0.75),
+            (30., 0.125),
+            (120., 0.1),
+        ]);
+        controls.steer_table = Some(steer_table);
+
+        let input: Owner<PxVehicleDrive4WRawInputData> = VehicleDrive4WRawInputData::new().unwrap();
+        controls.input = Some(input);
+    }
+
+    for Tick(timestep) in tick.iter() {
+        let input = controls.input.as_mut().unwrap();
+
+        input.set_digital_accel(keys.pressed(KeyCode::W));
+        input.set_digital_brake(keys.pressed(KeyCode::S));
+        input.set_digital_steer_right(keys.pressed(KeyCode::A));
+        input.set_digital_steer_left(keys.pressed(KeyCode::D));
 
         let timestep = timestep.as_secs_f32();
         let smoothing = controls.smoothing.as_ref().unwrap();

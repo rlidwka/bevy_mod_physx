@@ -3,13 +3,27 @@ use crate::{
     traits::Class,
 };
 
-use physx_sys::{PxVehicleKeySmoothingData, PxVehiclePadSmoothingData, phys_PxVehicleDriveTankSmoothDigitalRawInputsAndSetAnalogInputs, phys_PxVehicleDriveTankSmoothAnalogRawInputsAndSetAnalogInputs, phys_PxVehicleDriveNWSmoothDigitalRawInputsAndSetAnalogInputs, PxFixedSizeLookupTable_8_, phys_PxVehicleDriveNWSmoothAnalogRawInputsAndSetAnalogInputs};
+use physx_sys::{
+    PxFixedSizeLookupTable_8_,
+    PxVehicleKeySmoothingData,
+    PxVehiclePadSmoothingData,
+    phys_PxVehicleDrive4WSmoothAnalogRawInputsAndSetAnalogInputs,
+    phys_PxVehicleDrive4WSmoothDigitalRawInputsAndSetAnalogInputs,
+    phys_PxVehicleDriveNWSmoothAnalogRawInputsAndSetAnalogInputs,
+    phys_PxVehicleDriveNWSmoothDigitalRawInputsAndSetAnalogInputs,
+    phys_PxVehicleDriveTankSmoothAnalogRawInputsAndSetAnalogInputs,
+    phys_PxVehicleDriveTankSmoothDigitalRawInputsAndSetAnalogInputs,
+};
 
 use super::{
     PxVehicleDriveDynData,
+    VehicleDrive4W,
+    VehicleDrive4WRawInputData,
     VehicleDriveDynData,
+    VehicleDriveNW,
+    VehicleDriveNWRawInputData,
     VehicleDriveTank,
-    VehicleDriveTankRawInputData, VehicleDriveNW, VehicleDriveNWRawInputData,
+    VehicleDriveTankRawInputData,
 };
 
 #[derive(Clone)]
@@ -109,6 +123,54 @@ impl From<VehicleSteerVsForwardSpeedTable> for PxFixedSizeLookupTable_8_ {
             mDataPairs: value.data_pairs,
             mNbDataPairs: value.nb_data_pairs as u32,
             mPad: Default::default(),
+        }
+    }
+}
+
+impl<T: VehicleDrive4W> VehicleDrive4WControl for T {}
+
+pub trait VehicleDrive4WControl: VehicleDrive4W {
+    fn smooth_digital_raw_inputs_and_set_analog_inputs(
+        &mut self,
+        steer_vs_forward_speed_table: &VehicleSteerVsForwardSpeedTable,
+        key_smoothing: &VehicleKeySmoothingData,
+        raw_input_data: &impl VehicleDrive4WRawInputData,
+        timestep: f32,
+        is_vehicle_in_air: bool,
+    ) {
+        let steer_vs_forward_speed_table = PxFixedSizeLookupTable_8_::from(steer_vs_forward_speed_table.clone());
+
+        unsafe {
+            phys_PxVehicleDrive4WSmoothDigitalRawInputsAndSetAnalogInputs(
+                key_smoothing.as_ptr(),
+                &steer_vs_forward_speed_table,
+                raw_input_data.as_ptr(),
+                timestep,
+                is_vehicle_in_air,
+                self.as_mut_ptr(),
+            );
+        }
+    }
+
+    fn smooth_analog_raw_inputs_and_set_analog_inputs(
+        &mut self,
+        steer_vs_forward_speed_table: &VehicleSteerVsForwardSpeedTable,
+        pad_smoothing: &VehiclePadSmoothingData,
+        raw_input_data: &impl VehicleDrive4WRawInputData,
+        timestep: f32,
+        is_vehicle_in_air: bool,
+    ) {
+        let steer_vs_forward_speed_table = PxFixedSizeLookupTable_8_::from(steer_vs_forward_speed_table.clone());
+
+        unsafe {
+            phys_PxVehicleDrive4WSmoothAnalogRawInputsAndSetAnalogInputs(
+                pad_smoothing.as_ptr(),
+                &steer_vs_forward_speed_table,
+                raw_input_data.as_ptr(),
+                timestep,
+                is_vehicle_in_air,
+                self.as_mut_ptr(),
+            );
         }
     }
 }
