@@ -1,6 +1,7 @@
-use physx::{
-    traits::Class,
+use crate::{
     DeriveClassForNewType,
+    owner::Owner,
+    traits::Class,
 };
 
 use physx_sys::{
@@ -33,10 +34,7 @@ use physx_sys::{
     PxVehicleDriveTankRawInputData_getGearDown,
 };
 
-use super::{
-    Owner,
-    VehicleDriveTankControlModel,
-};
+use super::VehicleDriveTankControlModel;
 
 #[repr(transparent)]
 #[derive(Clone)]

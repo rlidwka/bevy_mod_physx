@@ -1,4 +1,4 @@
-use physx::{
+use crate::{
     base::Base,
     traits::Class,
 };

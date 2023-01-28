@@ -1,6 +1,6 @@
-use physx::{
-    traits::Class,
+use crate::{
     DeriveClassForNewType,
+    traits::Class,
 };
 
 use physx_sys::{

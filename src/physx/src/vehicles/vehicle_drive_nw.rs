@@ -1,42 +1,44 @@
-use physx::{
-    physics::Physics,
-    traits::Class,
-    rigid_dynamic::RigidDynamic,
+use crate::{
     DeriveClassForNewType,
+    owner::Owner,
+    physics::Physics,
+    rigid_dynamic::RigidDynamic,
+    traits::Class,
 };
 
 use physx_sys::{
-    PxVehicleDrive4W_allocate_mut,
-    PxVehicleDrive4W_free_mut,
-    PxVehicleDrive4W_setup_mut,
-    PxVehicleDrive4W_create_mut,
-    PxVehicleDrive4W_setToRestState_mut,
-    //PxVehicleDrive4W_createObject_mut,
-    //PxVehicleDrive4W_getBinaryMetaData_mut,
-    //PxVehicleDrive4W_new_alloc,
-    //PxVehicleDrive4W_getConcreteTypeName,
+    PxVehicleDriveNW_allocate_mut,
+    PxVehicleDriveNW_free_mut,
+    PxVehicleDriveNW_setup_mut,
+    PxVehicleDriveNW_create_mut,
+    PxVehicleDriveNW_setToRestState_mut,
+    //PxVehicleDriveNW_new_alloc,
+    //PxVehicleDriveNW_new_alloc_1,
+    //PxVehicleDriveNW_createObject_mut,
+    //PxVehicleDriveNW_getBinaryMetaData_mut,
+    //PxVehicleDriveNW_getConcreteTypeName,
+    //PxVehicleDriveNW_isKindOf,
 };
 
 use super::{
-    Owner,
     PxVehicleDriveDynData,
     PxVehicleDriveSimData,
     VehicleDrive,
-    VehicleDriveSimData4W,
+    VehicleDriveSimDataNW,
     VehicleWheelsDynData,
     VehicleWheelsSimData,
 };
 
 #[repr(transparent)]
 #[derive(Clone)]
-pub struct PxVehicleDrive4W {
-    obj: physx_sys::PxVehicleDrive4W,
+pub struct PxVehicleDriveNW {
+    obj: physx_sys::PxVehicleDriveNW,
 }
 
-unsafe impl Send for PxVehicleDrive4W {}
-unsafe impl Sync for PxVehicleDrive4W {}
+unsafe impl Send for PxVehicleDriveNW {}
+unsafe impl Sync for PxVehicleDriveNW {}
 
-impl PxVehicleDrive4W {
+impl PxVehicleDriveNW {
     /// Data describing the setup of all the wheels/suspensions/tires.
     pub fn wheels_sim_data(&self) -> &VehicleWheelsSimData {
         // SAFETY: VehicleWheelsSimData is repr(transparent)
@@ -86,42 +88,42 @@ impl PxVehicleDrive4W {
     }
 }
 
-impl Drop for PxVehicleDrive4W {
+impl Drop for PxVehicleDriveNW {
     fn drop(&mut self) {
-        unsafe { PxVehicleDrive4W_free_mut(self.as_mut_ptr()) }
+        unsafe { PxVehicleDriveNW_free_mut(self.as_mut_ptr()) }
     }
 }
 
-DeriveClassForNewType!(PxVehicleDrive4W: PxVehicleDrive4W, PxVehicleDrive, PxVehicleWheels, PxBase);
+DeriveClassForNewType!(PxVehicleDriveNW: PxVehicleDriveNW, PxVehicleDrive, PxVehicleWheels, PxBase);
 
-impl<T> VehicleDrive4W for T where T: Class<physx_sys::PxVehicleDrive4W> + VehicleDrive {}
+impl<T> VehicleDriveNW for T where T: Class<physx_sys::PxVehicleDriveNW> + VehicleDrive {}
 
-pub trait VehicleDrive4W: Class<physx_sys::PxVehicleDrive4W> + VehicleDrive {
+pub trait VehicleDriveNW: Class<physx_sys::PxVehicleDriveNW> + VehicleDrive {
     /// Allocate and set up a vehicle using simulation data for the wheels and drive model.
     fn new(
         physics: &mut impl Physics,
         veh_actor: &mut impl RigidDynamic,
         wheels_data: &VehicleWheelsSimData,
-        drive_data: &impl VehicleDriveSimData4W,
-        nb_non_driven_wheels: u32,
+        drive_data: &impl VehicleDriveSimDataNW,
+        nb_wheels: u32,
     ) -> Option<Owner<Self>> {
         unsafe {
-            VehicleDrive4W::from_raw(
-                PxVehicleDrive4W_create_mut(
+            VehicleDriveNW::from_raw(
+                PxVehicleDriveNW_create_mut(
                     physics.as_mut_ptr(),
                     veh_actor.as_mut_ptr(),
                     wheels_data.as_ptr(),
                     drive_data.as_ptr(),
-                    nb_non_driven_wheels,
+                    nb_wheels,
                 )
             )
         }
     }
 
-    /// Allocate a PxVehicleDrive4W instance for a 4WDrive vehicle with nbWheels (= 4 + number of un-driven wheels).
+    /// Allocate a PxVehicleDriveNW instance for a NWDrive vehicle with nbWheels.
     fn allocate(nb_wheels: u32) -> Option<Owner<Self>> {
         unsafe {
-            VehicleDrive4W::from_raw(PxVehicleDrive4W_allocate_mut(nb_wheels))
+            VehicleDriveNW::from_raw(PxVehicleDriveNW_allocate_mut(nb_wheels))
         }
     }
 
@@ -131,10 +133,10 @@ pub trait VehicleDrive4W: Class<physx_sys::PxVehicleDrive4W> + VehicleDrive {
         physics: &mut impl Physics,
         veh_actor: &mut impl RigidDynamic,
         wheels_data: &VehicleWheelsSimData,
-        drive_data: &impl VehicleDriveSimData4W,
-        nb_non_driven_wheels: u32,
+        drive_data: &impl VehicleDriveSimDataNW,
+        nb_wheels: u32,
     ) {
-        unsafe { PxVehicleDrive4W_setup_mut(self.as_mut_ptr(), physics.as_mut_ptr(), veh_actor.as_mut_ptr(), wheels_data.as_ptr(), drive_data.as_ptr(), nb_non_driven_wheels) }
+        unsafe { PxVehicleDriveNW_setup_mut(self.as_mut_ptr(), physics.as_mut_ptr(), veh_actor.as_mut_ptr(), wheels_data.as_ptr(), drive_data.as_ptr(), nb_wheels) }
     }
 
     /// Create a new Owner wrapper around a raw pointer.
@@ -144,13 +146,13 @@ pub trait VehicleDrive4W: Class<physx_sys::PxVehicleDrive4W> + VehicleDrive {
     /// retrieve the pointer and consume the Owner without dropping the pointee.
     /// Initializes user data.
     unsafe fn from_raw(
-        ptr: *mut physx_sys::PxVehicleDrive4W,
+        ptr: *mut physx_sys::PxVehicleDriveNW,
     ) -> Option<Owner<Self>> {
         Owner::from_raw(ptr as *mut Self)
     }
 
     /// Set a vehicle to its rest state. Aside from the rigid body transform, this will set the vehicle and rigid body to the state they were in immediately after setup or create.
     fn set_to_rest_state(&mut self) {
-        unsafe { PxVehicleDrive4W_setToRestState_mut(self.as_mut_ptr()) }
+        unsafe { PxVehicleDriveNW_setToRestState_mut(self.as_mut_ptr()) }
     }
 }

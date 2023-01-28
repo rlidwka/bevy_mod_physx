@@ -1,8 +1,3 @@
-mod physx_internal;
-pub use physx_internal::Owner;
-pub use physx_internal::Class;
-pub(crate) use physx_internal::DeriveClassForNewType;
-
 mod vehicle_ackermann_geometry_data;
 pub use vehicle_ackermann_geometry_data::*;
 

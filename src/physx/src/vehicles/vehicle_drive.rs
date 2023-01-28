@@ -1,4 +1,5 @@
-use physx::traits::Class;
+use crate::traits::Class;
+
 use super::VehicleWheels;
 
 //use physx_sys::{

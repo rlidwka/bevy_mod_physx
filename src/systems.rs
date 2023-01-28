@@ -11,7 +11,6 @@ use physx_sys::{
 };
 
 use crate::Tick;
-use crate::vehicles::{PxVehicleNoDrive, PxVehicleDriveTank};
 
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};

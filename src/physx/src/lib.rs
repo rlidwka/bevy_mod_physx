@@ -220,5 +220,8 @@ pub mod simulation_event_callback;
 pub mod triangle_mesh;
 pub mod visual_debugger;
 
+// Vehicle wrappers
+pub mod vehicles;
+
 pub mod prelude;
 pub use physx_sys::version;

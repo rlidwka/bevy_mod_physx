@@ -7,7 +7,8 @@ use bevy_physx::{prelude::*, Tick};
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicle, BPxVehicleHandle};
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
-use bevy_physx::vehicles::{VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData, VehicleDriveSimData, Owner, PxVehicleDriveSimData, VehicleDriveDynData, VehicleGearsRatio, VehicleNoDrive, VehicleKeySmoothingData, VehicleDriveTankControl, VehicleDriveTankRawInputData};
+use physx::prelude::*;
+use physx::vehicles::{VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData, PxVehicleDriveSimData, VehicleNoDrive, VehicleKeySmoothingData, VehicleDriveTankControl, VehicleDriveTankRawInputData};
 use physx_sys::{PxVehicleDrivableSurfaceType, PxVehicleDriveTankRawInputData};
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
@@ -323,7 +324,7 @@ fn apply_vehicle_controls(
                 smoothing.set_fall_rates(&[10., 10., 10., 5., 5.]);
 
                 let raw_input_data: Owner<PxVehicleDriveTankRawInputData> = VehicleDriveTankRawInputData::new().unwrap();
-                vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(&smoothing.into(), &raw_input_data, timestep)
+                vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(&smoothing, &raw_input_data, timestep)
             }
         }
     }

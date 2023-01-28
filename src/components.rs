@@ -10,12 +10,11 @@ use physx_sys::{
     PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxFilterData, PxFilterData_new_2,
 };
 
-use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, VehicleWheels, VehicleDriveSimData4W, VehicleDriveSimDataNW, VehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW};
+use physx::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW, VehicleWheelsSimData};
 
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::resources::BPxPhysics;
-use super::vehicles::VehicleWheelsSimData;
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BPxActor {
@@ -172,31 +171,31 @@ impl BPxVelocity {
 pub enum BPxVehicle {
     NoDrive {
         wheels: Vec<Entity>,
-        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        wheels_sim_data: Owner<VehicleWheelsSimData>,
     },
     Drive4W {
         wheels: Vec<Entity>,
-        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        wheels_sim_data: Owner<VehicleWheelsSimData>,
         drive_sim_data: Box<PxVehicleDriveSimData4W>,
     },
     DriveNW {
         wheels: Vec<Entity>,
-        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        wheels_sim_data: Owner<VehicleWheelsSimData>,
         drive_sim_data: Box<PxVehicleDriveSimDataNW>,
     },
     DriveTank {
         wheels: Vec<Entity>,
-        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        wheels_sim_data: Owner<VehicleWheelsSimData>,
         drive_sim_data: Box<PxVehicleDriveSimData>,
     },
 }
 
 #[derive(Component)]
 pub enum BPxVehicleHandle {
-    NoDrive(crate::vehicles::Owner<PxVehicleNoDrive>),
-    Drive4W(crate::vehicles::Owner<PxVehicleDrive4W>),
-    DriveNW(crate::vehicles::Owner<PxVehicleDriveNW>),
-    DriveTank(crate::vehicles::Owner<PxVehicleDriveTank>),
+    NoDrive(Owner<PxVehicleNoDrive>),
+    Drive4W(Owner<PxVehicleDrive4W>),
+    DriveNW(Owner<PxVehicleDriveNW>),
+    DriveTank(Owner<PxVehicleDriveTank>),
 }
 
 impl BPxVehicleHandle {
@@ -215,7 +214,7 @@ impl BPxVehicleHandle {
 
         match vehicle_desc {
             BPxVehicle::NoDrive { .. } => {
-                let mut vehicle: crate::vehicles::Owner<PxVehicleNoDrive> = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap();
+                let mut vehicle: Owner<PxVehicleNoDrive> = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap();
                 let wheelsim = vehicle.wheels_sim_data_mut();
 
                 for (wheel_id, entity) in wheels.iter().enumerate() {
@@ -225,7 +224,7 @@ impl BPxVehicleHandle {
                 Self::NoDrive(vehicle)
             }
             BPxVehicle::Drive4W { drive_sim_data, .. } => {
-                let mut vehicle: crate::vehicles::Owner<PxVehicleDrive4W> = VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap();
+                let mut vehicle: Owner<PxVehicleDrive4W> = VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap();
                 let wheelsim = vehicle.wheels_sim_data_mut();
 
                 for (wheel_id, entity) in wheels.iter().enumerate() {
@@ -235,7 +234,7 @@ impl BPxVehicleHandle {
                 Self::Drive4W(vehicle)
             }
             BPxVehicle::DriveNW { drive_sim_data, .. } => {
-                let mut vehicle: crate::vehicles::Owner<PxVehicleDriveNW> = VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
+                let mut vehicle: Owner<PxVehicleDriveNW> = VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
                 let wheelsim = vehicle.wheels_sim_data_mut();
 
                 for (wheel_id, entity) in wheels.iter().enumerate() {
@@ -245,7 +244,7 @@ impl BPxVehicleHandle {
                 Self::DriveNW(vehicle)
             }
             BPxVehicle::DriveTank { drive_sim_data, .. } => {
-                let mut vehicle: crate::vehicles::Owner<PxVehicleDriveTank> = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
+                let mut vehicle: Owner<PxVehicleDriveTank> = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
                 let wheelsim = vehicle.wheels_sim_data_mut();
 
                 for (wheel_id, entity) in wheels.iter().enumerate() {

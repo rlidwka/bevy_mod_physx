@@ -1,5 +1,6 @@
-use physx::math::{PxTransform, PxVec3};
-use physx::traits::Class;
+use crate::math::{PxTransform, PxVec3};
+use crate::traits::Class;
+
 use physx_sys::{
     PxVehicleCopyDynamicsMap,
     phys_PxVehicle4WEnable3WDeltaMode,

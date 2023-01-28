@@ -1,6 +1,7 @@
-use physx::{
-    traits::Class,
+use crate::{
     DeriveClassForNewType,
+    owner::Owner,
+    traits::Class,
 };
 
 use physx_sys::{
@@ -8,10 +9,7 @@ use physx_sys::{
     PxVehicleDriveNWRawInputData_delete,
 };
 
-use super::{
-    Owner,
-    VehicleDrive4WRawInputData,
-};
+use super::VehicleDrive4WRawInputData;
 
 #[repr(transparent)]
 #[derive(Clone)]

@@ -14,7 +14,6 @@ pub mod components;
 pub mod callbacks;
 pub mod prelude;
 pub mod resources;
-pub mod vehicles;
 
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;

@@ -1,8 +1,9 @@
-use physx::{
-    physics::Physics,
-    traits::Class,
-    rigid_dynamic::RigidDynamic,
+use crate::{
     DeriveClassForNewType,
+    owner::Owner,
+    traits::Class,
+    physics::Physics,
+    rigid_dynamic::RigidDynamic,
 };
 
 use physx_sys::{
@@ -30,7 +31,6 @@ use physx_sys::{
 };
 
 use super::{
-    Owner,
     VehicleWheels,
     VehicleWheelsDynData,
     VehicleWheelsSimData,

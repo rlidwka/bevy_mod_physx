@@ -1,7 +1,8 @@
-use physx::{
-    math::PxVec3,
-    traits::Class,
+use crate::{
     DeriveClassForNewType,
+    math::PxVec3,
+    owner::Owner,
+    traits::Class,
 };
 
 use physx_sys::{
@@ -75,7 +76,6 @@ use physx_sys::{
 };
 
 use super::{
-    Owner,
     VehicleAntiRollBarData,
     VehicleSuspensionData,
     VehicleTireData,

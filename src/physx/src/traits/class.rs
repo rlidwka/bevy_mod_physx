@@ -38,6 +38,29 @@ use physx_sys::{
     //PxBVH33TriangleMesh, // Doesn't exist?
     PxVehicleNoDrive,
     PxVehicleWheels,
+    PxVehicleDriveSimData,
+    PxVehicleDriveSimData4W,
+    PxVehicleDriveSimDataNW,
+    PxVehicleDrive4WRawInputData,
+    PxVehicleDriveNWRawInputData,
+    PxVehicleDriveTankRawInputData,
+    PxVehicleAckermannGeometryData,
+    PxVehicleAntiRollBarData,
+    PxVehicleAutoBoxData,
+    PxVehicleClutchData,
+    PxVehicleDifferential4WData,
+    PxVehicleDifferentialNWData,
+    PxVehicleDriveDynData,
+    PxVehicleEngineData,
+    PxVehicleGearsData,
+    PxVehicleKeySmoothingData,
+    PxVehiclePadSmoothingData,
+    PxVehicleSuspensionData,
+    PxVehicleTireData,
+    PxVehicleTireLoadFilterData,
+    PxVehicleWheelData,
+    PxVehicleWheelsDynData,
+    PxVehicleWheelsSimData,
 };
 
 // Main classes
@@ -166,12 +189,6 @@ DeriveClass!(PxMaterial: PxBase);
 DeriveClass!(PxPruningStructure: PxBase);
 DeriveClass!(PxShape: PxBase);
 DeriveClass!(PxTriangleMesh: PxBase);
-DeriveClass!(PxVehicleWheels: PxBase);
-DeriveClass!(PxVehicleNoDrive: PxVehicleWheels, PxBase);
-DeriveClass!(PxVehicleDrive: PxVehicleWheels, PxBase);
-DeriveClass!(PxVehicleDrive4W: PxVehicleDrive, PxVehicleWheels, PxBase);
-DeriveClass!(PxVehicleDriveNW: PxVehicleDrive, PxVehicleWheels, PxBase);
-DeriveClass!(PxVehicleDriveTank: PxVehicleDrive, PxVehicleWheels, PxBase);
 
 DeriveClass!(PxFoundation);
 DeriveClass!(PxPhysics);
@@ -197,6 +214,40 @@ DeriveClass!(PxMeshScale);
 DeriveClass!(PxBounds3);
 
 DeriveClass!(PxArticulationCache);
+
+// vehicle sdk classes
+DeriveClass!(PxVehicleWheels: PxBase);
+DeriveClass!(PxVehicleDrive: PxVehicleWheels, PxBase);
+DeriveClass!(PxVehicleNoDrive: PxVehicleWheels, PxBase);
+DeriveClass!(PxVehicleDriveTank: PxVehicleDrive, PxVehicleWheels, PxBase);
+DeriveClass!(PxVehicleDrive4W: PxVehicleDrive, PxVehicleWheels, PxBase);
+DeriveClass!(PxVehicleDriveNW: PxVehicleDrive, PxVehicleWheels, PxBase);
+
+DeriveClass!(PxVehicleDriveSimData);
+DeriveClass!(PxVehicleDriveSimData4W: PxVehicleDriveSimData);
+DeriveClass!(PxVehicleDriveSimDataNW: PxVehicleDriveSimData);
+
+DeriveClass!(PxVehicleDrive4WRawInputData);
+DeriveClass!(PxVehicleDriveNWRawInputData: PxVehicleDrive4WRawInputData);
+DeriveClass!(PxVehicleDriveTankRawInputData);
+
+DeriveClass!(PxVehicleAckermannGeometryData);
+DeriveClass!(PxVehicleAntiRollBarData);
+DeriveClass!(PxVehicleAutoBoxData);
+DeriveClass!(PxVehicleClutchData);
+DeriveClass!(PxVehicleDifferential4WData);
+DeriveClass!(PxVehicleDifferentialNWData);
+DeriveClass!(PxVehicleDriveDynData);
+DeriveClass!(PxVehicleEngineData);
+DeriveClass!(PxVehicleGearsData);
+DeriveClass!(PxVehicleKeySmoothingData);
+DeriveClass!(PxVehiclePadSmoothingData);
+DeriveClass!(PxVehicleSuspensionData);
+DeriveClass!(PxVehicleTireData);
+DeriveClass!(PxVehicleTireLoadFilterData);
+DeriveClass!(PxVehicleWheelData);
+DeriveClass!(PxVehicleWheelsDynData);
+DeriveClass!(PxVehicleWheelsSimData);
 
 macro_rules! DeriveClassForGeometries {
     ($($Px: ty,)*) => {

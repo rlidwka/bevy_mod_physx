@@ -1,8 +1,16 @@
-use physx::DeriveClassForNewType;
-use physx::traits::Class;
+use crate::{
+    DeriveClassForNewType,
+    traits::Class,
+};
+
 use physx_sys::{PxVehicleKeySmoothingData, PxVehiclePadSmoothingData, phys_PxVehicleDriveTankSmoothDigitalRawInputsAndSetAnalogInputs, phys_PxVehicleDriveTankSmoothAnalogRawInputsAndSetAnalogInputs};
 
-use super::{VehicleDriveDynData, PxVehicleDriveDynData, VehicleDrive4W, VehicleDriveTank, VehicleDriveTankRawInputData, VehicleDriveNW};
+use super::{
+    PxVehicleDriveDynData,
+    VehicleDriveDynData,
+    VehicleDriveTank,
+    VehicleDriveTankRawInputData,
+};
 
 #[derive(Clone)]
 pub struct VehicleKeySmoothingData {
@@ -16,14 +24,12 @@ impl VehicleKeySmoothingData {
         Default::default()
     }
 
-    pub fn set_rise_rates(mut self, rise_rates: &[f32]) -> Self {
+    pub fn set_rise_rates(&mut self, rise_rates: &[f32]) {
         self.obj.mRiseRates[..rise_rates.len()].copy_from_slice(rise_rates);
-        self
     }
 
-    pub fn set_fall_rates(mut self, fall_rates: &[f32]) -> Self {
+    pub fn set_fall_rates(&mut self, fall_rates: &[f32]) {
         self.obj.mFallRates[..fall_rates.len()].copy_from_slice(fall_rates);
-        self
     }
 }
 
