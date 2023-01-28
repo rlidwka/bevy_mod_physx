@@ -3,6 +3,8 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+use std::time::Duration;
+
 use bevy::prelude::*;
 mod type_bridge;
 
@@ -16,7 +18,7 @@ pub mod vehicles;
 
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
-use resources::{BPxCooking, BPxPhysics, BPxScene, BPxTimeSync, BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use resources::{BPxCooking, BPxPhysics, BPxScene, BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -57,6 +59,8 @@ impl Plugin for PhysXPlugin {
         app.add_asset::<BPxGeometry>();
         app.add_asset::<BPxMaterial>();
 
+        app.add_event::<Tick>();
+
         app.register_type::<BPxVelocity>();
 
         if self.cooking {
@@ -79,6 +83,7 @@ impl Plugin for PhysXPlugin {
         struct PhysXStage;
 
         let mut stage = SystemStage::parallel();
+        stage.add_system(time_sync.before(systems::scene_simulate));
         stage.add_system(systems::scene_simulate);
         stage.add_system(systems::create_dynamic_actors.after(systems::scene_simulate));
         stage.add_system(systems::writeback_actors.after(systems::scene_simulate));
@@ -96,5 +101,49 @@ impl Default for PhysXPlugin {
             gravity: Vec3::new(0.0, -9.81, 0.0),
             timestep: 1. / 60.,
         }
+    }
+}
+
+#[derive(Resource, Default)]
+struct BPxTimeSync {
+    timestep: f32,
+    speed_factor: f32,
+    bevy_physx_delta: f32,
+}
+
+impl BPxTimeSync {
+    pub fn new(timestep: f32) -> Self {
+        Self { timestep, speed_factor: 1., ..default() }
+    }
+
+    /*pub fn get_delta(&self) -> f32 {
+        self.bevy_physx_delta
+    }*/
+
+    pub fn advance_bevy_time(&mut self, time: &Time) {
+        self.bevy_physx_delta += time.delta_seconds() * self.speed_factor;
+    }
+
+    pub fn check_advance_physx_time(&mut self) -> Option<f32> {
+        if self.bevy_physx_delta >= self.timestep {
+            self.bevy_physx_delta -= self.timestep;
+            Some(self.timestep)
+        } else {
+            None
+        }
+    }
+}
+
+pub struct Tick(pub Duration);
+
+fn time_sync(
+    time: Res<Time>,
+    mut timesync: ResMut<BPxTimeSync>,
+    mut physx_ticks: EventWriter<Tick>,
+) {
+    timesync.advance_bevy_time(&time);
+
+    if let Some(delta) = timesync.check_advance_physx_time() {
+        physx_ticks.send(Tick(Duration::from_secs_f32(delta)));
     }
 }

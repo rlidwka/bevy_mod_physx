@@ -7,12 +7,10 @@ use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
 use physx_sys::{
     PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags,
-    PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxVehicleWheelData_new, PxVehicleWheelData,
-    PxVehicleTireData, PxVehicleTireData_new, PxVehicleSuspensionData_new, PxVehicleSuspensionData,
-    PxVehicleWheels, PxFilterData, PxFilterData_new_2,
+    PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxFilterData, PxFilterData_new_2,
 };
 
-use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData};
+use crate::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, VehicleWheels, VehicleDriveSimData4W, VehicleDriveSimDataNW, VehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW};
 
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
@@ -146,26 +144,6 @@ impl BPxRigidStaticHandle {
     }
 }
 
-#[derive(Component)]
-pub struct BPxVehicleHandle {
-    // it should be Owner<PxVehicleXXXX> when physx implements vehicles,
-    // for now we drop pointer manually, similar to what Owner does
-    pub ptr: *mut PxVehicleWheels,
-    pub wheels: usize,
-}
-
-// need some advice on soundness of implementing Send for *mut X
-unsafe impl Send for BPxVehicleHandle {}
-unsafe impl Sync for BPxVehicleHandle {}
-
-impl Drop for BPxVehicleHandle {
-    fn drop(&mut self) {
-        unsafe {
-            drop_in_place(self.ptr);
-        }
-    }
-}
-
 #[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
 pub struct BPxVelocity {
     pub linvel: Vec3,
@@ -191,22 +169,43 @@ impl BPxVelocity {
 }
 
 #[derive(Component)]
-pub struct BPxVehicleNoDrive {
-    entities: Vec<Entity>,
-    inner: BPxVehicleNoDriveInner,
+pub enum BPxVehicle {
+    NoDrive {
+        wheels: Vec<Entity>,
+        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+    },
+    Drive4W {
+        wheels: Vec<Entity>,
+        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        drive_sim_data: Box<PxVehicleDriveSimData4W>,
+    },
+    DriveNW {
+        wheels: Vec<Entity>,
+        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        drive_sim_data: Box<PxVehicleDriveSimDataNW>,
+    },
+    DriveTank {
+        wheels: Vec<Entity>,
+        wheels_sim_data: crate::vehicles::Owner<VehicleWheelsSimData>,
+        drive_sim_data: Box<PxVehicleDriveSimData>,
+    },
 }
 
-impl BPxVehicleNoDrive {
-    pub fn new(wheels: Vec<Entity>, wheel_data: crate::vehicles::Owner<VehicleWheelsSimData>) -> Self {
-        Self {
-            entities: wheels,
-            inner: BPxVehicleNoDriveInner::Uninit(wheel_data),
-        }
-    }
+#[derive(Component)]
+pub enum BPxVehicleHandle {
+    NoDrive(crate::vehicles::Owner<PxVehicleNoDrive>),
+    Drive4W(crate::vehicles::Owner<PxVehicleDrive4W>),
+    DriveNW(crate::vehicles::Owner<PxVehicleDriveNW>),
+    DriveTank(crate::vehicles::Owner<PxVehicleDriveTank>),
+}
 
-    pub fn initialize(&mut self, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) {
-        let BPxVehicleNoDriveInner::Uninit(wheels_data) = &mut self.inner else {
-            panic!("already initialized");
+impl BPxVehicleHandle {
+    pub fn new(vehicle_desc: &BPxVehicle, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) -> Self {
+        let (wheels, wheels_sim_data) = match vehicle_desc {
+            BPxVehicle::NoDrive { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            BPxVehicle::Drive4W { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            BPxVehicle::DriveNW { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            BPxVehicle::DriveTank { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
         };
 
         let mut shape_mapping = HashMap::new();
@@ -214,274 +213,49 @@ impl BPxVehicleNoDrive {
             shape_mapping.insert(*shape.get_user_data(), idx as i32);
         }
 
-        for (wheel_id, entity) in self.entities.iter().enumerate() {
-            wheels_data.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-        }
+        match vehicle_desc {
+            BPxVehicle::NoDrive { .. } => {
+                let mut vehicle: crate::vehicles::Owner<PxVehicleNoDrive> = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap();
+                let wheelsim = vehicle.wheels_sim_data_mut();
 
-        let vehicle = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_data).unwrap();
+                for (wheel_id, entity) in wheels.iter().enumerate() {
+                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+                }
 
-        self.inner = BPxVehicleNoDriveInner::Initialized(vehicle);
-    }
+                Self::NoDrive(vehicle)
+            }
+            BPxVehicle::Drive4W { drive_sim_data, .. } => {
+                let mut vehicle: crate::vehicles::Owner<PxVehicleDrive4W> = VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap();
+                let wheelsim = vehicle.wheels_sim_data_mut();
 
-    pub fn vehicle(&self) -> Option<&PxVehicleNoDrive> {
-        match &self.inner {
-            BPxVehicleNoDriveInner::Uninit(_) => None,
-            BPxVehicleNoDriveInner::Initialized(handle) => Some(handle.as_ref()),
-        }
-    }
+                for (wheel_id, entity) in wheels.iter().enumerate() {
+                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+                }
 
-    pub fn vehicle_mut(&mut self) -> Option<&mut PxVehicleNoDrive> {
-        match &mut self.inner {
-            BPxVehicleNoDriveInner::Uninit(_) => None,
-            BPxVehicleNoDriveInner::Initialized(handle) => Some(handle.as_mut()),
-        }
-    }
+                Self::Drive4W(vehicle)
+            }
+            BPxVehicle::DriveNW { drive_sim_data, .. } => {
+                let mut vehicle: crate::vehicles::Owner<PxVehicleDriveNW> = VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
+                let wheelsim = vehicle.wheels_sim_data_mut();
 
-    pub fn wheel_count(&self) -> usize {
-        self.entities.len()
-    }
-}
+                for (wheel_id, entity) in wheels.iter().enumerate() {
+                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+                }
 
-enum BPxVehicleNoDriveInner {
-    Uninit(crate::vehicles::Owner<VehicleWheelsSimData>),
-    Initialized(crate::vehicles::Owner<PxVehicleNoDrive>),
-}
+                Self::DriveNW(vehicle)
+            }
+            BPxVehicle::DriveTank { drive_sim_data, .. } => {
+                let mut vehicle: crate::vehicles::Owner<PxVehicleDriveTank> = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
+                let wheelsim = vehicle.wheels_sim_data_mut();
 
-#[derive(Component)]
-pub struct BPxVehicleDrive4W {
-    entities: Vec<Entity>,
-    //drive: BPxVehicleDriveSimData4W,
-}
+                for (wheel_id, entity) in wheels.iter().enumerate() {
+                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+                }
 
-#[derive(Component)]
-pub struct BPxVehicleDriveNW {
-    entities: Vec<Entity>,
-    //drive: BPxVehicleDriveSimDataNW,
-}
-
-#[derive(Component)]
-pub struct BPxVehicleDriveTank {
-    entities: Vec<Entity>,
-    inner: BPxVehicleDriveTankInner,
-}
-
-impl BPxVehicleDriveTank {
-    pub fn new(wheels: Vec<Entity>, wheel_data: crate::vehicles::Owner<VehicleWheelsSimData>, drive_data: Box<PxVehicleDriveSimData>) -> Self {
-        Self {
-            entities: wheels,
-            inner: BPxVehicleDriveTankInner::Uninit((wheel_data, drive_data)),
+                Self::DriveTank(vehicle)
+            }
         }
     }
-
-    pub fn initialize(&mut self, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) {
-        let wheel_count = self.wheel_count() as u32;
-        let BPxVehicleDriveTankInner::Uninit((wheels_data, drive_data)) = &mut self.inner else {
-            panic!("already initialized");
-        };
-
-        let mut shape_mapping = HashMap::new();
-        for (idx, shape) in actor.get_shapes().into_iter().enumerate() {
-            shape_mapping.insert(*shape.get_user_data(), idx as i32);
-        }
-
-        for (wheel_id, entity) in self.entities.iter().enumerate() {
-            wheels_data.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-        }
-
-        let vehicle = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_data, drive_data.as_ref(), wheel_count).unwrap();
-
-        self.inner = BPxVehicleDriveTankInner::Initialized(vehicle);
-    }
-
-    pub fn vehicle(&self) -> Option<&PxVehicleDriveTank> {
-        match &self.inner {
-            BPxVehicleDriveTankInner::Uninit(_) => None,
-            BPxVehicleDriveTankInner::Initialized(handle) => Some(handle.as_ref()),
-        }
-    }
-
-    pub fn vehicle_mut(&mut self) -> Option<&mut PxVehicleDriveTank> {
-        match &mut self.inner {
-            BPxVehicleDriveTankInner::Uninit(_) => None,
-            BPxVehicleDriveTankInner::Initialized(handle) => Some(handle.as_mut()),
-        }
-    }
-
-    pub fn wheel_count(&self) -> usize {
-        self.entities.len()
-    }
-}
-
-enum BPxVehicleDriveTankInner {
-    Uninit((crate::vehicles::Owner<VehicleWheelsSimData>, Box<PxVehicleDriveSimData>)),
-    Initialized(crate::vehicles::Owner<PxVehicleDriveTank>),
-}
-
-#[derive(Debug, Component, Clone)]
-pub struct BPxVehicleWheel {
-    pub wheel_data: BPxVehicleWheelData,
-    pub tire_data: BPxVehicleTireData,
-    pub suspension_data: BPxVehicleSuspensionData,
-    pub anti_roll_bar: BPxVehicleAntiRollBarData,
-    pub susp_travel_direction: Vec3,
-    pub susp_force_app_point_offset: Vec3,
-    pub tire_force_app_point_offset: Vec3,
-}
-
-impl Default for BPxVehicleWheel {
-    fn default() -> Self {
-        Self {
-            wheel_data: default(),
-            tire_data: default(),
-            suspension_data: default(),
-            anti_roll_bar: default(),
-            susp_travel_direction: Vec3::new(0., -1., 0.),
-            susp_force_app_point_offset: Vec3::ZERO,
-            tire_force_app_point_offset: Vec3::ZERO,
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleWheelData {
-    pub radius: f32,
-    pub width: f32,
-    pub mass: f32,
-    pub moi: f32,
-    pub damping_rate: f32,
-    pub max_brake_torque: f32,
-    pub max_hand_brake_torque: f32,
-    pub max_steer: f32,
-    pub toe_angle: f32,
-}
-
-impl BPxVehicleWheelData {
-    pub fn to_physx(&self) -> PxVehicleWheelData {
-        let mut wheel_data = unsafe { PxVehicleWheelData_new() };
-        wheel_data.mRadius = self.radius;
-        wheel_data.mWidth = self.width;
-        wheel_data.mMass = self.mass;
-        wheel_data.mMOI = self.moi;
-        wheel_data.mDampingRate = self.damping_rate;
-        wheel_data.mMaxBrakeTorque = self.max_brake_torque;
-        wheel_data.mMaxHandBrakeTorque = self.max_hand_brake_torque;
-        wheel_data.mMaxSteer = self.max_steer;
-        wheel_data.mToeAngle = self.toe_angle;
-        wheel_data
-    }
-
-    pub fn from_physx(wheel_data: PxVehicleWheelData) -> Self {
-        Self {
-            radius: wheel_data.mRadius,
-            width: wheel_data.mWidth,
-            mass: wheel_data.mMass,
-            moi: wheel_data.mMOI,
-            damping_rate: wheel_data.mDampingRate,
-            max_brake_torque: wheel_data.mMaxBrakeTorque,
-            max_hand_brake_torque: wheel_data.mMaxBrakeTorque,
-            max_steer: wheel_data.mMaxSteer,
-            toe_angle: wheel_data.mToeAngle,
-        }
-    }
-}
-
-impl Default for BPxVehicleWheelData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleWheelData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleTireData {
-    pub lat_stiff_x: f32,
-    pub lat_stiff_y: f32,
-    pub longitudinal_stiffness_per_unit_gravity: f32,
-    pub camber_stiffness_per_unit_gravity: f32,
-    pub friction_vs_slip_graph: [[f32; 2]; 3],
-    pub tire_type: u32,
-}
-
-impl BPxVehicleTireData {
-    pub fn to_physx(&self) -> PxVehicleTireData {
-        let mut tire_data = unsafe { PxVehicleTireData_new() };
-        tire_data.mLatStiffX = self.lat_stiff_x;
-        tire_data.mLatStiffY = self.lat_stiff_y;
-        tire_data.mLongitudinalStiffnessPerUnitGravity = self.longitudinal_stiffness_per_unit_gravity;
-        tire_data.mCamberStiffnessPerUnitGravity = self.camber_stiffness_per_unit_gravity;
-        tire_data.mFrictionVsSlipGraph = self.friction_vs_slip_graph;
-        tire_data.mType = self.tire_type;
-        tire_data
-    }
-
-    pub fn from_physx(tire_data: PxVehicleTireData) -> Self {
-        Self {
-            lat_stiff_x: tire_data.mLatStiffX,
-            lat_stiff_y: tire_data.mLatStiffY,
-            longitudinal_stiffness_per_unit_gravity: tire_data.mLongitudinalStiffnessPerUnitGravity,
-            camber_stiffness_per_unit_gravity: tire_data.mCamberStiffnessPerUnitGravity,
-            friction_vs_slip_graph: tire_data.mFrictionVsSlipGraph,
-            tire_type: tire_data.mType,
-        }
-    }
-}
-
-impl Default for BPxVehicleTireData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleTireData_new() })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BPxVehicleSuspensionData {
-    pub spring_strength: f32,
-    pub spring_damper_rate: f32,
-    pub max_compression: f32,
-    pub max_droop: f32,
-    // this will be automatically calculated
-    //pub sprung_mass: f32,
-    pub camber_at_rest: f32,
-    pub camber_at_max_compression: f32,
-    pub camber_at_max_droop: f32,
-}
-
-impl BPxVehicleSuspensionData {
-    pub fn to_physx(&self) -> PxVehicleSuspensionData {
-        let mut susp_data = unsafe { PxVehicleSuspensionData_new() };
-        susp_data.mSpringStrength = self.spring_strength;
-        susp_data.mSpringDamperRate = self.spring_damper_rate;
-        susp_data.mMaxCompression = self.max_compression;
-        susp_data.mMaxDroop = self.max_droop;
-        //susp_data.mSprungMass = self.sprung_mass;
-        susp_data.mCamberAtRest = self.camber_at_rest;
-        susp_data.mCamberAtMaxCompression = self.camber_at_max_compression;
-        susp_data.mCamberAtMaxDroop = self.camber_at_max_droop;
-        susp_data
-    }
-
-    pub fn from_physx(susp_data: PxVehicleSuspensionData) -> Self {
-        Self {
-            spring_strength: susp_data.mSpringStrength,
-            spring_damper_rate: susp_data.mSpringDamperRate,
-            max_compression: susp_data.mMaxCompression,
-            max_droop: susp_data.mMaxDroop,
-            //sprung_mass: susp_data.mSprungMass,
-            camber_at_rest: susp_data.mCamberAtRest,
-            camber_at_max_compression: susp_data.mCamberAtMaxCompression,
-            camber_at_max_droop: susp_data.mCamberAtMaxDroop,
-        }
-    }
-}
-
-impl Default for BPxVehicleSuspensionData {
-    fn default() -> Self {
-        Self::from_physx(unsafe { PxVehicleSuspensionData_new() })
-    }
-}
-
-#[derive(Debug, Clone, Default)]
-pub struct BPxVehicleAntiRollBarData {
-    pub with_wheel_id: u32,
-    pub stiffness: f32,
 }
 
 #[derive(Component, Debug, Clone)]

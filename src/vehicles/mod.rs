@@ -1,5 +1,7 @@
-mod owner;
-pub use owner::*;
+mod physx_internal;
+pub use physx_internal::Owner;
+pub use physx_internal::Class;
+pub(crate) use physx_internal::DeriveClassForNewType;
 
 mod vehicle_ackermann_geometry_data;
 pub use vehicle_ackermann_geometry_data::*;
@@ -22,11 +24,17 @@ pub use vehicle_differential_nw_data::*;
 mod vehicle_drive;
 pub use vehicle_drive::*;
 
+mod vehicle_drive_4w_raw_input_data;
+pub use vehicle_drive_4w_raw_input_data::*;
+
 mod vehicle_drive_4w;
 pub use vehicle_drive_4w::*;
 
 mod vehicle_drive_dyn_data;
 pub use vehicle_drive_dyn_data::*;
+
+mod vehicle_drive_nw_raw_input_data;
+pub use vehicle_drive_nw_raw_input_data::*;
 
 mod vehicle_drive_nw;
 pub use vehicle_drive_nw::*;
@@ -39,6 +47,9 @@ pub use vehicle_drive_sim_data_4w::*;
 
 mod vehicle_drive_sim_data_nw;
 pub use vehicle_drive_sim_data_nw::*;
+
+mod vehicle_drive_tank_raw_input_data;
+pub use vehicle_drive_tank_raw_input_data::*;
 
 mod vehicle_drive_tank;
 pub use vehicle_drive_tank::*;
@@ -60,6 +71,9 @@ pub use vehicle_tire_data::*;
 
 mod vehicle_tire_load_filter_data;
 pub use vehicle_tire_load_filter_data::*;
+
+mod vehicle_util_control;
+pub use vehicle_util_control::*;
 
 mod vehicle_util_setup;
 pub use vehicle_util_setup::*;

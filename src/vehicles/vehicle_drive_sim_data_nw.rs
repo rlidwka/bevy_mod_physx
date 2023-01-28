@@ -29,7 +29,7 @@ impl Default for PxVehicleDriveSimDataNW {
     }
 }
 
-DeriveClassForNewType!(PxVehicleDriveSimDataNW: PxVehicleDriveSimDataNW);
+DeriveClassForNewType!(PxVehicleDriveSimDataNW: PxVehicleDriveSimDataNW, PxVehicleDriveSimData);
 
 impl<T> VehicleDriveSimDataNW for T where T: Class<physx_sys::PxVehicleDriveSimDataNW> + VehicleDriveSimData {}
 

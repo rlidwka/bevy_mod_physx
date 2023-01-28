@@ -3,12 +3,12 @@ use flying_camera::*;
 
 use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
-use bevy_physx::prelude::*;
+use bevy_physx::{prelude::*, Tick};
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
-use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicleNoDrive, BPxVehicleDriveTank};
+use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicle, BPxVehicleHandle};
 use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
-use bevy_physx::vehicles::{VehicleNoDrive, VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData, VehicleDriveSimData, Owner, PxVehicleDriveSimData, VehicleDriveDynData, VehicleGearsRatio};
-use physx_sys::PxVehicleDrivableSurfaceType;
+use bevy_physx::vehicles::{VehicleWheelsSimData, vehicle_compute_sprung_masses, VehicleUtilGravityDirection, VehicleWheelData, VehicleTireData, VehicleSuspensionData, VehicleDriveSimData, Owner, PxVehicleDriveSimData, VehicleDriveDynData, VehicleGearsRatio, VehicleNoDrive, VehicleKeySmoothingData, VehicleDriveTankControl, VehicleDriveTankRawInputData};
+use physx_sys::{PxVehicleDrivableSurfaceType, PxVehicleDriveTankRawInputData};
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
 //const UNDRIVABLE_SURFACE: u32 = 0x0000ffff;
@@ -90,8 +90,7 @@ fn main() {
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_plane)
         .add_startup_system(spawn_vehicle)
-        .add_system(apply_vehicle_nodrive_controls)
-        .add_system(apply_vehicle_tank_controls)
+        .add_system(apply_vehicle_controls)
         .run();
 }
 
@@ -141,7 +140,7 @@ fn spawn_plane(
     .insert(Name::new("Plane"));
 }
 
-fn create_wheels_sim_data(wheels: [Entity; WHEEL_COUNT]) -> Owner<VehicleWheelsSimData> {
+fn create_wheels_sim_data() -> Owner<VehicleWheelsSimData> {
     let mut wheels_sim_data = VehicleWheelsSimData::new(WHEEL_COUNT as u32).unwrap();
     let cmass_offsets = WHEEL_OFFSETS.iter().map(|v| *v - CENTER_OF_MASS).collect::<Vec<_>>();
 
@@ -240,9 +239,8 @@ fn spawn_vehicle(
         );
     }
 
-    let wheels_sim_data = create_wheels_sim_data(wheels[..].try_into().unwrap());
-    let drive_sim_data = PxVehicleDriveSimData::default();
-    let vehicle = BPxVehicleDriveTank::new(wheels.to_vec(), wheels_sim_data, Box::new(drive_sim_data));
+    let wheels_sim_data = create_wheels_sim_data();
+    let drive_sim_data = Box::new(PxVehicleDriveSimData::default());
 
     commands.spawn_empty()
         .insert(SceneBundle {
@@ -252,7 +250,7 @@ fn spawn_vehicle(
         .insert(PlayerControlled)
         .insert(BPxActor::Dynamic)
         .insert(BPxMassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
-        .insert(vehicle)
+        .insert(BPxVehicle::DriveTank { wheels: wheels.clone(), wheels_sim_data, drive_sim_data })
         .insert(BPxShape {
             material,
             geometry: hull_geometry,
@@ -263,69 +261,70 @@ fn spawn_vehicle(
         .add_child(camera);
 }
 
-fn apply_vehicle_nodrive_controls(
-    mut player_query: Query<&mut BPxVehicleNoDrive, With<PlayerControlled>>,
+fn apply_vehicle_controls(
+    mut player_query: Query<&mut BPxVehicleHandle, With<PlayerControlled>>,
+    mut tick: EventReader<Tick>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
-    let Some(vehicle) = vehicle.vehicle_mut() else { return; };
 
-    if keys.just_pressed(KeyCode::W) {
-        vehicle.set_drive_torque(2, 4000.);
-        vehicle.set_drive_torque(3, 4000.);
-    }
+    for Tick(timestep) in tick.iter() {
+        let timestep = timestep.as_secs_f32();
 
-    if keys.just_released(KeyCode::W) {
-        vehicle.set_drive_torque(2, 0.);
-        vehicle.set_drive_torque(3, 0.);
-    }
+        match vehicle.as_mut() {
+            BPxVehicleHandle::NoDrive(vehicle) => {
+                if keys.just_pressed(KeyCode::W) {
+                    vehicle.set_drive_torque(2, 4000.);
+                    vehicle.set_drive_torque(3, 4000.);
+                }
 
-    if keys.just_pressed(KeyCode::S) {
-        vehicle.set_brake_torque(2, 15000.);
-        vehicle.set_brake_torque(3, 15000.);
-    }
+                if keys.just_released(KeyCode::W) {
+                    vehicle.set_drive_torque(2, 0.);
+                    vehicle.set_drive_torque(3, 0.);
+                }
 
-    if keys.just_released(KeyCode::S) {
-        vehicle.set_brake_torque(2, 0.);
-        vehicle.set_brake_torque(3, 0.);
-    }
+                if keys.just_pressed(KeyCode::S) {
+                    vehicle.set_brake_torque(2, 15000.);
+                    vehicle.set_brake_torque(3, 15000.);
+                }
 
-    if keys.just_pressed(KeyCode::A) {
-        vehicle.set_steer_angle(0, 0.5);
-        vehicle.set_steer_angle(1, 0.5);
-    }
+                if keys.just_released(KeyCode::S) {
+                    vehicle.set_brake_torque(2, 0.);
+                    vehicle.set_brake_torque(3, 0.);
+                }
 
-    if keys.just_released(KeyCode::A) {
-        vehicle.set_steer_angle(0, 0.);
-        vehicle.set_steer_angle(1, 0.);
-    }
+                if keys.just_pressed(KeyCode::A) {
+                    vehicle.set_steer_angle(0, 0.5);
+                    vehicle.set_steer_angle(1, 0.5);
+                }
 
-    if keys.just_pressed(KeyCode::D) {
-        vehicle.set_steer_angle(0, -0.5);
-        vehicle.set_steer_angle(1, -0.5);
-    }
+                if keys.just_released(KeyCode::A) {
+                    vehicle.set_steer_angle(0, 0.);
+                    vehicle.set_steer_angle(1, 0.);
+                }
 
-    if keys.just_released(KeyCode::D) {
-        vehicle.set_steer_angle(0, 0.);
-        vehicle.set_steer_angle(1, 0.);
-    }
-}
+                if keys.just_pressed(KeyCode::D) {
+                    vehicle.set_steer_angle(0, -0.5);
+                    vehicle.set_steer_angle(1, -0.5);
+                }
 
-fn apply_vehicle_tank_controls(
-    mut player_query: Query<&mut BPxVehicleDriveTank, With<PlayerControlled>>,
-    keys: Res<Input<KeyCode>>,
-) {
-    let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
-    let Some(vehicle) = vehicle.vehicle_mut() else { return; };
+                if keys.just_released(KeyCode::D) {
+                    vehicle.set_steer_angle(0, 0.);
+                    vehicle.set_steer_angle(1, 0.);
+                }
+            }
+            BPxVehicleHandle::Drive4W(vehicle) => {
+            }
+            BPxVehicleHandle::DriveNW(vehicle) => {
+            }
+            BPxVehicleHandle::DriveTank(vehicle) => {
+                let mut smoothing = VehicleKeySmoothingData::new();
+                smoothing.set_rise_rates(&[6., 6., 6., 2.5, 2.5]);
+                smoothing.set_fall_rates(&[10., 10., 10., 5., 5.]);
 
-    if keys.just_pressed(KeyCode::W) {
-        /*vehicle.drive_dyn_data_mut().set_use_auto_gears(true);
-
-        if vehicle.drive_dyn_data_mut().get_current_gear() < VehicleGearsRatio::First {
-            vehicle.drive_dyn_data_mut().set_current_gear(VehicleGearsRatio::First);
-        }*/
-
-        vehicle.drive_dyn_data_mut().set_gear_up(true);
-        vehicle.drive_dyn_data_mut().set_engine_rotation_speed(1000000.);
+                let raw_input_data: Owner<PxVehicleDriveTankRawInputData> = VehicleDriveTankRawInputData::new().unwrap();
+                vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(&smoothing.into(), &raw_input_data, timestep)
+            }
+        }
     }
 }

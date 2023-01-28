@@ -52,6 +52,8 @@ DeriveClassForNewType!(PxVehicleDriveDynData: PxVehicleDriveDynData);
 impl<T> VehicleDriveDynData for T where T: Class<physx_sys::PxVehicleDriveDynData> {}
 
 pub trait VehicleDriveDynData: Class<physx_sys::PxVehicleDriveDynData> {
+    const MAX_NB_ANALOG_INPUTS: usize = 16;
+
     /// Set all dynamics data to zero to bring the vehicle to rest.
     fn set_to_rest_state(&mut self) {
         unsafe { PxVehicleDriveDynData_setToRestState_mut(self.as_mut_ptr()) }

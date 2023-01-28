@@ -103,36 +103,6 @@ impl BPxCooking {
     }
 }
 
-#[derive(Resource, Default)]
-pub struct BPxTimeSync {
-    timestep: f32,
-    speed_factor: f32,
-    bevy_physx_delta: f32,
-}
-
-impl BPxTimeSync {
-    pub fn new(timestep: f32) -> Self {
-        Self { timestep, speed_factor: 1., ..default() }
-    }
-
-    pub fn get_delta(&self) -> f32 {
-        self.bevy_physx_delta
-    }
-
-    pub fn advance_bevy_time(&mut self, time: &Time) {
-        self.bevy_physx_delta += time.delta_seconds() * self.speed_factor;
-    }
-
-    pub fn check_advance_physx_time(&mut self) -> Option<f32> {
-        if self.bevy_physx_delta >= self.timestep {
-            self.bevy_physx_delta -= self.timestep;
-            Some(self.timestep)
-        } else {
-            None
-        }
-    }
-}
-
 #[derive(Resource, Deref, DerefMut, Default)]
 pub struct BPxDefaultMaterial(Option<Handle<BPxMaterial>>);
 
