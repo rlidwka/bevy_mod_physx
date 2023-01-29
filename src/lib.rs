@@ -15,6 +15,10 @@ pub mod callbacks;
 pub mod prelude;
 pub mod resources;
 
+// reexport physx to avoid version conflicts
+pub use physx;
+pub use physx_sys;
+
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
 use resources::{BPxCooking, BPxPhysics, BPxScene, BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
