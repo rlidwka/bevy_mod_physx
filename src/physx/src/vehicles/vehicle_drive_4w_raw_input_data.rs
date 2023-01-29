@@ -32,7 +32,6 @@ use physx_sys::{
 };
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct PxVehicleDrive4WRawInputData {
     obj: physx_sys::PxVehicleDrive4WRawInputData,
 }

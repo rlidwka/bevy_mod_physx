@@ -30,7 +30,6 @@ use super::{
 };
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct PxVehicleDriveSimData {
     obj: physx_sys::PxVehicleDriveSimData,
 }

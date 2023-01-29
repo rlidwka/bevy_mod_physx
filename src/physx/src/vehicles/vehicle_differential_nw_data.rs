@@ -13,7 +13,6 @@ use physx_sys::{
 };
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct VehicleDifferentialNWData {
     pub(crate) obj: physx_sys::PxVehicleDifferentialNWData,
 }

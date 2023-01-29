@@ -26,7 +26,6 @@ use super::{
     VehicleDriveTankRawInputData,
 };
 
-#[derive(Clone)]
 pub struct VehicleKeySmoothingData {
     obj: PxVehicleKeySmoothingData,
 }

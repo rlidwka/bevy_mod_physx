@@ -37,7 +37,6 @@ use physx_sys::{
 use super::VehicleDriveTankControlModel;
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct PxVehicleDriveTankRawInputData {
     obj: physx_sys::PxVehicleDriveTankRawInputData,
 }

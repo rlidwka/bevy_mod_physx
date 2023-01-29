@@ -25,7 +25,6 @@ use physx_sys::{
 };
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct VehicleWheelsDynData {
     obj: physx_sys::PxVehicleWheelsDynData,
 }

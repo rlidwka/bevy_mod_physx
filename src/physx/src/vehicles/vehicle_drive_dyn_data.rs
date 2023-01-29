@@ -36,7 +36,6 @@ use physx_sys::{
 use super::VehicleGearsRatio;
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct PxVehicleDriveDynData {
     obj: physx_sys::PxVehicleDriveDynData,
 }

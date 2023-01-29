@@ -12,7 +12,6 @@ use physx_sys::{
 use super::VehicleDrive4WRawInputData;
 
 #[repr(transparent)]
-#[derive(Clone)]
 pub struct PxVehicleDriveNWRawInputData {
     obj: physx_sys::PxVehicleDriveNWRawInputData,
 }
