@@ -225,9 +225,9 @@ pub fn create_dynamic_actors(
                     None => {}
                 }
 
-                if let Some(vehicle) = vehicle {
+                if let Some(mut vehicle) = vehicle {
                     commands.entity(entity)
-                        .insert(BPxVehicleHandle::new(&vehicle, &mut physics, &mut actor));
+                        .insert(BPxVehicleHandle::new(&mut vehicle, &mut physics, &mut actor));
                 }
 
                 if let Some(BPxVelocity { linvel, angvel }) = velocity {

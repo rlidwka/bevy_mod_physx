@@ -199,9 +199,9 @@ pub enum BPxVehicleHandle {
 }
 
 impl BPxVehicleHandle {
-    pub fn new(vehicle_desc: &BPxVehicle, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) -> Self {
+    pub fn new(vehicle_desc: &mut BPxVehicle, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) -> Self {
         let (wheels, wheels_sim_data) = match vehicle_desc {
-            BPxVehicle::NoDrive { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            BPxVehicle::NoDrive { wheels, wheels_sim_data } => (wheels, wheels_sim_data),
             BPxVehicle::Drive4W { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
             BPxVehicle::DriveNW { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
             BPxVehicle::DriveTank { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
@@ -212,46 +212,30 @@ impl BPxVehicleHandle {
             shape_mapping.insert(*shape.get_user_data(), idx as i32);
         }
 
+        for (wheel_id, entity) in wheels.iter().enumerate() {
+            wheels_sim_data.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
+        }
+
         match vehicle_desc {
-            BPxVehicle::NoDrive { .. } => {
-                let mut vehicle: Owner<PxVehicleNoDrive> = VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap();
-                let wheelsim = vehicle.wheels_sim_data_mut();
-
-                for (wheel_id, entity) in wheels.iter().enumerate() {
-                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-                }
-
-                Self::NoDrive(vehicle)
+            BPxVehicle::NoDrive { wheels: _, wheels_sim_data } => {
+                Self::NoDrive(
+                    VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap()
+                )
             }
-            BPxVehicle::Drive4W { drive_sim_data, .. } => {
-                let mut vehicle: Owner<PxVehicleDrive4W> = VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap();
-                let wheelsim = vehicle.wheels_sim_data_mut();
-
-                for (wheel_id, entity) in wheels.iter().enumerate() {
-                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-                }
-
-                Self::Drive4W(vehicle)
+            BPxVehicle::Drive4W { wheels, wheels_sim_data, drive_sim_data } => {
+                Self::Drive4W(
+                    VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap()
+                )
             }
-            BPxVehicle::DriveNW { drive_sim_data, .. } => {
-                let mut vehicle: Owner<PxVehicleDriveNW> = VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
-                let wheelsim = vehicle.wheels_sim_data_mut();
-
-                for (wheel_id, entity) in wheels.iter().enumerate() {
-                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-                }
-
-                Self::DriveNW(vehicle)
+            BPxVehicle::DriveNW { wheels, wheels_sim_data, drive_sim_data } => {
+                Self::DriveNW(
+                    VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
+                )
             }
-            BPxVehicle::DriveTank { drive_sim_data, .. } => {
-                let mut vehicle: Owner<PxVehicleDriveTank> = VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap();
-                let wheelsim = vehicle.wheels_sim_data_mut();
-
-                for (wheel_id, entity) in wheels.iter().enumerate() {
-                    wheelsim.set_wheel_shape_mapping(wheel_id as u32, *shape_mapping.get(entity).unwrap());
-                }
-
-                Self::DriveTank(vehicle)
+            BPxVehicle::DriveTank { wheels, wheels_sim_data, drive_sim_data } => {
+                Self::DriveTank(
+                    VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
+                )
             }
         }
     }
