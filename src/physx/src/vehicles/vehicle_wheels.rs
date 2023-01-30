@@ -1,12 +1,14 @@
 use crate::{
     base::Base,
     traits::Class,
+    rigid_dynamic::PxRigidDynamic,
+    shape::Shape,
 };
 
 use physx_sys::{
     PxVehicleWheels_getVehicleType,
-    //PxVehicleWheels_getRigidDynamicActor_mut,
-    //PxVehicleWheels_getRigidDynamicActor,
+    PxVehicleWheels_getRigidDynamicActor_mut,
+    PxVehicleWheels_getRigidDynamicActor,
     PxVehicleWheels_computeForwardSpeed,
     PxVehicleWheels_computeSidewaysSpeed,
     //PxVehicleWheels_requiresObjects_mut,
@@ -32,16 +34,20 @@ pub trait VehicleWheels: Class<physx_sys::PxVehicleWheels> + Base {
     }
 
     /// Get PxRigidDynamic instance that is the vehicle's physx representation.
-    /*fn get_rigid_dynamic_actor(&self) -> *const PxRigidDynamic {
-        // TODO: not sure how to return proper rust object?
-        unsafe { PxVehicleWheels_getRigidDynamicActor(self.as_ptr()) }
-    }*/
+    ///
+    /// SAFETY: RigidDynamic's user data type and shape must match the one you used to create vehicle
+    unsafe fn get_rigid_dynamic_actor<D, G: Shape>(&self) -> &PxRigidDynamic<D, G> {
+        // TODO: not sure how to make this safe, maybe return () as user data?
+        std::mem::transmute(PxVehicleWheels_getRigidDynamicActor(self.as_ptr()))
+    }
 
     /// Get PxRigidDynamic instance that is the vehicle's physx representation.
-    /*fn get_rigid_dynamic_actor_mut(&mut self) -> *mut PxRigidDynamic {
-        // TODO: not sure how to return proper rust object?
-        unsafe { PxVehicleWheels_getRigidDynamicActor_mut(self.as_mut_ptr()) }
-    }*/
+    ///
+    /// SAFETY: RigidDynamic's user data type and shape must match the one you used to create vehicle
+    unsafe fn get_rigid_dynamic_actor_mut<D, G: Shape>(&mut self) -> &mut PxRigidDynamic<D, G> {
+        // TODO: not sure how to make this safe, maybe return () as user data?
+        std::mem::transmute(PxVehicleWheels_getRigidDynamicActor_mut(self.as_mut_ptr()))
+    }
 
     /// Compute the rigid body velocity component along the forward vector of the rigid body transform.
     fn compute_forward_speed(&self) -> f32 {
