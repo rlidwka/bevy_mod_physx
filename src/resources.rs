@@ -119,7 +119,7 @@ unsafe impl Sync for BPxVehicleRaycastBuffer {}
 
 impl BPxVehicleRaycastBuffer {
     pub fn alloc(&mut self, scene: &mut BPxScene, wheel_count: usize) {
-        extern "C" fn pre_filter_shader(_data0: PxFilterData, data1: PxFilterData, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags) -> u32 {
+        extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
             if 0 == (data1.word3 & 0xffff0000) {
                 PxQueryHitType::eNONE
             } else {
