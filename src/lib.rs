@@ -91,7 +91,10 @@ impl Plugin for PhysXPlugin {
         stage.add_system(systems::create_dynamic_actors.after(systems::scene_simulate));
         stage.add_system(systems::writeback_actors.after(systems::scene_simulate));
 
-        app.add_stage_after(CoreStage::Update, PhysXStage, stage);
+        // this needs to happen after globaltransform is applied,
+        // and inserting it after(CoreStage::Update) messes with conditional staging;
+        // after(PostUpdate) works, but need to investigate which is the better timing
+        app.add_stage_after(CoreStage::PostUpdate, PhysXStage, stage);
     }
 }
 
