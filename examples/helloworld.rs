@@ -6,7 +6,6 @@ use flying_camera::*;
 use bevy_physx::prelude::*;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape, BPxMassProperties};
-use bevy_physx::resources::BPxPhysics;
 
 fn main() {
     App::new()
@@ -63,7 +62,7 @@ fn spawn_plane(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut physics: ResMut<BPxPhysics>,
+    mut physics: ResMut<Physics>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
@@ -143,7 +142,7 @@ fn spawn_dynamic(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut physics: ResMut<BPxPhysics>,
+    mut physics: ResMut<Physics>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {

@@ -12,9 +12,9 @@ use physx_sys::{
 
 use physx::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW, VehicleWheelsSimData};
 
+use crate::prelude as bpx;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 use super::assets::{BPxGeometry, BPxMaterial};
-use super::resources::BPxPhysics;
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BPxActor {
@@ -54,7 +54,7 @@ impl BPxShapeHandle {
         Self(Some(px_shape))
     }
 
-    pub fn create_shape(physics: &mut BPxPhysics, geometry: &mut BPxGeometry, material: &mut BPxMaterial, user_data: Entity) -> Self {
+    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut BPxGeometry, material: &mut BPxMaterial, user_data: Entity) -> Self {
         let geometry_ptr = match geometry {
             BPxGeometry::Sphere(geom)  => { geom.as_ptr() },
             BPxGeometry::Plane(geom)   => { geom.as_ptr() },
@@ -199,7 +199,7 @@ pub enum BPxVehicleHandle {
 }
 
 impl BPxVehicleHandle {
-    pub fn new(vehicle_desc: &mut BPxVehicle, physics: &mut BPxPhysics, actor: &mut PxRigidDynamic) -> Self {
+    pub fn new(vehicle_desc: &mut BPxVehicle, physics: &mut bpx::Physics, actor: &mut PxRigidDynamic) -> Self {
         let (wheels, wheels_sim_data) = match vehicle_desc {
             BPxVehicle::NoDrive { wheels, wheels_sim_data } => (wheels, wheels_sim_data),
             BPxVehicle::Drive4W { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),

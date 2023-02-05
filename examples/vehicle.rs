@@ -4,9 +4,10 @@ use flying_camera::*;
 use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::{prelude::*, Tick};
+use bevy_physx::prelude as bpx;
 use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicle, BPxVehicleHandle};
-use bevy_physx::resources::{BPxPhysics, BPxCooking, BPxVehicleFrictionPairs};
+use bevy_physx::resources::{BPxVehicleFrictionPairs};
 use physx::prelude::*;
 use physx::vehicles::{
     PxVehicleDrive4WRawInputData,
@@ -168,7 +169,7 @@ fn spawn_light(mut commands: Commands) {
 
 fn spawn_plane(
     mut commands: Commands,
-    mut physics: ResMut<BPxPhysics>,
+    mut physics: ResMut<bpx::Physics>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,
 ) {
@@ -300,8 +301,8 @@ fn create_drive_4w_sim_data() -> Box<PxVehicleDriveSimData4W> {
 fn spawn_vehicle(
     mut commands: Commands,
     assets: Res<AssetServer>,
-    mut physics: ResMut<BPxPhysics>,
-    cooking: Res<BPxCooking>,
+    mut physics: ResMut<bpx::Physics>,
+    cooking: Res<Cooking>,
     mut friction_pairs: ResMut<BPxVehicleFrictionPairs>,
     mut px_geometries: ResMut<Assets<BPxGeometry>>,
     mut px_materials: ResMut<Assets<BPxMaterial>>,

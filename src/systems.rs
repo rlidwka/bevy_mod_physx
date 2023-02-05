@@ -12,13 +12,14 @@ use physx_sys::{
 
 use crate::Tick;
 
+use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::assets::{BPxGeometry, BPxMaterial};
 use super::components::{
     BPxActor, BPxMassProperties, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxShapeHandle,
     BPxVehicle, BPxVehicleHandle, BPxVelocity
 };
-use super::resources::{BPxDefaultMaterial, BPxPhysics, BPxScene, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use super::resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVelocity>, Option<&'a mut BPxVehicle>),
@@ -31,7 +32,7 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 >;
 
 pub fn scene_simulate(
-    mut scene: ResMut<BPxScene>,
+    mut scene: ResMut<bpx::Scene>,
     mut ticks: EventReader<Tick>,
     mut raycastbuf: ResMut<BPxVehicleRaycastBuffer>,
     friction_pairs: Res<BPxVehicleFrictionPairs>,
@@ -121,7 +122,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     commands: &mut Commands,
     entity: Entity,
     actor: &mut T,
-    physics: &mut BPxPhysics,
+    physics: &mut bpx::Physics,
     geometries: &mut ResMut<Assets<BPxGeometry>>,
     materials: &mut ResMut<Assets<BPxMaterial>>,
     query: &ShapesQuery,
@@ -180,8 +181,8 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
 
 pub fn create_dynamic_actors(
     mut commands: Commands,
-    mut physics: ResMut<BPxPhysics>,
-    mut scene: ResMut<BPxScene>,
+    mut physics: ResMut<bpx::Physics>,
+    mut scene: ResMut<bpx::Scene>,
     query: ShapesQuery,
     mut new_actors: ActorsQuery,
     mut geometries: ResMut<Assets<BPxGeometry>>,

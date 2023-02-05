@@ -6,17 +6,16 @@ use physx::prelude::*;
 use physx::triangle_mesh::TriangleMesh;
 use physx_sys::{PxConvexFlags, PxConvexFlag};
 use std::ffi::c_void;
+use crate::prelude as bpx;
 use crate::prelude::*;
-
 use super::PxMaterial;
-use super::resources::{BPxPhysics, BPxCooking};
 
 #[derive(TypeUuid, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
 pub struct BPxMaterial(Owner<PxMaterial>);
 
 impl BPxMaterial {
-    pub fn new(physics: &mut BPxPhysics, static_friction: f32, dynamic_friction: f32, restitution: f32) -> Self {
+    pub fn new(physics: &mut bpx::Physics, static_friction: f32, dynamic_friction: f32, restitution: f32) -> Self {
         physics.create_material(static_friction, dynamic_friction, restitution, ()).unwrap().into()
     }
 }
@@ -97,7 +96,7 @@ impl BPxGeometry {
         Self::Box(PxBoxGeometry::new(hx / 2., hy / 2., hz / 2.))
     }
 
-    pub fn convex_mesh(physics: &mut BPxPhysics, cooking: &BPxCooking, verts: &[Vec3]) -> Self {
+    pub fn convex_mesh(physics: &mut bpx::Physics, cooking: &Cooking, verts: &[Vec3]) -> Self {
         let verts = verts.iter().map(|v| v.to_physx()).collect::<Vec<_>>();
 
         let mut mesh_desc = PxConvexMeshDesc::new();
@@ -117,7 +116,7 @@ impl BPxGeometry {
         Self::ConvexMesh(mesh)
     }
 
-    pub fn trimesh(physics: &mut BPxPhysics, cooking: &BPxCooking, verts: &[Vec3], indices: &[[u32; 3]]) -> Self {
+    pub fn trimesh(physics: &mut bpx::Physics, cooking: &Cooking, verts: &[Vec3], indices: &[[u32; 3]]) -> Self {
         let verts = verts.iter().map(|v| v.to_physx()).collect::<Vec<_>>();
 
         let mut mesh_desc = PxTriangleMeshDesc::new();
@@ -139,7 +138,7 @@ impl BPxGeometry {
         Self::TriangleMesh(mesh)
     }
 
-    pub fn cylinder(physics: &mut BPxPhysics, cooking: &BPxCooking, half_height: f32, radius: f32, segments: usize) -> Self {
+    pub fn cylinder(physics: &mut bpx::Physics, cooking: &Cooking, half_height: f32, radius: f32, segments: usize) -> Self {
         let mut points = vec![Vec3::default(); 2 * segments];
 
         for i in 0..segments {

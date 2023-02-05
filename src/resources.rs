@@ -19,9 +19,9 @@ use super::prelude::*;
 use super::{PxShape, PxScene};
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct BPxPhysics(PhysicsFoundation<physx::foundation::DefaultAllocator, PxShape>);
+pub struct Physics(PhysicsFoundation<physx::foundation::DefaultAllocator, PxShape>);
 
-impl BPxPhysics {
+impl Physics {
     pub fn new(enable_debugger: bool, enable_vsdk: bool) -> Self {
         let mut physics;
 
@@ -51,10 +51,12 @@ impl BPxPhysics {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct BPxScene(Owner<PxScene>);
+pub struct Scene(Owner<PxScene>);
 
-impl BPxScene {
-    pub fn new(physics: &mut BPxPhysics, gravity: Vec3) -> Self {
+impl Scene {
+    pub fn new(physics: &mut Physics, gravity: Vec3) -> Self {
+        use physx::physics::Physics; // physx trait clashes with our wrapper
+
         let scene = physics
             .create(SceneDescriptor {
                 gravity: gravity.to_physx(),
@@ -67,10 +69,10 @@ impl BPxScene {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct BPxCooking(Owner<PxCooking>);
+pub struct Cooking(Owner<PxCooking>);
 
-impl BPxCooking {
-    pub fn new(physics: &mut BPxPhysics) -> Self {
+impl Cooking {
+    pub fn new(physics: &mut Physics) -> Self {
         let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
         let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
         Self(cooking)
@@ -92,7 +94,7 @@ unsafe impl Send for BPxVehicleRaycastBuffer {}
 unsafe impl Sync for BPxVehicleRaycastBuffer {}
 
 impl BPxVehicleRaycastBuffer {
-    pub fn alloc(&mut self, scene: &mut BPxScene, wheel_count: usize) {
+    pub fn alloc(&mut self, scene: &mut Scene, wheel_count: usize) {
         extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
             if 0 == (data1.word3 & 0xffff0000) {
                 PxQueryHitType::eNONE

@@ -6,6 +6,8 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
+use crate::prelude::*;
+use crate::prelude as bpx;
 mod type_bridge;
 
 mod systems;
@@ -21,7 +23,7 @@ pub use physx_sys;
 
 use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
-use resources::{BPxCooking, BPxPhysics, BPxScene, BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -56,8 +58,8 @@ pub struct PhysXPlugin {
 
 impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
-        let mut physics = BPxPhysics::new(self.debugger, self.vehicles);
-        let scene = BPxScene::new(&mut physics, self.gravity);
+        let mut physics = Physics::new(self.debugger, self.vehicles);
+        let scene = bpx::Scene::new(&mut physics, self.gravity);
 
         app.add_asset::<BPxGeometry>();
         app.add_asset::<BPxMaterial>();
@@ -67,7 +69,7 @@ impl Plugin for PhysXPlugin {
         app.register_type::<BPxVelocity>();
 
         if self.cooking {
-            app.insert_resource(BPxCooking::new(&mut physics));
+            app.insert_resource(Cooking::new(&mut physics));
         }
 
         if self.vehicles {
