@@ -17,7 +17,7 @@ pub struct VehicleTireData {
     /// Tire camber stiffness per unity gravitational acceleration.
     pub camber_stiffness_per_unit_gravity: f32,
     /// Graph of friction vs longitudinal slip with 3 points.
-    pub friction_vs_slip_graph: [[f32; 2]; 3],
+    pub friction_vs_slip_graph: [(f32, f32); 3],
     /// Tire type denoting slicks, wets, snow, winter, summer, all-terrain, mud etc.
     pub tire_type: u32,
 }
@@ -29,7 +29,8 @@ impl From<PxVehicleTireData> for VehicleTireData {
             lat_stiff_y: value.mLatStiffY,
             longitudinal_stiffness_per_unit_gravity: value.mLongitudinalStiffnessPerUnitGravity,
             camber_stiffness_per_unit_gravity: value.mCamberStiffnessPerUnitGravity,
-            friction_vs_slip_graph: value.mFrictionVsSlipGraph,
+            // SAFETY: [(f32, f32); X] are the same bytes as [[f32; 2]; X]
+            friction_vs_slip_graph: unsafe { std::mem::transmute(value.mFrictionVsSlipGraph) },
             tire_type: value.mType,
         }
     }
@@ -42,7 +43,8 @@ impl From<VehicleTireData> for PxVehicleTireData {
         result.mLatStiffY = value.lat_stiff_y;
         result.mLongitudinalStiffnessPerUnitGravity = value.longitudinal_stiffness_per_unit_gravity;
         result.mCamberStiffnessPerUnitGravity = value.camber_stiffness_per_unit_gravity;
-        result.mFrictionVsSlipGraph = value.friction_vs_slip_graph;
+        // SAFETY: [(f32, f32); X] are the same bytes as [[f32; 2]; X]
+        result.mFrictionVsSlipGraph = unsafe { std::mem::transmute(value.friction_vs_slip_graph) };
         result.mType = value.tire_type;
         result
     }

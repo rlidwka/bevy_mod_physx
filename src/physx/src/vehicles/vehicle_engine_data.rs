@@ -10,19 +10,28 @@ use physx_sys::{
 
 #[derive(Debug, Clone)]
 pub struct VehicleEngineDataTorqueCurve {
-    pub data_pairs: [f32; 16],
+    pub data_pairs: [(f32, f32); 8],
     pub nb_data_pairs: u32,
 }
 
 impl From<PxFixedSizeLookupTable_eMAX_NB_ENGINE_TORQUE_CURVE_ENTRIES_> for VehicleEngineDataTorqueCurve {
     fn from(value: PxFixedSizeLookupTable_eMAX_NB_ENGINE_TORQUE_CURVE_ENTRIES_) -> Self {
-        Self { data_pairs: value.mDataPairs, nb_data_pairs: value.mNbDataPairs }
+        Self {
+            // SAFETY: [(f32, f32); X] are the same bytes as [f32; 2*X]
+            data_pairs: unsafe { std::mem::transmute(value.mDataPairs) },
+            nb_data_pairs: value.mNbDataPairs,
+        }
     }
 }
 
 impl From<VehicleEngineDataTorqueCurve> for PxFixedSizeLookupTable_eMAX_NB_ENGINE_TORQUE_CURVE_ENTRIES_ {
     fn from(value: VehicleEngineDataTorqueCurve) -> Self {
-        Self { mDataPairs: value.data_pairs, mNbDataPairs: value.nb_data_pairs, mPad: Default::default() }
+        Self {
+            // SAFETY: [(f32, f32); X] are the same bytes as [f32; 2*X]
+            mDataPairs: unsafe { std::mem::transmute(value.data_pairs) },
+            mNbDataPairs: value.nb_data_pairs,
+            mPad: Default::default(),
+        }
     }
 }
 

@@ -91,7 +91,7 @@ impl Default for VehiclePadSmoothingData {
 
 #[derive(Default, Clone)]
 pub struct VehicleSteerVsForwardSpeedTable {
-    data_pairs: [f32; Self::MAX_PAIRS * 2],
+    data_pairs: [(f32, f32); Self::MAX_PAIRS],
     nb_data_pairs: usize,
 }
 
@@ -110,8 +110,7 @@ impl VehicleSteerVsForwardSpeedTable {
 
         for idx in 0..Self::MAX_PAIRS / 2 {
             let pair = data.get(idx).unwrap_or(&(std::f32::MAX, std::f32::MAX));
-            self.data_pairs[idx * 2] = pair.0;
-            self.data_pairs[idx * 2 + 1] = pair.1;
+            self.data_pairs[idx] = *pair;
         }
     }
 }
@@ -119,7 +118,8 @@ impl VehicleSteerVsForwardSpeedTable {
 impl From<VehicleSteerVsForwardSpeedTable> for PxFixedSizeLookupTable_8_ {
     fn from(value: VehicleSteerVsForwardSpeedTable) -> Self {
         Self {
-            mDataPairs: value.data_pairs,
+            // SAFETY: [(f32, f32); X] are the same bytes as [f32; 2*X]
+            mDataPairs: unsafe { std::mem::transmute(value.data_pairs) },
             mNbDataPairs: value.nb_data_pairs as u32,
             mPad: Default::default(),
         }
