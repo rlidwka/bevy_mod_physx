@@ -3,44 +3,12 @@ use flying_camera::*;
 
 use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
-use bevy_physx::{prelude::*, Tick};
+use bevy_physx::prelude::*;
 use bevy_physx::prelude as bpx;
-use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicle, BPxVehicleHandle};
-use bevy_physx::resources::{BPxVehicleFrictionPairs};
+use bevy_physx::components::FilterData;
+use bevy_physx::resources::VehicleFrictionPairs;
 use physx::prelude::*;
-use physx::vehicles::{
-    PxVehicleDrive4WRawInputData,
-    PxVehicleDriveNWRawInputData,
-    PxVehicleDriveSimData4W,
-    PxVehicleDriveSimDataNW,
-    VehicleAckermannGeometryData,
-    VehicleClutchData,
-    VehicleDifferential4WData,
-    VehicleDifferential4WType,
-    VehicleDifferentialNWData,
-    VehicleDrive4WControl,
-    VehicleDrive4WRawInputData,
-    VehicleDriveDynData,
-    VehicleDriveNWControl,
-    VehicleDriveNWRawInputData,
-    VehicleDriveSimData,
-    VehicleDriveSimData4W,
-    VehicleDriveSimDataNW,
-    VehicleDriveTankControl,
-    VehicleDriveTankRawInputData,
-    VehicleEngineData,
-    VehicleGearsData,
-    VehicleGearsRatio,
-    VehicleKeySmoothingData,
-    VehicleNoDrive,
-    VehicleSteerVsForwardSpeedTable,
-    VehicleSuspensionData,
-    VehicleTireData,
-    VehicleUtilGravityDirection,
-    VehicleWheelData,
-    VehicleWheelsSimData,
-    vehicle_compute_sprung_masses,
-};
+use physx::vehicles::*;
 use physx_sys::{PxVehicleDrivableSurfaceType, PxVehicleDriveTankRawInputData};
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
@@ -188,12 +156,12 @@ fn spawn_plane(
                 // physx default plane is rotated compared to bevy plane, we undo that
                 Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
             ))
-            .insert(BPxActor::Static)
-            .insert(BPxShape {
+            .insert(bpx::RigidBody::Static)
+            .insert(bpx::Shape {
                 geometry: px_geometry,
                 material: px_material,
-                query_filter_data: BPxFilterData::new(0, 0, 0, DRIVABLE_SURFACE),
-                simulation_filter_data: BPxFilterData::new(COLLISION_FLAG_GROUND, COLLISION_FLAG_GROUND_AGAINST, 0, 0),
+                query_filter_data: FilterData::new(0, 0, 0, DRIVABLE_SURFACE),
+                simulation_filter_data: FilterData::new(COLLISION_FLAG_GROUND, COLLISION_FLAG_GROUND_AGAINST, 0, 0),
             });
     })
     .insert(Name::new("Plane"));
@@ -302,7 +270,7 @@ fn spawn_vehicle(
     assets: Res<AssetServer>,
     mut physics: ResMut<bpx::Physics>,
     cooking: Res<Cooking>,
-    mut friction_pairs: ResMut<BPxVehicleFrictionPairs>,
+    mut friction_pairs: ResMut<VehicleFrictionPairs>,
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
@@ -333,7 +301,7 @@ fn spawn_vehicle(
         wheels.push(
             commands.spawn_empty()
                 .insert(SpatialBundle::from_transform(Transform::from_translation(WHEEL_OFFSETS[wheel_idx as usize])))
-                .insert(BPxShape {
+                .insert(bpx::Shape {
                     material: material.clone(),
                     geometry: wheel_geometry.clone(),
                     ..default()
@@ -358,12 +326,12 @@ fn spawn_vehicle(
             scene: assets.load("cybertruck/hull.glb#Scene0"),
             ..default()
         })
-        .insert(BPxActor::Dynamic)
-        .insert(BPxMassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
+        .insert(bpx::RigidBody::Dynamic)
+        .insert(MassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
 
         ////////////////////////////////////////////////////////
         // uncomment this to test vehicle without a drive
-        /*.insert(BPxVehicle::NoDrive {
+        /*.insert(Vehicle::NoDrive {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
         })
@@ -372,7 +340,7 @@ fn spawn_vehicle(
 
         ////////////////////////////////////////////////////////
         // uncomment this to test a tank
-        /*.insert(BPxVehicle::DriveTank {
+        /*.insert(Vehicle::DriveTank {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
             drive_sim_data: Box::default(),
@@ -382,7 +350,7 @@ fn spawn_vehicle(
 
         ////////////////////////////////////////////////////////
         // uncomment this to test vehicle with N wheels
-        /*.insert(BPxVehicle::DriveNW {
+        /*.insert(Vehicle::DriveNW {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
             drive_sim_data: create_drive_nw_sim_data(),
@@ -392,7 +360,7 @@ fn spawn_vehicle(
 
         ////////////////////////////////////////////////////////
         // uncomment this to test vehicle with 4 wheels
-        .insert(BPxVehicle::Drive4W {
+        .insert(Vehicle::Drive4W {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
             drive_sim_data: create_drive_4w_sim_data(),
@@ -400,7 +368,7 @@ fn spawn_vehicle(
         .insert(PlayerControlledDrive4W::default())
         ////////////////////////////////////////////////////////
 
-        .insert(BPxShape {
+        .insert(bpx::Shape {
             material,
             geometry: hull_geometry,
             ..default()
@@ -411,11 +379,11 @@ fn spawn_vehicle(
 }
 
 fn apply_vehicle_nodrive_controls(
-    mut player_query: Query<&mut BPxVehicleHandle, With<PlayerControlledNoDrive>>,
+    mut player_query: Query<&mut VehicleHandle, With<PlayerControlledNoDrive>>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
-    let BPxVehicleHandle::NoDrive(vehicle) = vehicle.as_mut() else { return; };
+    let VehicleHandle::NoDrive(vehicle) = vehicle.as_mut() else { return; };
 
     if keys.just_pressed(KeyCode::W) {
         vehicle.set_drive_torque(2, 4000.);
@@ -459,12 +427,12 @@ fn apply_vehicle_nodrive_controls(
 }
 
 fn apply_vehicle_tank_controls(
-    mut player_query: Query<(&mut BPxVehicleHandle, &mut PlayerControlledDriveTank)>,
+    mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveTank)>,
     mut tick: EventReader<Tick>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
-    let BPxVehicleHandle::DriveTank(vehicle) = vehicle.as_mut() else { return; };
+    let VehicleHandle::DriveTank(vehicle) = vehicle.as_mut() else { return; };
 
     if !controls.initialized {
         controls.initialized = true;
@@ -523,12 +491,12 @@ fn apply_vehicle_tank_controls(
 }
 
 fn apply_vehicle_drive_nw_controls(
-    mut player_query: Query<(&mut BPxVehicleHandle, &mut PlayerControlledDriveNW)>,
+    mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveNW)>,
     mut tick: EventReader<Tick>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
-    let BPxVehicleHandle::DriveNW(vehicle) = vehicle.as_mut() else { return; };
+    let VehicleHandle::DriveNW(vehicle) = vehicle.as_mut() else { return; };
 
     if !controls.initialized {
         controls.initialized = true;
@@ -571,12 +539,12 @@ fn apply_vehicle_drive_nw_controls(
 }
 
 fn apply_vehicle_drive_4w_controls(
-    mut player_query: Query<(&mut BPxVehicleHandle, &mut PlayerControlledDrive4W)>,
+    mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDrive4W)>,
     mut tick: EventReader<Tick>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
-    let BPxVehicleHandle::Drive4W(vehicle) = vehicle.as_mut() else { return; };
+    let VehicleHandle::Drive4W(vehicle) = vehicle.as_mut() else { return; };
 
     if !controls.initialized {
         controls.initialized = true;

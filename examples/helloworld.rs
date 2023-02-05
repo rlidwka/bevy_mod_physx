@@ -5,7 +5,6 @@ use flying_camera::*;
 
 use bevy_physx::prelude::*;
 use bevy_physx::prelude as bpx;
-use bevy_physx::components::{BPxActor, BPxVelocity, BPxShape, BPxMassProperties};
 
 fn main() {
     App::new()
@@ -83,8 +82,8 @@ fn spawn_plane(
                     // physx default plane is rotated compared to bevy plane, we undo that
                     Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
                 ))
-                .insert(BPxActor::Static)
-                .insert(BPxShape {
+                .insert(bpx::RigidBody::Static)
+                .insert(bpx::Shape {
                     geometry: px_geometry,
                     material: px_material,
                     ..default()
@@ -125,9 +124,9 @@ fn spawn_stacks(
                                 transform,
                                 ..default()
                             })
-                            .insert(BPxActor::Dynamic)
-                            .insert(BPxMassProperties::density(10.))
-                            .insert(BPxShape {
+                            .insert(bpx::RigidBody::Dynamic)
+                            .insert(MassProperties::density(10.))
+                            .insert(bpx::Shape {
                                 geometry: px_geometry.clone(),
                                 ..default()
                             });
@@ -163,13 +162,13 @@ fn spawn_dynamic(
             transform,
             ..default()
         })
-        .insert(BPxActor::Dynamic)
-        .insert(BPxMassProperties::density(10.))
-        .insert(BPxShape {
+        .insert(bpx::RigidBody::Dynamic)
+        .insert(MassProperties::density(10.))
+        .insert(bpx::Shape {
             material: px_material,
             geometry: px_geometry,
             ..default()
         })
-        .insert(BPxVelocity::linear(Vec3::new(0., -6.25, -12.5)))
+        .insert(Velocity::linear(Vec3::new(0., -6.25, -12.5)))
         .insert(Name::new("Ball"));
 }

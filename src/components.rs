@@ -10,46 +10,50 @@ use physx_sys::{
     PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxFilterData, PxFilterData_new_2,
 };
 
-use physx::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW, VehicleWheelsSimData};
+use physx::vehicles::{
+    VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank,
+    PxVehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W,
+    PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW, VehicleWheelsSimData
+};
 
 use crate::assets::GeometryInner;
 use crate::prelude as bpx;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
-pub enum BPxActor {
+pub enum RigidBody {
     Dynamic,
     Static,
 }
 
 #[derive(Component, Clone, Default)]
-pub struct BPxShape {
+pub struct Shape {
     pub geometry: Handle<bpx::Geometry>,
     pub material: Handle<bpx::Material>,
-    pub query_filter_data: BPxFilterData,
-    pub simulation_filter_data: BPxFilterData,
+    pub query_filter_data: FilterData,
+    pub simulation_filter_data: FilterData,
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub struct BPxFilterData([ u32; 4 ]);
+pub struct FilterData([ u32; 4 ]);
 
-impl BPxFilterData {
+impl FilterData {
     pub fn new(word0: u32, word1: u32, word2: u32, word3: u32) -> Self {
         Self([ word0, word1, word2, word3 ])
     }
 }
 
-impl From<BPxFilterData> for PxFilterData {
-    fn from(value: BPxFilterData) -> Self {
+impl From<FilterData> for PxFilterData {
+    fn from(value: FilterData) -> Self {
         let [ word0, word1, word2, word3 ] = value.0;
         unsafe { PxFilterData_new_2(word0, word1, word2, word3) }
     }
 }
 
 #[derive(Component)]
-pub struct BPxShapeHandle(Option<Owner<PxShape>>);
+pub struct ShapeHandle(Option<Owner<PxShape>>);
 
-impl BPxShapeHandle {
+impl ShapeHandle {
     pub fn new(px_shape: Owner<PxShape>) -> Self {
         Self(Some(px_shape))
     }
@@ -78,7 +82,7 @@ impl BPxShapeHandle {
 
         //let shape = physics.create_shape(geometry, materials, is_exclusive, shape_flags, user_data)
         let shape : Owner<PxShape> = unsafe {
-            Shape::from_raw(
+            physx::shape::Shape::from_raw(
                 PxPhysics_createShape_mut(
                     physics.physics_mut().as_mut_ptr(),
                     geometry_ptr,
@@ -94,12 +98,13 @@ impl BPxShapeHandle {
     }
 }
 
-impl Drop for BPxShapeHandle {
+impl Drop for ShapeHandle {
     fn drop(&mut self) {
         // TODO: remove this entire drop when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
         let mut shape = self.0.take().unwrap();
         unsafe {
+            use physx::shape::Shape;
             drop_in_place(shape.get_user_data_mut());
             PxShape_release_mut(shape.as_mut_ptr());
         }
@@ -107,7 +112,7 @@ impl Drop for BPxShapeHandle {
     }
 }
 
-impl Deref for BPxShapeHandle {
+impl Deref for ShapeHandle {
     type Target = PxShape;
 
     fn deref(&self) -> &Self::Target {
@@ -117,7 +122,7 @@ impl Deref for BPxShapeHandle {
     }
 }
 
-impl DerefMut for BPxShapeHandle {
+impl DerefMut for ShapeHandle {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // TODO: replace with Deref/DerefMut derive when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
@@ -126,30 +131,30 @@ impl DerefMut for BPxShapeHandle {
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct BPxRigidDynamicHandle(Owner<PxRigidDynamic>);
+pub struct RigidDynamicHandle(Owner<PxRigidDynamic>);
 
-impl BPxRigidDynamicHandle {
+impl RigidDynamicHandle {
     pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>) -> Self {
         Self(px_rigid_dynamic)
     }
 }
 
 #[derive(Component, Deref, DerefMut)]
-pub struct BPxRigidStaticHandle(Owner<PxRigidStatic>);
+pub struct RigidStaticHandle(Owner<PxRigidStatic>);
 
-impl BPxRigidStaticHandle {
+impl RigidStaticHandle {
     pub fn new(px_rigid_static: Owner<PxRigidStatic>) -> Self {
         Self(px_rigid_static)
     }
 }
 
 #[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
-pub struct BPxVelocity {
+pub struct Velocity {
     pub linvel: Vec3,
     pub angvel: Vec3,
 }
 
-impl BPxVelocity {
+impl Velocity {
     pub fn new(linvel: Vec3, angvel: Vec3) -> Self {
         Self { linvel, angvel }
     }
@@ -168,7 +173,7 @@ impl BPxVelocity {
 }
 
 #[derive(Component)]
-pub enum BPxVehicle {
+pub enum Vehicle {
     NoDrive {
         wheels: Vec<Entity>,
         wheels_sim_data: Owner<VehicleWheelsSimData>,
@@ -191,24 +196,25 @@ pub enum BPxVehicle {
 }
 
 #[derive(Component)]
-pub enum BPxVehicleHandle {
+pub enum VehicleHandle {
     NoDrive(Owner<PxVehicleNoDrive>),
     Drive4W(Owner<PxVehicleDrive4W>),
     DriveNW(Owner<PxVehicleDriveNW>),
     DriveTank(Owner<PxVehicleDriveTank>),
 }
 
-impl BPxVehicleHandle {
-    pub fn new(vehicle_desc: &mut BPxVehicle, physics: &mut bpx::Physics, actor: &mut PxRigidDynamic) -> Self {
+impl VehicleHandle {
+    pub fn new(vehicle_desc: &mut Vehicle, physics: &mut bpx::Physics, actor: &mut PxRigidDynamic) -> Self {
         let (wheels, wheels_sim_data) = match vehicle_desc {
-            BPxVehicle::NoDrive { wheels, wheels_sim_data } => (wheels, wheels_sim_data),
-            BPxVehicle::Drive4W { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
-            BPxVehicle::DriveNW { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
-            BPxVehicle::DriveTank { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            Vehicle::NoDrive { wheels, wheels_sim_data } => (wheels, wheels_sim_data),
+            Vehicle::Drive4W { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            Vehicle::DriveNW { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
+            Vehicle::DriveTank { wheels, wheels_sim_data, .. } => (wheels, wheels_sim_data),
         };
 
         let mut shape_mapping = HashMap::new();
         for (idx, shape) in actor.get_shapes().into_iter().enumerate() {
+            use physx::shape::Shape;
             shape_mapping.insert(*shape.get_user_data(), idx as i32);
         }
 
@@ -217,22 +223,22 @@ impl BPxVehicleHandle {
         }
 
         match vehicle_desc {
-            BPxVehicle::NoDrive { wheels: _, wheels_sim_data } => {
+            Vehicle::NoDrive { wheels: _, wheels_sim_data } => {
                 Self::NoDrive(
                     VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap()
                 )
             }
-            BPxVehicle::Drive4W { wheels, wheels_sim_data, drive_sim_data } => {
+            Vehicle::Drive4W { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::Drive4W(
                     VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap()
                 )
             }
-            BPxVehicle::DriveNW { wheels, wheels_sim_data, drive_sim_data } => {
+            Vehicle::DriveNW { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::DriveNW(
                     VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
                 )
             }
-            BPxVehicle::DriveTank { wheels, wheels_sim_data, drive_sim_data } => {
+            Vehicle::DriveTank { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::DriveTank(
                     VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
                 )
@@ -242,7 +248,7 @@ impl BPxVehicleHandle {
 }
 
 #[derive(Component, Debug, Clone)]
-pub enum BPxMassProperties {
+pub enum MassProperties {
     Density {
         density: f32,
         center: Vec3,
@@ -253,7 +259,7 @@ pub enum BPxMassProperties {
     },
 }
 
-impl BPxMassProperties {
+impl MassProperties {
     pub fn density(density: f32) -> Self {
         Self::Density { density, center: Vec3::ZERO }
     }

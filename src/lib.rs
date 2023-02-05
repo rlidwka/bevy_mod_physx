@@ -21,8 +21,7 @@ pub mod resources;
 pub use physx;
 pub use physx_sys;
 
-use components::BPxVelocity;
-use resources::{DefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use resources::{DefaultMaterial, VehicleRaycastBuffer, VehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -65,19 +64,19 @@ impl Plugin for PhysXPlugin {
 
         app.add_event::<Tick>();
 
-        app.register_type::<BPxVelocity>();
+        app.register_type::<Velocity>();
 
         if self.cooking {
             app.insert_resource(Cooking::new(&mut physics));
         }
 
         if self.vehicles {
-            app.insert_resource(BPxVehicleRaycastBuffer::default());
-            app.insert_resource(BPxVehicleFrictionPairs::default());
+            app.insert_resource(VehicleRaycastBuffer::default());
+            app.insert_resource(VehicleFrictionPairs::default());
         }
 
         app.insert_resource(scene);
-        app.insert_resource(BPxTimeSync::new(self.timestep));
+        app.insert_resource(TimeSync::new(self.timestep));
         app.insert_resource(DefaultMaterial::default());
 
         // physics must be last (so it will be dropped last)
@@ -112,13 +111,13 @@ impl Default for PhysXPlugin {
 }
 
 #[derive(Resource, Default)]
-struct BPxTimeSync {
+struct TimeSync {
     timestep: f32,
     speed_factor: f32,
     bevy_physx_delta: f32,
 }
 
-impl BPxTimeSync {
+impl TimeSync {
     pub fn new(timestep: f32) -> Self {
         Self { timestep, speed_factor: 1., ..default() }
     }
@@ -145,7 +144,7 @@ pub struct Tick(pub Duration);
 
 fn time_sync(
     time: Res<Time>,
-    mut timesync: ResMut<BPxTimeSync>,
+    mut timesync: ResMut<TimeSync>,
     mut physx_ticks: EventWriter<Tick>,
 ) {
     timesync.advance_bevy_time(&time);

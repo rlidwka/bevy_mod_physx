@@ -10,32 +10,27 @@ use physx_sys::{
     PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
 };
 
-use crate::Tick;
-
 use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
-use super::components::{
-    BPxActor, BPxMassProperties, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxShapeHandle,
-    BPxVehicle, BPxVehicleHandle, BPxVelocity
-};
-use super::resources::{DefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use super::components::{RigidDynamicHandle, RigidStaticHandle};
+use super::resources::{DefaultMaterial, VehicleRaycastBuffer, VehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVelocity>, Option<&'a mut BPxVehicle>),
-    (Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>, Without<BPxVehicleHandle>)
+    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>, Option<&'a mut Vehicle>),
+    (Without<RigidDynamicHandle>, Without<RigidStaticHandle>, Without<VehicleHandle>)
 >;
 
 type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, Option<&'a BPxActor>, Option<&'a Children>, Option<&'a BPxShape>, Option<&'a GlobalTransform>),
-    (Without<BPxShapeHandle>, Without<BPxRigidDynamicHandle>, Without<BPxRigidStaticHandle>)
+    (Entity, Option<&'a bpx::RigidBody>, Option<&'a Children>, Option<&'a bpx::Shape>, Option<&'a GlobalTransform>),
+    (Without<ShapeHandle>, Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
 >;
 
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
     mut ticks: EventReader<Tick>,
-    mut raycastbuf: ResMut<BPxVehicleRaycastBuffer>,
-    friction_pairs: Res<BPxVehicleFrictionPairs>,
-    mut vehicles_query: Query<&mut BPxVehicleHandle>,
+    mut raycastbuf: ResMut<VehicleRaycastBuffer>,
+    friction_pairs: Res<VehicleFrictionPairs>,
+    mut vehicles_query: Query<&mut VehicleHandle>,
 ) {
     for Tick(delta) in ticks.iter() {
         let delta = delta.as_secs_f32();
@@ -44,19 +39,19 @@ pub fn scene_simulate(
 
         for mut vehicle in vehicles_query.iter_mut() {
             match vehicle.as_mut() {
-                BPxVehicleHandle::NoDrive(vehicle) => {
+                VehicleHandle::NoDrive(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
                     vehicles.push(vehicle.as_mut_ptr());
                 }
-                BPxVehicleHandle::Drive4W(vehicle) => {
+                VehicleHandle::Drive4W(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
                     vehicles.push(vehicle.as_mut_ptr());
                 }
-                BPxVehicleHandle::DriveNW(vehicle) => {
+                VehicleHandle::DriveNW(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
                     vehicles.push(vehicle.as_mut_ptr());
                 }
-                BPxVehicleHandle::DriveTank(vehicle) => {
+                VehicleHandle::DriveTank(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
                     vehicles.push(vehicle.as_mut_ptr());
                 }
@@ -98,7 +93,7 @@ pub fn scene_simulate(
 fn find_nested_shapes(
     entity: Entity,
     query: &ShapesQuery,
-    result: &mut Vec<(Entity, BPxShape, Option<GlobalTransform>)>,
+    result: &mut Vec<(Entity, bpx::Shape, Option<GlobalTransform>)>,
     level: u32,
 ) {
     if let Ok((entity, bpactor, children, shape_cfg, gtransform)) = query.get(entity) {
@@ -132,7 +127,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     find_nested_shapes(entity, query, &mut found_shapes, 0);
 
     for (entity, shape_cfg, gtransform) in found_shapes {
-        let BPxShape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
+        let bpx::Shape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
         let geometry = geometries.get_mut(&geometry).expect("geometry not found for BPxGeometry");
         let mut material = materials.get_mut(&material);
 
@@ -152,7 +147,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }
 
         let material = material.unwrap(); // we create default material above, so we guarantee it exists
-        let mut shape_handle = BPxShapeHandle::create_shape(physics, geometry, material, entity);
+        let mut shape_handle = ShapeHandle::create_shape(physics, geometry, material, entity);
 
         unsafe {
             PxShape_setLocalPose_mut(
@@ -190,7 +185,7 @@ pub fn create_dynamic_actors(
 ) {
     for (entity, actor_cfg, actor_transform, mass_props, velocity, vehicle) in new_actors.iter_mut() {
         match actor_cfg {
-            BPxActor::Dynamic => {
+            bpx::RigidBody::Dynamic => {
                 let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&actor_transform.to_physx(), entity).unwrap();
 
                 find_and_attach_nested_shapes(
@@ -206,7 +201,7 @@ pub fn create_dynamic_actors(
                 );
 
                 match mass_props {
-                    Some(BPxMassProperties::Density { density, center }) => unsafe {
+                    Some(MassProperties::Density { density, center }) => unsafe {
                         PxRigidBodyExt_updateMassAndInertia_mut_1(
                             actor.as_mut_ptr(),
                             *density,
@@ -214,7 +209,7 @@ pub fn create_dynamic_actors(
                             false
                         );
                     }
-                    Some(BPxMassProperties::Mass { mass, center }) => unsafe {
+                    Some(MassProperties::Mass { mass, center }) => unsafe {
                         PxRigidBodyExt_setMassAndUpdateInertia_mut_1(
                             actor.as_mut_ptr(),
                             *mass,
@@ -227,10 +222,10 @@ pub fn create_dynamic_actors(
 
                 if let Some(mut vehicle) = vehicle {
                     commands.entity(entity)
-                        .insert(BPxVehicleHandle::new(&mut vehicle, &mut physics, &mut actor));
+                        .insert(VehicleHandle::new(&mut vehicle, &mut physics, &mut actor));
                 }
 
-                if let Some(BPxVelocity { linvel, angvel }) = velocity {
+                if let Some(Velocity { linvel, angvel }) = velocity {
                     actor.set_linear_velocity(&linvel.to_physx(), false);
                     actor.set_angular_velocity(&angvel.to_physx(), false);
                 }
@@ -241,10 +236,10 @@ pub fn create_dynamic_actors(
                 }
 
                 commands.entity(entity)
-                    .insert(BPxRigidDynamicHandle::new(actor));
+                    .insert(RigidDynamicHandle::new(actor));
             }
 
-            BPxActor::Static => {
+            bpx::RigidBody::Static => {
                 let mut actor : Owner<PxRigidStatic> = physics.create_static(actor_transform.to_physx(), entity).unwrap();
 
                 find_and_attach_nested_shapes(
@@ -273,7 +268,7 @@ pub fn create_dynamic_actors(
                 }
 
                 commands.entity(entity)
-                    .insert(BPxRigidStaticHandle::new(actor));
+                    .insert(RigidStaticHandle::new(actor));
             }
         }
     }
@@ -283,7 +278,7 @@ pub fn writeback_actors(
     global_transforms: Query<&GlobalTransform>,
     parents: Query<&Parent>,
     mut writeback_transform: Query<&mut Transform>,
-    mut actors: Query<(Entity, &BPxRigidDynamicHandle, Option<&Parent>, Option<&mut BPxVelocity>)>
+    mut actors: Query<(Entity, &RigidDynamicHandle, Option<&Parent>, Option<&mut Velocity>)>
 ) {
     for (actor_entity, actor, parent, velocity) in actors.iter_mut() {
         let xform = actor.get_global_pose();
@@ -331,7 +326,7 @@ pub fn writeback_actors(
         }
 
         if let Some(mut velocity) = velocity {
-            let newvel = BPxVelocity::new(
+            let newvel = Velocity::new(
                 actor.get_linear_velocity().to_bevy(),
                 actor.get_angular_velocity().to_bevy(),
             );

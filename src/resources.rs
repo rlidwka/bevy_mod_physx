@@ -83,17 +83,17 @@ impl Cooking {
 pub struct DefaultMaterial(Option<Handle<bpx::Material>>);
 
 #[derive(Resource)]
-pub struct BPxVehicleRaycastBuffer {
+pub struct VehicleRaycastBuffer {
     current_size: usize,
     sq_results: Vec<u8>,
     sq_hit_buffer: Vec<u8>,
     batch_query: *mut PxBatchQuery,
 }
 
-unsafe impl Send for BPxVehicleRaycastBuffer {}
-unsafe impl Sync for BPxVehicleRaycastBuffer {}
+unsafe impl Send for VehicleRaycastBuffer {}
+unsafe impl Sync for VehicleRaycastBuffer {}
 
-impl BPxVehicleRaycastBuffer {
+impl VehicleRaycastBuffer {
     pub fn alloc(&mut self, scene: &mut Scene, wheel_count: usize) {
         extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
             if 0 == (data1.word3 & 0xffff0000) {
@@ -134,7 +134,7 @@ impl BPxVehicleRaycastBuffer {
     }
 }
 
-impl Default for BPxVehicleRaycastBuffer {
+impl Default for VehicleRaycastBuffer {
     fn default() -> Self {
         Self {
             current_size: 0,
@@ -145,7 +145,7 @@ impl Default for BPxVehicleRaycastBuffer {
     }
 }
 
-impl Drop for BPxVehicleRaycastBuffer {
+impl Drop for VehicleRaycastBuffer {
     fn drop(&mut self) {
         if !self.batch_query.is_null() {
             unsafe { drop_in_place(self.batch_query); }
@@ -154,14 +154,14 @@ impl Drop for BPxVehicleRaycastBuffer {
 }
 
 #[derive(Resource, Deref, DerefMut)]
-pub struct BPxVehicleFrictionPairs(
+pub struct VehicleFrictionPairs(
     *mut PxVehicleDrivableSurfaceToTireFrictionPairs
 );
 
-unsafe impl Send for BPxVehicleFrictionPairs {}
-unsafe impl Sync for BPxVehicleFrictionPairs {}
+unsafe impl Send for VehicleFrictionPairs {}
+unsafe impl Sync for VehicleFrictionPairs {}
 
-impl BPxVehicleFrictionPairs {
+impl VehicleFrictionPairs {
     pub fn setup(&mut self, drivable_surface_materials: &[&bpx::Material], drivable_surface_types: &[PxVehicleDrivableSurfaceType]) {
         if !self.0.is_null() {
             unsafe { drop_in_place(self.0); }
@@ -200,13 +200,13 @@ impl BPxVehicleFrictionPairs {
     }
 }
 
-impl Default for BPxVehicleFrictionPairs {
+impl Default for VehicleFrictionPairs {
     fn default() -> Self {
         Self(unsafe { PxVehicleDrivableSurfaceToTireFrictionPairs_allocate_mut(0, 0) })
     }
 }
 
-impl Drop for BPxVehicleFrictionPairs {
+impl Drop for VehicleFrictionPairs {
     fn drop(&mut self) {
         if !self.0.is_null() {
             unsafe {
