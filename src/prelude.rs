@@ -5,4 +5,7 @@ pub use super::type_bridge::*;
 pub use super::PhysXPlugin;
 
 #[doc(hidden)]
+pub use super::assets::{Geometry, Material};
+
+#[doc(hidden)]
 pub use super::resources::{Physics, Scene, Cooking};

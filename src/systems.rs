@@ -14,12 +14,11 @@ use crate::Tick;
 
 use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
-use super::assets::{BPxGeometry, BPxMaterial};
 use super::components::{
     BPxActor, BPxMassProperties, BPxRigidDynamicHandle, BPxRigidStaticHandle, BPxShape, BPxShapeHandle,
     BPxVehicle, BPxVehicleHandle, BPxVelocity
 };
-use super::resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use super::resources::{DefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a BPxActor, &'a GlobalTransform, Option<&'a BPxMassProperties>, Option<&'a BPxVelocity>, Option<&'a mut BPxVehicle>),
@@ -123,11 +122,11 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     entity: Entity,
     actor: &mut T,
     physics: &mut bpx::Physics,
-    geometries: &mut ResMut<Assets<BPxGeometry>>,
-    materials: &mut ResMut<Assets<BPxMaterial>>,
+    geometries: &mut ResMut<Assets<bpx::Geometry>>,
+    materials: &mut ResMut<Assets<bpx::Material>>,
     query: &ShapesQuery,
     actor_transform: &GlobalTransform,
-    default_material: &mut ResMut<BPxDefaultMaterial>,
+    default_material: &mut ResMut<DefaultMaterial>,
 ) {
     let mut found_shapes = vec![];
     find_nested_shapes(entity, query, &mut found_shapes, 0);
@@ -185,9 +184,9 @@ pub fn create_dynamic_actors(
     mut scene: ResMut<bpx::Scene>,
     query: ShapesQuery,
     mut new_actors: ActorsQuery,
-    mut geometries: ResMut<Assets<BPxGeometry>>,
-    mut materials: ResMut<Assets<BPxMaterial>>,
-    mut default_material: ResMut<BPxDefaultMaterial>,
+    mut geometries: ResMut<Assets<bpx::Geometry>>,
+    mut materials: ResMut<Assets<bpx::Material>>,
+    mut default_material: ResMut<DefaultMaterial>,
 ) {
     for (entity, actor_cfg, actor_transform, mass_props, velocity, vehicle) in new_actors.iter_mut() {
         match actor_cfg {

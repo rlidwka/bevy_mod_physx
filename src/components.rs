@@ -12,9 +12,9 @@ use physx_sys::{
 
 use physx::vehicles::{VehicleNoDrive, PxVehicleNoDrive, PxVehicleDriveTank, VehicleDriveTank, PxVehicleDriveSimData, PxVehicleDriveSimDataNW, PxVehicleDriveSimData4W, PxVehicleDrive4W, PxVehicleDriveNW, VehicleDrive4W, VehicleDriveNW, VehicleWheelsSimData};
 
+use crate::assets::GeometryInner;
 use crate::prelude as bpx;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
-use super::assets::{BPxGeometry, BPxMaterial};
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum BPxActor {
@@ -24,8 +24,8 @@ pub enum BPxActor {
 
 #[derive(Component, Clone, Default)]
 pub struct BPxShape {
-    pub geometry: Handle<BPxGeometry>,
-    pub material: Handle<BPxMaterial>,
+    pub geometry: Handle<bpx::Geometry>,
+    pub material: Handle<bpx::Material>,
     pub query_filter_data: BPxFilterData,
     pub simulation_filter_data: BPxFilterData,
 }
@@ -54,20 +54,20 @@ impl BPxShapeHandle {
         Self(Some(px_shape))
     }
 
-    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut BPxGeometry, material: &mut BPxMaterial, user_data: Entity) -> Self {
-        let geometry_ptr = match geometry {
-            BPxGeometry::Sphere(geom)  => { geom.as_ptr() },
-            BPxGeometry::Plane(geom)   => { geom.as_ptr() },
-            BPxGeometry::Capsule(geom) => { geom.as_ptr() },
-            BPxGeometry::Box(geom)     => { geom.as_ptr() },
-            BPxGeometry::ConvexMesh(mesh) => {
+    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> Self {
+        let geometry_ptr = match geometry.obj {
+            GeometryInner::Sphere(geom)  => { geom.as_ptr() },
+            GeometryInner::Plane(geom)   => { geom.as_ptr() },
+            GeometryInner::Capsule(geom) => { geom.as_ptr() },
+            GeometryInner::Box(geom)     => { geom.as_ptr() },
+            GeometryInner::ConvexMesh(ref mut mesh) => {
                 PxConvexMeshGeometry::new(
                     mesh.as_mut(),
                     unsafe { &PxMeshScale_new() },
                     PxConvexMeshGeometryFlags { mBits: PxConvexMeshGeometryFlag::eTIGHT_BOUNDS as u8 }
                 ).as_ptr()
             },
-            BPxGeometry::TriangleMesh(mesh) => {
+            GeometryInner::TriangleMesh(ref mut mesh) => {
                 PxTriangleMeshGeometry::new(
                     mesh.as_mut(),
                     unsafe { &PxMeshScale_new() },

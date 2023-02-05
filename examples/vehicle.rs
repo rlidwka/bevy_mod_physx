@@ -5,7 +5,6 @@ use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::{prelude::*, Tick};
 use bevy_physx::prelude as bpx;
-use bevy_physx::assets::{BPxMaterial, BPxGeometry};
 use bevy_physx::components::{BPxActor, BPxShape, BPxMassProperties, BPxFilterData, BPxVehicle, BPxVehicleHandle};
 use bevy_physx::resources::{BPxVehicleFrictionPairs};
 use physx::prelude::*;
@@ -170,11 +169,11 @@ fn spawn_light(mut commands: Commands) {
 fn spawn_plane(
     mut commands: Commands,
     mut physics: ResMut<bpx::Physics>,
-    mut px_geometries: ResMut<Assets<BPxGeometry>>,
-    mut px_materials: ResMut<Assets<BPxMaterial>>,
+    mut px_geometries: ResMut<Assets<bpx::Geometry>>,
+    mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let px_geometry = px_geometries.add(BPxGeometry::halfspace());
-    let px_material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
+    let px_geometry = px_geometries.add(bpx::Geometry::halfspace());
+    let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn(InfiniteGridBundle {
         grid: InfiniteGrid {
@@ -304,8 +303,8 @@ fn spawn_vehicle(
     mut physics: ResMut<bpx::Physics>,
     cooking: Res<Cooking>,
     mut friction_pairs: ResMut<BPxVehicleFrictionPairs>,
-    mut px_geometries: ResMut<Assets<BPxGeometry>>,
-    mut px_materials: ResMut<Assets<BPxMaterial>>,
+    mut px_geometries: ResMut<Assets<bpx::Geometry>>,
+    mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
     let camera = commands.spawn(FlyingCameraBundle {
         flying_camera: FlyingCamera {
@@ -318,12 +317,12 @@ fn spawn_vehicle(
     .id();
 
     let hull_geometry = px_geometries.add(
-        BPxGeometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES)
+        bpx::Geometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES)
     );
     let wheel_geometry = px_geometries.add(
-        BPxGeometry::cylinder(&mut physics, &cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
+        bpx::Geometry::cylinder(&mut physics, &cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
     );
-    let material = px_materials.add(BPxMaterial::new(&mut physics, 0.5, 0.5, 0.6));
+    let material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     friction_pairs.setup(&[ px_materials.get(&material).unwrap() ], &[ PxVehicleDrivableSurfaceType { mType: 0 } ]);
     friction_pairs.set_type_pair_friction(0, 0, 1000.);

@@ -21,9 +21,8 @@ pub mod resources;
 pub use physx;
 pub use physx_sys;
 
-use assets::{BPxGeometry, BPxMaterial};
 use components::BPxVelocity;
-use resources::{BPxDefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
+use resources::{DefaultMaterial, BPxVehicleRaycastBuffer, BPxVehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -61,8 +60,8 @@ impl Plugin for PhysXPlugin {
         let mut physics = Physics::new(self.debugger, self.vehicles);
         let scene = bpx::Scene::new(&mut physics, self.gravity);
 
-        app.add_asset::<BPxGeometry>();
-        app.add_asset::<BPxMaterial>();
+        app.add_asset::<bpx::Geometry>();
+        app.add_asset::<bpx::Material>();
 
         app.add_event::<Tick>();
 
@@ -79,7 +78,7 @@ impl Plugin for PhysXPlugin {
 
         app.insert_resource(scene);
         app.insert_resource(BPxTimeSync::new(self.timestep));
-        app.insert_resource(BPxDefaultMaterial::default());
+        app.insert_resource(DefaultMaterial::default());
 
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);

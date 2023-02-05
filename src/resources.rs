@@ -13,9 +13,9 @@ use physx_sys::{
 };
 use std::ffi::c_void;
 use std::ptr::{null_mut, drop_in_place};
-use crate::assets::BPxMaterial;
 
 use super::prelude::*;
+use super::prelude as bpx;
 use super::{PxShape, PxScene};
 
 #[derive(Resource, Deref, DerefMut)]
@@ -80,7 +80,7 @@ impl Cooking {
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct BPxDefaultMaterial(Option<Handle<BPxMaterial>>);
+pub struct DefaultMaterial(Option<Handle<bpx::Material>>);
 
 #[derive(Resource)]
 pub struct BPxVehicleRaycastBuffer {
@@ -162,7 +162,7 @@ unsafe impl Send for BPxVehicleFrictionPairs {}
 unsafe impl Sync for BPxVehicleFrictionPairs {}
 
 impl BPxVehicleFrictionPairs {
-    pub fn setup(&mut self, drivable_surface_materials: &[&BPxMaterial], drivable_surface_types: &[PxVehicleDrivableSurfaceType]) {
+    pub fn setup(&mut self, drivable_surface_materials: &[&bpx::Material], drivable_surface_types: &[PxVehicleDrivableSurfaceType]) {
         if !self.0.is_null() {
             unsafe { drop_in_place(self.0); }
         }

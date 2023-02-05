@@ -12,23 +12,27 @@ use super::PxMaterial;
 
 #[derive(TypeUuid, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
-pub struct BPxMaterial(Owner<PxMaterial>);
+pub struct Material(Owner<PxMaterial>);
 
-impl BPxMaterial {
+impl Material {
     pub fn new(physics: &mut bpx::Physics, static_friction: f32, dynamic_friction: f32, restitution: f32) -> Self {
         physics.create_material(static_friction, dynamic_friction, restitution, ()).unwrap().into()
     }
 }
 
-impl From<Owner<PxMaterial>> for BPxMaterial {
+impl From<Owner<PxMaterial>> for Material {
     fn from(value: Owner<PxMaterial>) -> Self {
-        BPxMaterial(value)
+        Self(value)
     }
 }
 
 #[derive(TypeUuid)]
 #[uuid = "db246120-e6af-4ebf-a95a-a6efe1c54d9f"]
-pub enum BPxGeometry {
+pub struct Geometry {
+    pub obj: GeometryInner,
+}
+
+pub enum GeometryInner {
     Sphere(PxSphereGeometry),
     Plane(PxPlaneGeometry),
     Capsule(PxCapsuleGeometry),
@@ -43,57 +47,57 @@ pub enum BPxGeometry {
     //HeightField(PxHeightFieldGeometry),
 }
 
-impl From<PxSphereGeometry> for BPxGeometry {
+impl From<PxSphereGeometry> for Geometry {
     fn from(value: PxSphereGeometry) -> Self {
-        Self::Sphere(value)
+        Self { obj: GeometryInner::Sphere(value) }
     }
 }
 
-impl From<PxPlaneGeometry> for BPxGeometry {
+impl From<PxPlaneGeometry> for Geometry {
     fn from(value: PxPlaneGeometry) -> Self {
-        Self::Plane(value)
+        Self { obj: GeometryInner::Plane(value) }
     }
 }
 
-impl From<PxCapsuleGeometry> for BPxGeometry {
+impl From<PxCapsuleGeometry> for Geometry {
     fn from(value: PxCapsuleGeometry) -> Self {
-        Self::Capsule(value)
+        Self { obj: GeometryInner::Capsule(value) }
     }
 }
 
-impl From<PxBoxGeometry> for BPxGeometry {
+impl From<PxBoxGeometry> for Geometry {
     fn from(value: PxBoxGeometry) -> Self {
-        Self::Box(value)
+        Self { obj: GeometryInner::Box(value) }
     }
 }
 
-impl From<Owner<ConvexMesh>> for BPxGeometry {
+impl From<Owner<ConvexMesh>> for Geometry {
     fn from(value: Owner<ConvexMesh>) -> Self {
-        Self::ConvexMesh(value)
+        Self { obj: GeometryInner::ConvexMesh(value) }
     }
 }
 
-impl From<Owner<TriangleMesh>> for BPxGeometry {
+impl From<Owner<TriangleMesh>> for Geometry {
     fn from(value: Owner<TriangleMesh>) -> Self {
-        Self::TriangleMesh(value)
+        Self { obj: GeometryInner::TriangleMesh(value) }
     }
 }
 
-impl BPxGeometry {
+impl Geometry {
     pub fn ball(radius: f32) -> Self {
-        Self::Sphere(PxSphereGeometry::new(radius))
+        PxSphereGeometry::new(radius).into()
     }
 
     pub fn halfspace() -> Self {
-        Self::Plane(PxPlaneGeometry::new())
+        PxPlaneGeometry::new().into()
     }
 
     pub fn capsule(half_height: f32, radius: f32) -> Self {
-        Self::Capsule(PxCapsuleGeometry::new(radius, half_height))
+        PxCapsuleGeometry::new(radius, half_height).into()
     }
 
     pub fn cuboid(hx: f32, hy: f32, hz: f32) -> Self {
-        Self::Box(PxBoxGeometry::new(hx / 2., hy / 2., hz / 2.))
+        PxBoxGeometry::new(hx / 2., hy / 2., hz / 2.).into()
     }
 
     pub fn convex_mesh(physics: &mut bpx::Physics, cooking: &Cooking, verts: &[Vec3]) -> Self {
@@ -113,7 +117,7 @@ impl BPxGeometry {
             ConvexMeshCookingResult::ZeroAreaTestFailed => panic!("create_convex_mesh zero area test failed"),
         };
 
-        Self::ConvexMesh(mesh)
+        mesh.into()
     }
 
     pub fn trimesh(physics: &mut bpx::Physics, cooking: &Cooking, verts: &[Vec3], indices: &[[u32; 3]]) -> Self {
@@ -135,7 +139,7 @@ impl BPxGeometry {
             TriangleMeshCookingResult::LargeTriangle => panic!("create_triangle_mesh large triangle"),
         };
 
-        Self::TriangleMesh(mesh)
+        mesh.into()
     }
 
     pub fn cylinder(physics: &mut bpx::Physics, cooking: &Cooking, half_height: f32, radius: f32, segments: usize) -> Self {
