@@ -2,28 +2,24 @@ use bevy::prelude::*;
 use physx::cooking::{PxCooking, PxCookingParams};
 use physx::prelude::*;
 use physx::traits::Class;
+use physx::vehicles::{vehicle_set_basis_vectors, vehicle_set_update_mode, VehicleUpdateMode};
 use physx_sys::{
-    phys_PxInitVehicleSDK, phys_PxVehicleSetBasisVectors, phys_PxVehicleSetUpdateMode, PxVehicleUpdateMode,
-    phys_PxCloseVehicleSDK, PxRaycastHit, PxBatchQueryDesc_new, PxRaycastQueryResult, PxFilterData, PxQueryHitType,
-    PxHitFlags, PxScene_createBatchQuery_mut, PxBatchQuery, PxVehicleDrivableSurfaceToTireFrictionPairs,
+    PxRaycastHit, PxBatchQueryDesc_new, PxRaycastQueryResult, PxFilterData, PxQueryHitType,
+    PxScene_createBatchQuery_mut, PxBatchQuery, PxVehicleDrivableSurfaceToTireFrictionPairs,
     PxVehicleDrivableSurfaceToTireFrictionPairs_allocate_mut, PxVehicleDrivableSurfaceType,
     PxVehicleDrivableSurfaceToTireFrictionPairs_setup_mut, PxVehicleDrivableSurfaceToTireFrictionPairs_release_mut,
     PxVehicleDrivableSurfaceToTireFrictionPairs_setTypePairFriction_mut,
     PxVehicleDrivableSurfaceToTireFrictionPairs_getTypePairFriction
 };
 use std::ffi::c_void;
-use std::ops::{Deref, DerefMut};
 use std::ptr::{null_mut, drop_in_place};
 use crate::assets::BPxMaterial;
 
 use super::prelude::*;
 use super::{PxShape, PxScene};
 
-#[derive(Resource)]
-pub struct BPxPhysics {
-    physics: PhysicsFoundation<physx::foundation::DefaultAllocator, PxShape>,
-    vsdk: bool,
-}
+#[derive(Resource, Deref, DerefMut)]
+pub struct BPxPhysics(PhysicsFoundation<physx::foundation::DefaultAllocator, PxShape>);
 
 impl BPxPhysics {
     pub fn new(enable_debugger: bool, enable_vsdk: bool) -> Self {
@@ -32,47 +28,25 @@ impl BPxPhysics {
         let mut builder = physx::physics::PhysicsFoundationBuilder::default();
         builder.enable_visual_debugger(enable_debugger);
         builder.with_extensions(true);
+        builder.with_vehicle_sdk(enable_vsdk);
         physics = builder.build();
 
         if physics.is_none() && enable_debugger {
             // failed to connect, try without debugger
             let mut builder = physx::physics::PhysicsFoundationBuilder::default();
             builder.with_extensions(true);
+            builder.with_vehicle_sdk(enable_vsdk);
             physics = builder.build();
         }
 
-        let mut physics = physics.expect("building PhysX foundation failed");
+        let physics = physics.expect("building PhysX foundation failed");
 
         if enable_vsdk {
-            unsafe {
-                phys_PxInitVehicleSDK(physics.as_mut_ptr(), null_mut());
-                phys_PxVehicleSetBasisVectors(PxVec3::new(0.,1.,0.).as_ptr(), PxVec3::new(0.,0.,1.).as_ptr());
-                phys_PxVehicleSetUpdateMode(PxVehicleUpdateMode::eVELOCITY_CHANGE);
-            }
+            vehicle_set_basis_vectors(PxVec3::new(0., 1., 0.), PxVec3::new(0., 0., 1.));
+            vehicle_set_update_mode(VehicleUpdateMode::VelocityChange);
         }
 
-        Self { physics, vsdk: enable_vsdk }
-    }
-}
-
-impl Deref for BPxPhysics {
-    type Target = PhysicsFoundation<physx::foundation::DefaultAllocator, PxShape>;
-    fn deref(&self) -> &Self::Target {
-        &self.physics
-    }
-}
-
-impl DerefMut for BPxPhysics {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.physics
-    }
-}
-
-impl Drop for BPxPhysics {
-    fn drop(&mut self) {
-        if self.vsdk {
-            unsafe { phys_PxCloseVehicleSDK(null_mut()); }
-        }
+        Self(physics)
     }
 }
 

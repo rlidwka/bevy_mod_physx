@@ -25,6 +25,8 @@ use physx_sys::{
     //PxVehicleWheels_release_mut,
 };
 
+use super::VehicleTypes;
+
 impl<T> VehicleWheels for T where T: Class<physx_sys::PxVehicleWheels> + Base {}
 
 pub trait VehicleWheels: Class<physx_sys::PxVehicleWheels> + Base {
@@ -61,43 +63,5 @@ pub trait VehicleWheels: Class<physx_sys::PxVehicleWheels> + Base {
 
     fn get_nb_non_driven_wheels(&self) -> u32 {
         unsafe { PxVehicleWheels_getNbNonDrivenWheels(self.as_ptr()) }
-    }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[repr(u32)]
-pub enum VehicleTypes {
-    Drive4W = 0,
-    DriveNW = 1,
-    DriveTank = 2,
-    NoDrive = 3,
-    User1 = 4,
-    User2 = 5,
-    User3 = 6,
-    //MaxNBVehicleTypes = 7,
-}
-
-impl VehicleTypes {
-    pub const MAX_NB_VEHICLE_TYPES: u32 = 7;
-}
-
-impl From<VehicleTypes> for physx_sys::PxVehicleTypes::Enum {
-    fn from(value: VehicleTypes) -> Self {
-        value as u32
-    }
-}
-
-impl From<physx_sys::PxVehicleTypes::Enum> for VehicleTypes {
-    fn from(ty: physx_sys::PxVehicleTypes::Enum) -> Self {
-        match ty {
-            0 => Self::Drive4W,
-            1 => Self::DriveNW,
-            2 => Self::DriveTank,
-            3 => Self::NoDrive,
-            4 => Self::User1,
-            5 => Self::User2,
-            6 => Self::User3,
-            _ => panic!("invalid enum variant"),
-        }
     }
 }

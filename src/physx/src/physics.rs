@@ -50,6 +50,8 @@ use physx_sys::{
     phys_PxInitExtensions,
     phys_PxSetAssertHandler,
     phys_PxSetProfilerCallback,
+    phys_PxInitVehicleSDK,
+    phys_PxCloseVehicleSDK,
     physx_create_physics,
     //FilterShaderCallbackInfo,
     PxConstraintConnector,
@@ -112,6 +114,7 @@ pub struct PhysicsFoundation<Allocator: AllocatorCallback, Geom: Shape> {
     physics: Owner<PxPhysics<Geom>>,
     pvd: Option<VisualDebugger>,
     foundation: Owner<PxFoundation<Allocator>>,
+    vehicle_sdk_loaded: bool,
     extensions_loaded: bool,
 }
 
@@ -143,6 +146,7 @@ impl<Allocator: AllocatorCallback, Geom: Shape> PhysicsFoundation<Allocator, Geo
             foundation,
             physics,
             pvd: None,
+            vehicle_sdk_loaded: false,
             extensions_loaded: false,
         }
     }
@@ -173,6 +177,7 @@ impl<Allocator: AllocatorCallback, Geom: Shape> PhysicsFoundation<Allocator, Geo
             foundation,
             physics,
             pvd: None,
+            vehicle_sdk_loaded: false,
             extensions_loaded: false,
         }
     }
@@ -212,6 +217,7 @@ impl<Geom: Shape> Default for PhysicsFoundation<DefaultAllocator, Geom> {
             foundation,
             physics,
             pvd: None,
+            vehicle_sdk_loaded: false,
             extensions_loaded: false,
         }
     }
@@ -223,7 +229,13 @@ impl<Allocator: AllocatorCallback, Geom: Shape> Drop for PhysicsFoundation<Alloc
             unsafe {
                 phys_PxCloseExtensions();
             }
-        };
+        }
+
+        if self.vehicle_sdk_loaded {
+            unsafe {
+                phys_PxCloseVehicleSDK(null_mut());
+            }
+        }
     }
 }
 
@@ -664,6 +676,7 @@ pub struct PhysicsFoundationBuilder<Allocator: AllocatorCallback> {
     pvd_port: i32,
     pvd_remote: Option<String>,
     load_extensions: bool,
+    load_vehicle_sdk: bool,
     allocator: Allocator,
     error_callback: Option<*mut PxErrorCallback>,
 }
@@ -679,6 +692,7 @@ impl Default for PhysicsFoundationBuilder<DefaultAllocator> {
             pvd_port: 5425,
             pvd_remote: None,
             load_extensions: false,
+            load_vehicle_sdk: false,
             allocator: DefaultAllocator,
             error_callback: None,
         }
@@ -696,6 +710,7 @@ impl<Allocator: AllocatorCallback> PhysicsFoundationBuilder<Allocator> {
             pvd_port: 5425,
             pvd_remote: None,
             load_extensions: false,
+            load_vehicle_sdk: false,
             allocator,
             error_callback: None,
         }
@@ -741,6 +756,12 @@ impl<Allocator: AllocatorCallback> PhysicsFoundationBuilder<Allocator> {
     /// Enable or disable extensions.  Default is `false`.
     pub fn with_extensions(&mut self, load: bool) -> &mut Self {
         self.load_extensions = load;
+        self
+    }
+
+    /// Enable or disable PhysX Vehicle SDK. Default is `false`.
+    pub fn with_vehicle_sdk(&mut self, load: bool) -> &mut Self {
+        self.load_vehicle_sdk = load;
         self
     }
 
@@ -792,11 +813,20 @@ impl<Allocator: AllocatorCallback> PhysicsFoundationBuilder<Allocator> {
             false
         };
 
+        let vehicle_sdk_loaded = if self.load_extensions {
+            unsafe {
+                phys_PxInitVehicleSDK(physics.as_mut_ptr(), null_mut())
+            }
+        } else {
+            false
+        };
+
         Some(PhysicsFoundation {
             physics,
             pvd,
             foundation,
             extensions_loaded,
+            vehicle_sdk_loaded,
         })
     }
 }

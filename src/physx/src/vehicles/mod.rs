@@ -58,6 +58,9 @@ pub use vehicle_gears_data::*;
 mod vehicle_nodrive;
 pub use vehicle_nodrive::*;
 
+mod vehicle_sdk;
+pub use vehicle_sdk::*;
+
 mod vehicle_suspension_data;
 pub use vehicle_suspension_data::*;
 
