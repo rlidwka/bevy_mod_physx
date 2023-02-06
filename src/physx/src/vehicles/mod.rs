@@ -67,6 +67,9 @@ pub use vehicle_suspension_data::*;
 mod vehicle_tire_data;
 pub use vehicle_tire_data::*;
 
+mod vehicle_tire_friction;
+pub use vehicle_tire_friction::*;
+
 mod vehicle_tire_load_filter_data;
 pub use vehicle_tire_load_filter_data::*;
 

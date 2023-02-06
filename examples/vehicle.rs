@@ -9,7 +9,7 @@ use bevy_physx::components::FilterData;
 use bevy_physx::resources::VehicleFrictionPairs;
 use physx::prelude::*;
 use physx::vehicles::*;
-use physx_sys::{PxVehicleDrivableSurfaceType, PxVehicleDriveTankRawInputData};
+use physx_sys::{PxVehicleDriveTankRawInputData};
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
 //const UNDRIVABLE_SURFACE: u32 = 0x0000ffff;
@@ -292,7 +292,7 @@ fn spawn_vehicle(
     );
     let material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
-    friction_pairs.setup(&[ px_materials.get(&material).unwrap() ], &[ PxVehicleDrivableSurfaceType { mType: 0 } ]);
+    friction_pairs.setup(1, 1, &[ &***(px_materials.get(&material).unwrap()) ], &[ VehicleDrivableSurfaceType(0) ]);
     friction_pairs.set_type_pair_friction(0, 0, 1000.);
 
     let mut wheels = vec![];

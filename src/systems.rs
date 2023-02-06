@@ -76,7 +76,7 @@ pub fn scene_simulate(
                 phys_PxVehicleUpdates(
                     delta,
                     gravity.as_ptr(),
-                    **friction_pairs,
+                    friction_pairs.as_ptr(),
                     vehicles.len() as u32,
                     vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
                     null_mut(),
