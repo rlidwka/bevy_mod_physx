@@ -21,7 +21,7 @@ pub mod resources;
 pub use physx;
 pub use physx_sys;
 
-use resources::{DefaultMaterial, VehicleRaycastBuffer, VehicleFrictionPairs};
+use resources::{DefaultMaterial, VehicleSceneQueryData, VehicleFrictionPairs};
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -71,7 +71,7 @@ impl Plugin for PhysXPlugin {
         }
 
         if self.vehicles {
-            app.insert_resource(VehicleRaycastBuffer::default());
+            app.insert_resource(VehicleSceneQueryData::default());
             app.insert_resource(VehicleFrictionPairs::default());
         }
 

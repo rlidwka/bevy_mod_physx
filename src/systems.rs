@@ -6,14 +6,14 @@ use physx::traits::Class;
 use physx_sys::{
     PxScene_addActor_mut, PxRigidBodyExt_updateMassAndInertia_mut_1, PxShape_setLocalPose_mut,
     PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates, phys_PxVehicleSuspensionRaycasts,
-    PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
+    PxVehicleWheels, phys_PxVehicleUpdates,
+    PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut, phys_PxVehicleSuspensionSweeps,
 };
 
 use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::components::{RigidDynamicHandle, RigidStaticHandle};
-use super::resources::{DefaultMaterial, VehicleRaycastBuffer, VehicleFrictionPairs};
+use super::resources::{DefaultMaterial, VehicleSceneQueryData, VehicleFrictionPairs};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>, Option<&'a mut Vehicle>),
@@ -28,7 +28,7 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
     mut ticks: EventReader<Tick>,
-    mut raycastbuf: ResMut<VehicleRaycastBuffer>,
+    mut scene_query: ResMut<VehicleSceneQueryData>,
     friction_pairs: Res<VehicleFrictionPairs>,
     mut vehicles_query: Query<&mut VehicleHandle>,
 ) {
@@ -59,18 +59,30 @@ pub fn scene_simulate(
         }
 
         if !vehicles.is_empty() {
-            raycastbuf.alloc(&mut scene, wheel_count);
+            scene_query.alloc(&mut scene, wheel_count);
 
             let gravity = unsafe { PxScene_getGravity(scene.as_ptr()) };
 
             unsafe {
-                phys_PxVehicleSuspensionRaycasts(
-                    raycastbuf.get_batch_query(),
+                /*phys_PxVehicleSuspensionRaycasts(
+                    scene_query.get_batch_query(),
                     vehicles.len() as u32,
                     vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
                     wheel_count as u32,
-                    raycastbuf.get_query_results(),
+                    scene_query.get_raycast_query_buffer(),
                     vec![true; vehicles.len()].as_ptr(),
+                );*/
+
+                phys_PxVehicleSuspensionSweeps(
+                    scene_query.get_batch_query(),
+                    vehicles.len() as u32,
+                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
+                    wheel_count as u32,
+                    scene_query.get_sweep_query_buffer(),
+                    1,
+                    null_mut(),
+                    1.,
+                    1.01,
                 );
 
                 phys_PxVehicleUpdates(

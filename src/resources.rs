@@ -4,8 +4,8 @@ use physx::prelude::*;
 use physx::traits::Class;
 use physx::vehicles::{vehicle_set_basis_vectors, vehicle_set_update_mode, VehicleUpdateMode, VehicleDrivableSurfaceToTireFrictionPairs, VehicleDrivableSurfaceType};
 use physx_sys::{
-    PxRaycastHit, PxBatchQueryDesc_new, PxRaycastQueryResult, PxFilterData, PxQueryHitType,
-    PxScene_createBatchQuery_mut, PxBatchQuery
+    PxBatchQueryDesc_new, PxFilterData, PxQueryHitType,
+    PxScene_createBatchQuery_mut, PxBatchQuery, PxSweepHit, PxSweepQueryResult
 };
 use std::ffi::c_void;
 use std::ptr::{null_mut, drop_in_place};
@@ -79,19 +79,21 @@ impl Cooking {
 pub struct DefaultMaterial(Option<Handle<bpx::Material>>);
 
 #[derive(Resource)]
-pub struct VehicleRaycastBuffer {
+pub struct VehicleSceneQueryData {
     current_size: usize,
-    sq_results: Vec<u8>,
-    sq_hit_buffer: Vec<u8>,
+    //raycast_results: Vec<u8>,
+    //raycast_hit_buffer: Vec<u8>,
+    sweep_results: Vec<u8>,
+    sweep_hit_buffer: Vec<u8>,
     batch_query: *mut PxBatchQuery,
 }
 
-unsafe impl Send for VehicleRaycastBuffer {}
-unsafe impl Sync for VehicleRaycastBuffer {}
+unsafe impl Send for VehicleSceneQueryData {}
+unsafe impl Sync for VehicleSceneQueryData {}
 
-impl VehicleRaycastBuffer {
-    pub fn alloc(&mut self, scene: &mut Scene, wheel_count: usize) {
-        extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
+impl VehicleSceneQueryData {
+    pub fn alloc(&mut self, scene: &mut Scene, max_num_wheels: usize) {
+        unsafe extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
             if 0 == (data1.word3 & 0xffff0000) {
                 PxQueryHitType::eNONE
             } else {
@@ -100,23 +102,37 @@ impl VehicleRaycastBuffer {
         }
 
         // buffers already allocated
-        if wheel_count <= self.current_size { return; }
+        if max_num_wheels <= self.current_size { return; }
 
-        self.current_size = wheel_count.next_power_of_two();
-        // PxRaycastQueryResult, rust port generates wrong struct size, also 80 bytes aren't enough?
-        self.sq_results = vec![0u8; 100 * self.current_size];
-        self.sq_hit_buffer = vec![0u8; std::mem::size_of::<PxRaycastHit>() * self.current_size];
-        let mut sq_desc = unsafe { PxBatchQueryDesc_new(self.current_size as u32, 0, 0) };
+        self.current_size = max_num_wheels.next_power_of_two();
+
+        const QUERY_HITS_PER_WHEEL: usize = 1;
+        let max_num_hit_points = self.current_size * QUERY_HITS_PER_WHEEL;
+
+        // PxRaycastQueryResult, rust port generates wrong struct size; 80 bytes isn't enough?
+        //self.raycast_results = vec![0u8; 100 * self.current_size];
+        //self.raycast_hit_buffer = vec![0u8; std::mem::size_of::<PxRaycastHit>() * max_num_hit_points];
+        // PxSweepQueryResult, rust port generates wrong struct size; 64 bytes isn't enough?
+        self.sweep_results = vec![0u8; 100 * self.current_size];
+        self.sweep_hit_buffer = vec![0u8; std::mem::size_of::<PxSweepHit>() * max_num_hit_points];
+
+        let mut sq_desc = unsafe { PxBatchQueryDesc_new(self.current_size as u32, self.current_size as u32, 0) };
+
+        //sq_desc.queryMemory.userRaycastResultBuffer = self.raycast_results.as_mut_ptr() as *mut PxRaycastQueryResult;
+        //sq_desc.queryMemory.userRaycastTouchBuffer = self.raycast_hit_buffer.as_mut_ptr() as *mut PxRaycastHit;
+        //sq_desc.queryMemory.raycastTouchBufferSize = self.current_size as u32 * max_num_hit_points as u32;
+
+        sq_desc.queryMemory.userSweepResultBuffer = self.sweep_results.as_mut_ptr() as *mut PxSweepQueryResult;
+        sq_desc.queryMemory.userSweepTouchBuffer = self.sweep_hit_buffer.as_mut_ptr() as *mut PxSweepHit;
+        sq_desc.queryMemory.sweepTouchBufferSize = self.current_size as u32 * max_num_hit_points as u32;
+
+        sq_desc.preFilterShader = pre_filter_shader as *mut c_void;
 
         if !self.batch_query.is_null() {
             unsafe { drop_in_place(self.batch_query); }
         }
 
         self.batch_query = unsafe {
-            sq_desc.queryMemory.userRaycastResultBuffer = self.sq_results.as_mut_ptr() as *mut PxRaycastQueryResult;
-            sq_desc.queryMemory.userRaycastTouchBuffer = self.sq_hit_buffer.as_mut_ptr() as *mut PxRaycastHit;
-            sq_desc.queryMemory.raycastTouchBufferSize = self.current_size as u32;
-            sq_desc.preFilterShader = pre_filter_shader as *mut c_void;
             PxScene_createBatchQuery_mut(scene.as_mut_ptr(), &sq_desc as *const _)
         };
     }
@@ -125,23 +141,29 @@ impl VehicleRaycastBuffer {
         self.batch_query
     }
 
-    pub fn get_query_results(&mut self) -> *mut PxRaycastQueryResult {
-        self.sq_results.as_mut_ptr() as *mut PxRaycastQueryResult
+    //pub fn get_raycast_query_buffer(&mut self) -> *mut PxRaycastQueryResult {
+    //    self.raycast_results.as_mut_ptr() as *mut PxRaycastQueryResult
+    //}
+
+    pub fn get_sweep_query_buffer(&mut self) -> *mut PxSweepQueryResult {
+        self.sweep_results.as_mut_ptr() as *mut PxSweepQueryResult
     }
 }
 
-impl Default for VehicleRaycastBuffer {
+impl Default for VehicleSceneQueryData {
     fn default() -> Self {
         Self {
             current_size: 0,
-            sq_results: vec![],
-            sq_hit_buffer: vec![],
+            //raycast_results: vec![],
+            //raycast_hit_buffer: vec![],
+            sweep_results: vec![],
+            sweep_hit_buffer: vec![],
             batch_query: null_mut(),
         }
     }
 }
 
-impl Drop for VehicleRaycastBuffer {
+impl Drop for VehicleSceneQueryData {
     fn drop(&mut self) {
         if !self.batch_query.is_null() {
             unsafe { drop_in_place(self.batch_query); }
