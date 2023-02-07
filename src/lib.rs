@@ -54,6 +54,9 @@ pub struct PhysXPlugin {
     pub timestep: f32,
 }
 
+#[derive(Debug, StageLabel)]
+pub struct PhysXStage;
+
 impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
         let mut physics = Physics::new(self.debugger, self.vehicles);
@@ -81,9 +84,6 @@ impl Plugin for PhysXPlugin {
 
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
-
-        #[derive(Debug, StageLabel)]
-        struct PhysXStage;
 
         let mut stage = SystemStage::parallel();
         stage.add_system(time_sync.before(systems::scene_simulate));
