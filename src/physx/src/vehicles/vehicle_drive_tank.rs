@@ -25,6 +25,7 @@ use super::{
     PxVehicleDriveDynData,
     PxVehicleDriveSimData,
     VehicleDrive,
+    VehicleDriveControlType,
     VehicleDriveSimData,
     VehicleWheelsDynData,
     VehicleWheelsSimData,
@@ -176,6 +177,8 @@ pub enum VehicleDriveTankControl {
     AnalogInputThrustLeft = 3,
     AnalogInputThrustRight = 4,
 }
+
+impl VehicleDriveControlType for VehicleDriveTankControl {}
 
 impl VehicleDriveTankControl {
     pub const MAX_NB_ANALOG_INPUTS: u32 = 5;

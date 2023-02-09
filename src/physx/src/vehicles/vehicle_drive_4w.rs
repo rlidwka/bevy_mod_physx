@@ -22,6 +22,7 @@ use super::{
     PxVehicleDriveDynData,
     PxVehicleDriveSimData,
     VehicleDrive,
+    VehicleDriveControlType,
     VehicleDriveSimData4W,
     VehicleWheelsDynData,
     VehicleWheelsSimData,
@@ -163,6 +164,8 @@ pub enum VehicleDrive4WControl {
     AnalogInputSteerLeft = 3,
     AnalogInputSteerRight = 4,
 }
+
+impl VehicleDriveControlType for VehicleDrive4WControl {}
 
 impl VehicleDrive4WControl {
     pub const MAX_NB_ANALOG_INPUTS: u32 = 5;
