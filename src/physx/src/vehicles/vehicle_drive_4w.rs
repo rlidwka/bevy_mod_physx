@@ -153,3 +153,63 @@ pub trait VehicleDrive4W: Class<physx_sys::PxVehicleDrive4W> + VehicleDrive {
         unsafe { PxVehicleDrive4W_setToRestState_mut(self.as_mut_ptr()) }
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
+pub enum VehicleDrive4WControl {
+    AnalogInputAccel = 0,
+    AnalogInputBrake = 1,
+    AnalogInputHandBrake = 2,
+    AnalogInputSteerLeft = 3,
+    AnalogInputSteerRight = 4,
+}
+
+impl VehicleDrive4WControl {
+    pub const MAX_NB_ANALOG_INPUTS: u32 = 5;
+}
+
+impl From<VehicleDrive4WControl> for physx_sys::PxVehicleDrive4WControl::Enum {
+    fn from(value: VehicleDrive4WControl) -> Self {
+        value as u32
+    }
+}
+
+impl From<physx_sys::PxVehicleDrive4WControl::Enum> for VehicleDrive4WControl {
+    fn from(ty: physx_sys::PxVehicleDrive4WControl::Enum) -> Self {
+        match ty {
+            0 => Self::AnalogInputAccel,
+            1 => Self::AnalogInputBrake,
+            2 => Self::AnalogInputHandBrake,
+            3 => Self::AnalogInputSteerLeft,
+            4 => Self::AnalogInputSteerRight,
+            _ => panic!("invalid enum variant"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
+pub enum VehicleDrive4WWheelOrder {
+    FrontLeft = 0,
+    FrontRight = 1,
+    RearLeft = 2,
+    RearRight = 3,
+}
+
+impl From<VehicleDrive4WWheelOrder> for physx_sys::PxVehicleDrive4WWheelOrder::Enum {
+    fn from(value: VehicleDrive4WWheelOrder) -> Self {
+        value as u32
+    }
+}
+
+impl From<physx_sys::PxVehicleDrive4WWheelOrder::Enum> for VehicleDrive4WWheelOrder {
+    fn from(ty: physx_sys::PxVehicleDrive4WWheelOrder::Enum) -> Self {
+        match ty {
+            0 => Self::FrontLeft,
+            1 => Self::FrontRight,
+            2 => Self::RearLeft,
+            3 => Self::RearRight,
+            _ => panic!("invalid enum variant"),
+        }
+    }
+}

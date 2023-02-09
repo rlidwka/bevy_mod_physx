@@ -126,9 +126,9 @@ impl From<VehicleSteerVsForwardSpeedTable> for PxFixedSizeLookupTable_8_ {
     }
 }
 
-impl<T: VehicleDrive4W> VehicleDrive4WControl for T {}
+impl<T: VehicleDrive4W> VehicleDrive4WControlRawInputs for T {}
 
-pub trait VehicleDrive4WControl: VehicleDrive4W {
+pub trait VehicleDrive4WControlRawInputs: VehicleDrive4W {
     fn smooth_digital_raw_inputs_and_set_analog_inputs(
         &mut self,
         steer_vs_forward_speed_table: &VehicleSteerVsForwardSpeedTable,
@@ -174,9 +174,9 @@ pub trait VehicleDrive4WControl: VehicleDrive4W {
     }
 }
 
-impl<T: VehicleDriveNW> VehicleDriveNWControl for T {}
+impl<T: VehicleDriveNW> VehicleDriveNWControlRawInputs for T {}
 
-pub trait VehicleDriveNWControl: VehicleDriveNW {
+pub trait VehicleDriveNWControlRawInputs: VehicleDriveNW {
     fn smooth_digital_raw_inputs_and_set_analog_inputs(
         &mut self,
         steer_vs_forward_speed_table: &VehicleSteerVsForwardSpeedTable,
@@ -222,9 +222,9 @@ pub trait VehicleDriveNWControl: VehicleDriveNW {
     }
 }
 
-impl<T: VehicleDriveTank> VehicleDriveTankControl for T {}
+impl<T: VehicleDriveTank> VehicleDriveTankControlRawInputs for T {}
 
-pub trait VehicleDriveTankControl: VehicleDriveTank {
+pub trait VehicleDriveTankControlRawInputs: VehicleDriveTank {
     fn smooth_digital_raw_inputs_and_set_analog_inputs(
         &mut self,
         key_smoothing: &VehicleKeySmoothingData,

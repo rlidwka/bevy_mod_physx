@@ -155,3 +155,36 @@ pub trait VehicleDriveNW: Class<physx_sys::PxVehicleDriveNW> + VehicleDrive {
         unsafe { PxVehicleDriveNW_setToRestState_mut(self.as_mut_ptr()) }
     }
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
+pub enum VehicleDriveNWControl {
+    AnalogInputAccel = 0,
+    AnalogInputBrake = 1,
+    AnalogInputHandBrake = 2,
+    AnalogInputSteerLeft = 3,
+    AnalogInputSteerRight = 4,
+}
+
+impl VehicleDriveNWControl {
+    pub const MAX_NB_ANALOG_INPUTS: u32 = 5;
+}
+
+impl From<VehicleDriveNWControl> for physx_sys::PxVehicleDriveNWControl::Enum {
+    fn from(value: VehicleDriveNWControl) -> Self {
+        value as u32
+    }
+}
+
+impl From<physx_sys::PxVehicleDriveNWControl::Enum> for VehicleDriveNWControl {
+    fn from(ty: physx_sys::PxVehicleDriveNWControl::Enum) -> Self {
+        match ty {
+            0 => Self::AnalogInputAccel,
+            1 => Self::AnalogInputBrake,
+            2 => Self::AnalogInputHandBrake,
+            3 => Self::AnalogInputSteerLeft,
+            4 => Self::AnalogInputSteerRight,
+            _ => panic!("invalid enum variant"),
+        }
+    }
+}

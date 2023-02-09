@@ -169,6 +169,39 @@ pub trait VehicleDriveTank: Class<physx_sys::PxVehicleDriveTank> + VehicleDrive 
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u32)]
+pub enum VehicleDriveTankControl {
+    AnalogInputAccel = 0,
+    AnalogInputBrakeLeft = 1,
+    AnalogInputBrakeRight = 2,
+    AnalogInputThrustLeft = 3,
+    AnalogInputThrustRight = 4,
+}
+
+impl VehicleDriveTankControl {
+    pub const MAX_NB_ANALOG_INPUTS: u32 = 5;
+}
+
+impl From<VehicleDriveTankControl> for physx_sys::PxVehicleDriveTankControl::Enum {
+    fn from(value: VehicleDriveTankControl) -> Self {
+        value as u32
+    }
+}
+
+impl From<physx_sys::PxVehicleDriveTankControl::Enum> for VehicleDriveTankControl {
+    fn from(ty: physx_sys::PxVehicleDriveTankControl::Enum) -> Self {
+        match ty {
+            0 => Self::AnalogInputAccel,
+            1 => Self::AnalogInputBrakeLeft,
+            2 => Self::AnalogInputBrakeRight,
+            3 => Self::AnalogInputThrustLeft,
+            4 => Self::AnalogInputThrustRight,
+            _ => panic!("invalid enum variant"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
 pub enum VehicleDriveTankControlModel {
     Standard = 0,
     Special = 1,
@@ -185,6 +218,65 @@ impl From<physx_sys::PxVehicleDriveTankControlModel::Enum> for VehicleDriveTankC
         match ty {
             0 => Self::Standard,
             1 => Self::Special,
+            _ => panic!("invalid enum variant"),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u32)]
+pub enum VehicleDriveTankWheelOrder {
+    FrontLeft0 = 0,
+    FrontRight0 = 1,
+    FrontLeft1 = 2,
+    FrontRight1 = 3,
+    FrontLeft2 = 4,
+    FrontRight2 = 5,
+    FrontLeft3 = 6,
+    FrontRight3 = 7,
+    FrontLeft4 = 8,
+    FrontRight4 = 9,
+    FrontLeft5 = 10,
+    FrontRight5 = 11,
+    FrontLeft6 = 12,
+    FrontRight6 = 13,
+    FrontLeft7 = 14,
+    FrontRight7 = 15,
+    FrontLeft8 = 16,
+    FrontRight8 = 17,
+    FrontLeft9 = 18,
+    FrontRight9 = 19,
+}
+
+impl From<VehicleDriveTankWheelOrder> for physx_sys::PxVehicleDriveTankWheelOrder::Enum {
+    fn from(value: VehicleDriveTankWheelOrder) -> Self {
+        value as u32
+    }
+}
+
+impl From<physx_sys::PxVehicleDriveTankWheelOrder::Enum> for VehicleDriveTankWheelOrder {
+    fn from(ty: physx_sys::PxVehicleDriveTankWheelOrder::Enum) -> Self {
+        match ty {
+            0 => Self::FrontLeft0,
+            1 => Self::FrontRight0,
+            2 => Self::FrontLeft1,
+            3 => Self::FrontRight1,
+            4 => Self::FrontLeft2,
+            5 => Self::FrontRight2,
+            6 => Self::FrontLeft3,
+            7 => Self::FrontRight3,
+            8 => Self::FrontLeft4,
+            9 => Self::FrontRight4,
+            10 => Self::FrontLeft5,
+            11 => Self::FrontRight5,
+            12 => Self::FrontLeft6,
+            13 => Self::FrontRight6,
+            14 => Self::FrontLeft7,
+            15 => Self::FrontRight7,
+            16 => Self::FrontLeft8,
+            17 => Self::FrontRight8,
+            18 => Self::FrontLeft9,
+            19 => Self::FrontRight9,
             _ => panic!("invalid enum variant"),
         }
     }
