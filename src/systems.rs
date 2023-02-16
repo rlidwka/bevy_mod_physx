@@ -27,13 +27,12 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
-    mut ticks: EventReader<Tick>,
+    simtime: Res<SimTime>,
     mut scene_query: ResMut<VehicleSceneQueryData>,
     friction_pairs: Res<VehicleFrictionPairs>,
     mut vehicles_query: Query<&mut VehicleHandle>,
 ) {
-    for Tick(delta) in ticks.iter() {
-        let delta = delta.as_secs_f32();
+    for delta in simtime.ticks() {
         let mut wheel_count = 0;
         let mut vehicles: Vec<*mut PxVehicleWheels> = vec![];
 

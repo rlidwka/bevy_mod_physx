@@ -3,8 +3,6 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use std::time::Duration;
-
 use bevy::prelude::*;
 use crate::prelude::*;
 use crate::prelude as bpx;
@@ -51,7 +49,7 @@ pub struct PhysXPlugin {
     pub cooking: bool,
     pub debugger: bool,
     pub gravity: Vec3,
-    pub timestep: f32,
+    pub timestep: TimestepMode,
 }
 
 #[derive(Debug, StageLabel)]
@@ -65,8 +63,6 @@ impl Plugin for PhysXPlugin {
         app.add_asset::<bpx::Geometry>();
         app.add_asset::<bpx::Material>();
 
-        app.add_event::<Tick>();
-
         app.register_type::<Velocity>();
 
         if self.cooking {
@@ -79,8 +75,10 @@ impl Plugin for PhysXPlugin {
         }
 
         app.insert_resource(scene);
-        app.insert_resource(TimeSync::new(self.timestep));
         app.insert_resource(DefaultMaterial::default());
+
+        app.register_type::<SimTime>();
+        app.insert_resource(SimTime::new(self.timestep));
 
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
@@ -105,51 +103,125 @@ impl Default for PhysXPlugin {
             cooking: true,
             debugger: true,
             gravity: Vec3::new(0.0, -9.81, 0.0),
-            timestep: 1. / 60.,
+            timestep: default(),
         }
     }
 }
 
-#[derive(Resource, Default)]
-struct TimeSync {
-    timestep: f32,
-    speed_factor: f32,
-    bevy_physx_delta: f32,
+#[derive(Resource, Default, Debug, Reflect)]
+#[reflect(Resource)]
+pub struct SimTime {
+    pub timestep: TimestepMode,
+    delta: f32,
+    current_tick: (f32, usize),
 }
 
-impl TimeSync {
-    pub fn new(timestep: f32) -> Self {
-        Self { timestep, speed_factor: 1., ..default() }
+impl SimTime {
+    pub fn new(timestep: TimestepMode) -> Self {
+        Self { timestep, delta: 0., current_tick: (0., 1) }
     }
 
-    /*pub fn get_delta(&self) -> f32 {
-        self.bevy_physx_delta
-    }*/
+    pub fn update(&mut self, time: &Time) {
+        match self.timestep {
+            TimestepMode::Fixed { dt, substeps } => {
+                self.delta = 0.;
+                self.current_tick = (dt / substeps as f32, substeps);
+            },
+            TimestepMode::Variable { max_dt, time_scale, substeps } => {
+                self.delta += time.delta_seconds() * time_scale;
 
-    pub fn advance_bevy_time(&mut self, time: &Time) {
-        self.bevy_physx_delta += time.delta_seconds() * self.speed_factor;
+                if self.delta > max_dt && max_dt > 0. {
+                    self.current_tick = (max_dt / substeps as f32, substeps);
+                    self.delta -= max_dt;
+                } else {
+                    self.current_tick = (self.delta / substeps as f32, substeps);
+                    self.delta = 0.;
+                }
+            },
+            TimestepMode::Interpolated { dt, time_scale, substeps } => {
+                self.delta += time.delta_seconds() * time_scale;
+
+                if self.delta > dt && dt > 0. {
+                    self.current_tick = (dt / substeps as f32, substeps);
+                    self.delta -= dt;
+                } else {
+                    self.current_tick = (0., 0);
+                }
+            }
+        }
     }
 
-    pub fn check_advance_physx_time(&mut self) -> Option<f32> {
-        if self.bevy_physx_delta >= self.timestep {
-            self.bevy_physx_delta -= self.timestep;
-            Some(self.timestep)
+    pub fn delta(&self) -> f32 {
+        self.delta
+    }
+
+    pub fn ticks(&self) -> impl Iterator<Item = f32> + '_ {
+        SimTimeIterator::new(self.current_tick.0, self.current_tick.1)
+    }
+}
+
+struct SimTimeIterator {
+    duration: f32,
+    remaining: usize,
+}
+
+impl SimTimeIterator {
+    fn new(duration: f32, substeps: usize) -> Self {
+        Self { duration, remaining: substeps }
+    }
+}
+
+impl Iterator for SimTimeIterator {
+    type Item = f32;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.remaining > 0 {
+            self.remaining -= 1;
+            Some(self.duration)
         } else {
             None
         }
     }
 }
 
-pub struct Tick(pub Duration);
+impl std::iter::FusedIterator for SimTimeIterator {}
 
-fn time_sync(
-    time: Res<Time>,
-    mut timesync: ResMut<TimeSync>,
-    mut physx_ticks: EventWriter<Tick>,
-) {
-    timesync.advance_bevy_time(&time);
+#[derive(Debug, Reflect, PartialEq, Clone, Copy)]
+pub enum TimestepMode {
+    /// Physics simulation will be advanced by dt at each Bevy tick.
+    /// Real time does not make any difference for this timestep mode.
+    /// This is preferred method if you have fixed FPS with the tools like bevy_framepace.
+    Fixed {
+        dt: f32,
+        substeps: usize,
+    },
+    /// Physics simulation will be advanced at each Bevy tick by the real time elapsed,
+    /// but no more than max_dt.
+    /// Simulation time will always match real time, unless system can't handle
+    /// frames in time.
+    Variable {
+        max_dt: f32,
+        time_scale: f32,
+        substeps: usize,
+    },
+    /// Physics simulation will be advanced by dt, but advance
+    /// no more than real time multiplied by time_scale (so some ticks might get skipped).
+    /// Simulation time will lag up to `dt` with respect to real time in normal conditions,
+    /// but can increase arbitrarily in case system can't handle frames in time.
+    /// This is preferred method if you don't have limited FPS.
+    Interpolated {
+        dt: f32,
+        time_scale: f32,
+        substeps: usize,
+    },
+}
 
-    if let Some(delta) = timesync.check_advance_physx_time() {
-        physx_ticks.send(Tick(Duration::from_secs_f32(delta)));
+impl Default for TimestepMode {
+    fn default() -> Self {
+        Self::Interpolated { dt: 1. / 60., time_scale: 1., substeps: 1 }
     }
+}
+
+fn time_sync(time: Res<Time>, mut simtime: ResMut<SimTime>) {
+    simtime.update(&time);
 }

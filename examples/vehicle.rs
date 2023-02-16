@@ -428,7 +428,7 @@ fn apply_vehicle_nodrive_controls(
 
 fn apply_vehicle_tank_controls(
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveTank)>,
-    mut tick: EventReader<Tick>,
+    simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
@@ -448,7 +448,7 @@ fn apply_vehicle_tank_controls(
         controls.input = Some(input);
     }
 
-    for Tick(timestep) in tick.iter() {
+    for timestep in simtime.ticks() {
         let input = controls.input.as_mut().unwrap();
 
         // WARNING: tank requires different drive settings, and with default drive
@@ -482,7 +482,6 @@ fn apply_vehicle_tank_controls(
             input.set_digital_right_thrust(true);
         }
 
-        let timestep = timestep.as_secs_f32();
         let smoothing = controls.smoothing.as_ref().unwrap();
         let input = controls.input.as_ref().unwrap();
 
@@ -492,7 +491,7 @@ fn apply_vehicle_tank_controls(
 
 fn apply_vehicle_drive_nw_controls(
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveNW)>,
-    mut tick: EventReader<Tick>,
+    simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
@@ -521,7 +520,7 @@ fn apply_vehicle_drive_nw_controls(
         controls.input = Some(input);
     }
 
-    for Tick(timestep) in tick.iter() {
+    for timestep in simtime.ticks() {
         let input = controls.input.as_mut().unwrap();
 
         input.set_digital_accel(keys.pressed(KeyCode::W));
@@ -529,7 +528,6 @@ fn apply_vehicle_drive_nw_controls(
         input.set_digital_steer_left(keys.pressed(KeyCode::A));
         input.set_digital_steer_right(keys.pressed(KeyCode::D));
 
-        let timestep = timestep.as_secs_f32();
         let smoothing = controls.smoothing.as_ref().unwrap();
         let input = controls.input.as_ref().unwrap();
         let steer_table = controls.steer_table.as_ref().unwrap();
@@ -540,7 +538,7 @@ fn apply_vehicle_drive_nw_controls(
 
 fn apply_vehicle_drive_4w_controls(
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDrive4W)>,
-    mut tick: EventReader<Tick>,
+    simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
@@ -569,7 +567,7 @@ fn apply_vehicle_drive_4w_controls(
         controls.input = Some(input);
     }
 
-    for Tick(timestep) in tick.iter() {
+    for timestep in simtime.ticks() {
         let input = controls.input.as_mut().unwrap();
 
         input.set_digital_accel(keys.pressed(KeyCode::W));
@@ -577,7 +575,6 @@ fn apply_vehicle_drive_4w_controls(
         input.set_digital_steer_right(keys.pressed(KeyCode::A));
         input.set_digital_steer_left(keys.pressed(KeyCode::D));
 
-        let timestep = timestep.as_secs_f32();
         let smoothing = controls.smoothing.as_ref().unwrap();
         let input = controls.input.as_ref().unwrap();
         let steer_table = controls.steer_table.as_ref().unwrap();
