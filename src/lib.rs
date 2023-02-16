@@ -132,7 +132,8 @@ impl SimTime {
 
                 if self.delta > max_dt && max_dt > 0. {
                     self.current_tick = (max_dt / substeps as f32, substeps);
-                    self.delta -= max_dt;
+                    self.delta = 0.;
+                    //self.delta -= max_dt;
                 } else {
                     self.current_tick = (self.delta / substeps as f32, substeps);
                     self.delta = 0.;
@@ -144,6 +145,8 @@ impl SimTime {
                 if self.delta > dt && dt > 0. {
                     self.current_tick = (dt / substeps as f32, substeps);
                     self.delta -= dt;
+                    // avoid endless accumulating of lag
+                    if self.delta > dt { self.delta = dt; }
                 } else {
                     self.current_tick = (0., 0);
                 }
@@ -206,8 +209,7 @@ pub enum TimestepMode {
     },
     /// Physics simulation will be advanced by dt, but advance
     /// no more than real time multiplied by time_scale (so some ticks might get skipped).
-    /// Simulation time will lag up to `dt` with respect to real time in normal conditions,
-    /// but can increase arbitrarily in case system can't handle frames in time.
+    /// Simulation time will lag up to `dt` with respect to real time.
     /// This is preferred method if you don't have limited FPS.
     Interpolated {
         dt: f32,
