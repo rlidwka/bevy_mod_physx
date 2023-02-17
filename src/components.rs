@@ -6,8 +6,7 @@ use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
 use physx_sys::{
-    PxShape_release_mut, PxPhysics_createShape_mut, PxConvexMeshGeometryFlag, PxConvexMeshGeometryFlags,
-    PxMeshGeometryFlags, PxMeshGeometryFlag, PxMeshScale_new, PxFilterData, PxFilterData_new_2,
+    PxShape_release_mut, PxPhysics_createShape_mut, PxFilterData, PxFilterData_new_2, PxMeshScale_new_3,
 };
 
 use physx::vehicles::{
@@ -17,6 +16,7 @@ use physx::vehicles::{
 };
 
 use crate::assets::GeometryInner;
+use crate::bpx::{IntoPxVec3, IntoPxQuat};
 use crate::prelude as bpx;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 
@@ -64,18 +64,27 @@ impl ShapeHandle {
             GeometryInner::Plane(geom)   => { geom.as_ptr() },
             GeometryInner::Capsule(geom) => { geom.as_ptr() },
             GeometryInner::Box(geom)     => { geom.as_ptr() },
-            GeometryInner::ConvexMesh(ref mut mesh) => {
+            GeometryInner::ConvexMesh(ref mut geom) => {
                 PxConvexMeshGeometry::new(
-                    mesh.as_mut(),
-                    unsafe { &PxMeshScale_new() },
-                    PxConvexMeshGeometryFlags { mBits: PxConvexMeshGeometryFlag::eTIGHT_BOUNDS as u8 }
+                    geom.mesh.lock().unwrap().as_mut(),
+                    unsafe { &PxMeshScale_new_3(geom.scale.to_physx_sys().as_ptr(), geom.rotation.to_physx().as_ptr()) },
+                    geom.flags,
                 ).as_ptr()
             },
-            GeometryInner::TriangleMesh(ref mut mesh) => {
+            GeometryInner::TriangleMesh(ref mut geom) => {
                 PxTriangleMeshGeometry::new(
-                    mesh.as_mut(),
-                    unsafe { &PxMeshScale_new() },
-                    PxMeshGeometryFlags { mBits: PxMeshGeometryFlag::eDOUBLE_SIDED as u8 }
+                    geom.mesh.lock().unwrap().as_mut(),
+                    unsafe { &PxMeshScale_new_3(geom.scale.to_physx_sys().as_ptr(), geom.rotation.to_physx().as_ptr()) },
+                    geom.flags,
+                ).as_ptr()
+            },
+            GeometryInner::HeightField(ref mut geom) => {
+                PxHeightFieldGeometry::new(
+                    geom.hfield.lock().unwrap().as_mut(),
+                    geom.flags,
+                    geom.scale.z,
+                    geom.scale.x,
+                    geom.scale.y,
                 ).as_ptr()
             },
         };

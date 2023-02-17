@@ -285,10 +285,10 @@ fn spawn_vehicle(
     .id();
 
     let hull_geometry = px_geometries.add(
-        bpx::Geometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES)
+        bpx::Geometry::convex_mesh(&mut physics, &cooking, &HULL_VERTICES).unwrap()
     );
     let wheel_geometry = px_geometries.add(
-        bpx::Geometry::cylinder(&mut physics, &cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS)
+        bpx::Geometry::cylinder(&mut physics, &cooking, WHEEL_HALF_WIDTH, WHEEL_RADIUS, WHEEL_SEGMENTS).unwrap()
     );
     let material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
