@@ -21,7 +21,7 @@ use physx_sys::{
     PxScene_getGravity,
     phys_PxVehicleSuspensionRaycasts,
     phys_PxVehicleSuspensionSweeps,
-    phys_PxVehicleUpdates,
+    phys_PxVehicleUpdates, PxQueryHitType, PxFilterData, PxHitFlags, PxQueryHit,
 };
 use std::ptr::{null_mut, drop_in_place};
 
@@ -183,6 +183,9 @@ pub struct VehicleSimulation {
     result_buffer: Vec<u8>, // raycast results or sweep results
     hit_buffer: Vec<u8>, // raycast hit buffer or sweep hit buffer
     batch_query: *mut PxBatchQuery,
+    pre_filter_shader: Option<for<'a> unsafe extern "C" fn(&'a PxFilterData, &'a PxFilterData, *const std::ffi::c_void, u32, PxHitFlags) -> PxQueryHitType::Enum>,
+    post_filter_shader: Option<for<'a> unsafe extern "C" fn(&'a PxFilterData, &'a PxFilterData, *const std::ffi::c_void, u32, &'a PxQueryHit) -> PxQueryHitType::Enum>,
+    shader_data: Option<(*mut std::ffi::c_void, u32)>,
 }
 
 unsafe impl Send for VehicleSimulation {}
@@ -205,6 +208,9 @@ impl Default for VehicleSimulation {
             result_buffer: vec![],
             hit_buffer: vec![],
             batch_query: null_mut(),
+            pre_filter_shader: None,
+            post_filter_shader: None,
+            shader_data: None,
         }
     }
 }
@@ -218,18 +224,13 @@ impl VehicleSimulation {
             result_buffer: vec![],
             hit_buffer: vec![],
             batch_query: null_mut(),
+            pre_filter_shader: None,
+            post_filter_shader: None,
+            shader_data: None,
         }
     }
 
     pub fn alloc(&mut self, scene: &mut Scene, max_num_wheels: usize) {
-        /*unsafe extern "C" fn pre_filter_shader(_data0: &PxFilterData, data1: &PxFilterData/*, _cblock: c_void, _cblocksize: u32, _flags: PxHitFlags*/) -> u32 {
-            if 0 == (data1.word3 & 0xffff0000) {
-                PxQueryHitType::eNONE
-            } else {
-                PxQueryHitType::eBLOCK
-            }
-        }*/
-
         // buffers already allocated
         if max_num_wheels <= self.current_size { return; }
 
@@ -273,7 +274,16 @@ impl VehicleSimulation {
             sq_desc.queryMemory.raycastTouchBufferSize = self.current_size as u32 * max_num_hit_points as u32;
         }
 
-        //sq_desc.preFilterShader = pre_filter_shader as *mut c_void;
+        if let Some(pre_filter_shader) = self.pre_filter_shader {
+            sq_desc.preFilterShader = pre_filter_shader as *mut _;
+        }
+        if let Some(post_filter_shader) = self.post_filter_shader {
+            sq_desc.postFilterShader = post_filter_shader as *mut _;
+        }
+        if let Some(shader_data) = self.shader_data {
+            sq_desc.filterShaderData = shader_data.0;
+            sq_desc.filterShaderDataSize = shader_data.1;
+        }
 
         if !self.batch_query.is_null() {
             unsafe { drop_in_place(self.batch_query); }
@@ -334,9 +344,32 @@ impl VehicleSimulation {
         self.friction_pairs = friction_pairs;
     }
 
-    /*pub fn set_filter_shader(&mut self) {
+    pub fn set_filter_shader(
+        &mut self,
+
+        pre_filter_shader: Option<for<'a> unsafe extern "C" fn(
+            query_filter_data: &'a PxFilterData,
+            object_filter_data: &'a PxFilterData,
+            shader_data: *const std::ffi::c_void,
+            shader_data_size: u32,
+            hit_flags: PxHitFlags,
+        ) -> PxQueryHitType::Enum>,
+
+        post_filter_shader: Option<for <'a> unsafe extern "C" fn(
+            query_filter_data: &'a PxFilterData,
+            object_filter_data: &'a PxFilterData,
+            shader_data: *const std::ffi::c_void,
+            shader_data_size: u32,
+            hit: &'a PxQueryHit,
+        ) -> PxQueryHitType::Enum>,
+
+        shader_data: Option<(*mut std::ffi::c_void, u32)>,
+    ) {
+        self.pre_filter_shader = pre_filter_shader;
+        self.post_filter_shader = post_filter_shader;
+        self.shader_data = shader_data;
         self.current_size = 0; // reset buffers
-    }*/
+    }
 
     pub fn set_collision_method(&mut self, method: VehicleSimulationMethod) {
         self.simulation_method = method;
