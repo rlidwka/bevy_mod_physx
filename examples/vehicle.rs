@@ -8,20 +8,23 @@ use bevy_physx::prelude as bpx;
 use bevy_physx::components::FilterData;
 use physx::prelude::*;
 use physx::vehicles::*;
-use physx_sys::{PxVehicleDriveTankRawInputData};
+use physx_sys::{
+    FilterShaderCallbackInfo, PxFilterData, PxFilterFlag, PxHitFlags,
+    PxPairFlag, PxPairFlags, PxQueryHitType, phys_PxFilterObjectIsTrigger,
+};
 
 const DRIVABLE_SURFACE: u32 = 0xffff0000;
-//const UNDRIVABLE_SURFACE: u32 = 0x0000ffff;
+const UNDRIVABLE_SURFACE: u32 = 0x0000ffff;
 
 const COLLISION_FLAG_GROUND: u32 = 1 << 0;
-//const COLLISION_FLAG_WHEEL: u32 = 1 << 1;
+const COLLISION_FLAG_WHEEL: u32 = 1 << 1;
 const COLLISION_FLAG_CHASSIS: u32 = 1 << 2;
 const COLLISION_FLAG_OBSTACLE: u32 = 1 << 3;
 const COLLISION_FLAG_DRIVABLE_OBSTACLE: u32 = 1 << 4;
 
 const COLLISION_FLAG_GROUND_AGAINST: u32 = COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
-//const COLLISION_FLAG_WHEEL_AGAINST: u32 = COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE;
-//const COLLISION_FLAG_CHASSIS_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
+const COLLISION_FLAG_WHEEL_AGAINST: u32 = COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE;
+const COLLISION_FLAG_CHASSIS_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 //const COLLISION_FLAG_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_WHEEL | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 //const COLLISION_FLAG_DRIVABLE_OBSTACLE_AGAINST: u32 = COLLISION_FLAG_GROUND | COLLISION_FLAG_CHASSIS | COLLISION_FLAG_OBSTACLE | COLLISION_FLAG_DRIVABLE_OBSTACLE;
 
@@ -60,6 +63,48 @@ pub const WHEEL_OFFSETS : [Vec3; WHEEL_COUNT] = [
     Vec3::new( 0.888138, 0.44912, -1.76053),
     Vec3::new(-0.888138, 0.44912, -1.76053),
 ];
+
+// from PhysX sample:
+unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) -> u16 {
+    let s = &mut *s as &mut FilterShaderCallbackInfo;
+    let mut pair_flags = &mut *(s.pairFlags) as &mut PxPairFlags;
+
+    // let triggers through
+    if phys_PxFilterObjectIsTrigger(s.attributes0) || phys_PxFilterObjectIsTrigger(s.attributes1) {
+        pair_flags.mBits = PxPairFlag::eTRIGGER_DEFAULT as u16;
+        return PxFilterFlag::eDEFAULT as u16;
+    }
+
+    // use a group-based mechanism for all other pairs:
+    // - Objects within the default group (mask 0) always collide
+    // - By default, objects of the default group do not collide
+    //   with any other group. If they should collide with another
+    //   group then this can only be specified through the filter
+    //   data of the default group objects (objects of a different
+    //   group can not choose to do so)
+    // - For objects that are not in the default group, a bitmask
+    //   is used to define the groups they should collide with
+    if (s.filterData0.word0 != 0 || s.filterData1.word0 != 0) &&
+        !((s.filterData0.word0 & s.filterData1.word1) != 0 || (s.filterData1.word0 & s.filterData0.word1) != 0) {
+            return PxFilterFlag::eSUPPRESS as u16;
+    }
+
+    pair_flags.mBits = PxPairFlag::eCONTACT_DEFAULT as u16;
+
+    // The pairFlags for each object are stored in word2 of the filter data. Combine them.
+    pair_flags.mBits |= (s.filterData0.word2 | s.filterData1.word2) as u16;
+
+    PxFilterFlag::eDEFAULT as u16
+}
+
+// from PhysX sample:
+unsafe extern "C" fn query_pre_filter_shader<'a>(_data0: &'a PxFilterData, data1: &'a PxFilterData, _: *const std::ffi::c_void, _: u32, _flags: PxHitFlags) -> PxQueryHitType::Enum {
+    if 0 == (data1.word3 & DRIVABLE_SURFACE) {
+        PxQueryHitType::eNONE
+    } else {
+        PxQueryHitType::eBLOCK
+    }
+}
 
 #[derive(Component)]
 struct PlayerControlledNoDrive;
@@ -108,6 +153,7 @@ fn main() {
         .add_plugin(PhysXPlugin {
             scene: bpx::SceneDescriptor {
                 gravity: GRAVITY_FORCE,
+                simulation_filter_shader: FilterShaderDescriptor::CallDefaultFirst(simulation_filter_shader),
                 ..default()
             },
             ..default()
@@ -300,6 +346,7 @@ fn spawn_vehicle(
     friction_pairs.set_type_pair_friction(0, 0, 1000.);
     simulation.set_friction_pairs(friction_pairs);
     //simulation.set_collision_method(VehicleSimulationMethod::Raycast);
+    simulation.set_filter_shader(Some(query_pre_filter_shader), None, None);
 
     let mut wheels = vec![];
 
@@ -310,7 +357,8 @@ fn spawn_vehicle(
                 .insert(bpx::Shape {
                     material: material.clone(),
                     geometry: wheel_geometry.clone(),
-                    ..default()
+                    query_filter_data: FilterData::new(0, 0, 0, UNDRIVABLE_SURFACE),
+                    simulation_filter_data: FilterData::new(COLLISION_FLAG_WHEEL, COLLISION_FLAG_WHEEL_AGAINST, 0, 0),
                 })
                 .with_children(|builder| {
                     builder.spawn(SceneBundle {
@@ -377,7 +425,8 @@ fn spawn_vehicle(
         .insert(bpx::Shape {
             material,
             geometry: hull_geometry,
-            ..default()
+            query_filter_data: FilterData::new(0, 0, 0, UNDRIVABLE_SURFACE),
+            simulation_filter_data: FilterData::new(COLLISION_FLAG_CHASSIS, COLLISION_FLAG_CHASSIS_AGAINST, 0, 0),
         })
         .insert(Name::new("Vehicle"))
         .insert_children(0, &wheels)
