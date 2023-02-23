@@ -6,7 +6,6 @@ use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::prelude::*;
 use bevy_physx::prelude as bpx;
 use bevy_physx::components::FilterData;
-use bevy_physx::resources::VehicleFrictionPairs;
 use physx::prelude::*;
 use physx::vehicles::*;
 use physx_sys::{PxVehicleDriveTankRawInputData};
@@ -107,7 +106,10 @@ fn main() {
         .add_system(bevy::window::close_on_esc)
         .add_plugin(InfiniteGridPlugin)
         .add_plugin(PhysXPlugin {
-            gravity: GRAVITY_FORCE,
+            scene: bpx::SceneDescriptor {
+                gravity: GRAVITY_FORCE,
+                ..default()
+            },
             ..default()
         })
         .add_plugin(FlyingCameraPlugin)
@@ -270,7 +272,7 @@ fn spawn_vehicle(
     assets: Res<AssetServer>,
     mut physics: ResMut<bpx::Physics>,
     cooking: Res<Cooking>,
-    mut friction_pairs: ResMut<VehicleFrictionPairs>,
+    mut simulation: ResMut<VehicleSimulation>,
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
@@ -292,8 +294,12 @@ fn spawn_vehicle(
     );
     let material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
-    friction_pairs.setup(1, 1, &[ &***(px_materials.get(&material).unwrap()) ], &[ VehicleDrivableSurfaceType(0) ]);
+    let mut friction_pairs = VehicleDrivableSurfaceToTireFrictionPairs::new(
+        1, 1, &[ &***(px_materials.get(&material).unwrap()) ], &[ VehicleDrivableSurfaceType(0) ]
+    ).unwrap();
     friction_pairs.set_type_pair_friction(0, 0, 1000.);
+    simulation.set_friction_pairs(friction_pairs);
+    //simulation.set_collision_method(VehicleSimulationMethod::Raycast);
 
     let mut wheels = vec![];
 

@@ -1,19 +1,21 @@
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 use bevy::prelude::*;
+use bevy::render::once_cell::unsync::Lazy;
 use physx::prelude::*;
 use physx::scene::Scene;
 use physx::traits::Class;
 use physx_sys::{
     PxScene_addActor_mut, PxRigidBodyExt_updateMassAndInertia_mut_1, PxShape_setLocalPose_mut,
-    PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxScene_getGravity,
-    PxVehicleWheels, phys_PxVehicleUpdates,
-    PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut, phys_PxVehicleSuspensionSweeps,
+    PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxVehicleWheels,
+    PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
 };
+
+use crate::resources::VehicleSimulation;
 
 use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::components::{RigidDynamicHandle, RigidStaticHandle};
-use super::resources::{DefaultMaterial, VehicleSceneQueryData, VehicleFrictionPairs};
+use super::resources::DefaultMaterial;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>, Option<&'a mut Vehicle>),
@@ -28,74 +30,40 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
     simtime: Res<SimTime>,
-    mut scene_query: ResMut<VehicleSceneQueryData>,
-    friction_pairs: Res<VehicleFrictionPairs>,
-    mut vehicles_query: Query<&mut VehicleHandle>,
+    mut vehicle_simulation: ResMut<VehicleSimulation>,
+    mut vehicle_query: Query<&mut VehicleHandle>,
 ) {
-    for delta in simtime.ticks() {
+    let mut vehicles_and_wheel_count = Lazy::new(|| {
         let mut wheel_count = 0;
-        let mut vehicles: Vec<*mut PxVehicleWheels> = vec![];
+        let mut result: Vec<*mut PxVehicleWheels> = vec![];
 
-        for mut vehicle in vehicles_query.iter_mut() {
+        for mut vehicle in vehicle_query.iter_mut() {
             match vehicle.as_mut() {
                 VehicleHandle::NoDrive(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    vehicles.push(vehicle.as_mut_ptr());
+                    result.push(vehicle.as_mut_ptr());
                 }
                 VehicleHandle::Drive4W(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    vehicles.push(vehicle.as_mut_ptr());
+                    result.push(vehicle.as_mut_ptr());
                 }
                 VehicleHandle::DriveNW(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    vehicles.push(vehicle.as_mut_ptr());
+                    result.push(vehicle.as_mut_ptr());
                 }
                 VehicleHandle::DriveTank(vehicle) => {
                     wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    vehicles.push(vehicle.as_mut_ptr());
+                    result.push(vehicle.as_mut_ptr());
                 }
             }
         }
+        (result, wheel_count)
+    });
 
-        if !vehicles.is_empty() {
-            scene_query.alloc(&mut scene, wheel_count);
-
-            let gravity = unsafe { PxScene_getGravity(scene.as_ptr()) };
-
-            unsafe {
-                /*phys_PxVehicleSuspensionRaycasts(
-                    scene_query.get_batch_query(),
-                    vehicles.len() as u32,
-                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
-                    wheel_count as u32,
-                    scene_query.get_raycast_query_buffer(),
-                    vec![true; vehicles.len()].as_ptr(),
-                );*/
-
-                phys_PxVehicleSuspensionSweeps(
-                    scene_query.get_batch_query(),
-                    vehicles.len() as u32,
-                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
-                    wheel_count as u32,
-                    scene_query.get_sweep_query_buffer(),
-                    1,
-                    null_mut(),
-                    1.,
-                    1.01,
-                );
-
-                phys_PxVehicleUpdates(
-                    delta,
-                    gravity.as_ptr(),
-                    friction_pairs.as_ptr(),
-                    vehicles.len() as u32,
-                    vehicles.as_mut_ptr() as *mut *mut PxVehicleWheels,
-                    null_mut(),
-                    null_mut(),
-                );
-            }
-        }
-
+    for delta in simtime.ticks() {
+        let wheel_count = vehicles_and_wheel_count.1;
+        let vehicles = &mut vehicles_and_wheel_count.0;
+        vehicle_simulation.simulate(&mut scene, delta, vehicles, wheel_count);
         scene.simulate(delta, None, None);
         scene.fetch_results(true).unwrap();
     }

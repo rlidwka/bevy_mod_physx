@@ -2,10 +2,12 @@
 pub use super::type_bridge::*;
 
 #[doc(hidden)]
-pub use super::PhysXPlugin;
-
-#[doc(hidden)]
-pub use super::SimTime;
+pub use super::{
+    PhysXPlugin,
+    SimTime,
+    FoundationDescriptor,
+    SceneDescriptor,
+};
 
 #[doc(hidden)]
 pub use super::assets::{Geometry, Material};
@@ -14,4 +16,4 @@ pub use super::assets::{Geometry, Material};
 pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Velocity, Vehicle, VehicleHandle};
 
 #[doc(hidden)]
-pub use super::resources::{Physics, Scene, Cooking};
+pub use super::resources::{Physics, Scene, Cooking, VehicleSimulation};
