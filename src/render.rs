@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::render::render_resource::{PrimitiveTopology, AsBindGroup, ShaderRef};
 use bevy::render::mesh::Indices;
+use physx::triangle_mesh::TriangleMeshIndices;
 
 const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 9326911668127598676);
 
@@ -193,36 +194,43 @@ fn create_debug_meshes(
                     let polygon = mesh.get_polygon_data(idx).unwrap();
                     for i in polygon.index_base..polygon.index_base+polygon.nb_verts {
                         let next = if i + 1 == polygon.index_base+polygon.nb_verts { polygon.index_base } else { i + 1 };
-                        let p1 = index_buffer[i as usize] as _;
-                        let p2 = index_buffer[next as usize] as _;
+                        let p1 = index_buffer[i as usize] as u32;
+                        let p2 = index_buffer[next as usize] as u32;
 
-                        if dedup.insert((p1, p2)) {
+                        if dedup.insert((p1.min(p2), p1.max(p2))) {
                             indices.push(p1);
                             indices.push(p2);
                         }
                     }
                 }
-
-                /*for face in mesh.get_index_buffer().chunks_exact(3) {
-                    indices.push(face[0] as _);
-                    indices.push(face[1] as _);
-                    indices.push(face[1] as _);
-                    indices.push(face[2] as _);
-                    indices.push(face[2] as _);
-                    indices.push(face[0] as _);
-                }*/
-
-                /*let vertices = unsafe { PxConvexMesh_getVertices(mesh.as_ptr()) };
-
-                for index in 0..unsafe { PxConvexMesh_getNbPolygons(mesh.as_ptr()) } {
-                    let polygon = unsafe {
-                        let mut polygon: MaybeUninit<PxHullPolygon> = MaybeUninit::uninit();
-                        assert!(PxConvexMesh_getPolygonData(mesh.as_ptr(), index, &mut polygon as *mut MaybeUninit<PxHullPolygon> as *mut PxHullPolygon));
-                        polygon.assume_init()
-                    };
-                }*/
             },
-            //GeometryInner::TriangleMesh(ref mut geom) => { },
+            GeometryInner::TriangleMesh(ref geom) => {
+                let mesh = geom.mesh.lock().unwrap();
+                for vertex in mesh.get_vertices() {
+                    positions.push(geom.rotation * vertex.to_bevy() * geom.scale);
+                }
+
+                let index_buffer = mesh.get_triangles();
+                let length = mesh.get_nb_triangles() * 3;
+                let mut dedup = HashSet::new();
+
+                for idx in (0..).step_by(3) {
+                    if idx + 2 >= length { break; }
+
+                    let idx = idx as usize;
+                    let (point1, point2, point3) = match index_buffer {
+                        TriangleMeshIndices::U16(vec) => (vec[idx] as u32, vec[idx+1] as u32, vec[idx+2] as u32),
+                        TriangleMeshIndices::U32(vec) => (vec[idx], vec[idx+1], vec[idx+2]),
+                    };
+
+                    for (p1, p2) in [(point1, point2), (point2, point3), (point3, point1)] {
+                        if dedup.insert((p1.min(p2), p1.max(p2))) {
+                            indices.push(p1);
+                            indices.push(p2);
+                        }
+                    }
+                }
+            },
             //GeometryInner::HeightField(ref mut geom) => { },
             _=>{}
         }

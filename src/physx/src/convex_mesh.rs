@@ -23,7 +23,6 @@ use physx_sys::{
     PxConvexMesh_isGpuCompatible,
 };
 
-/// A convex mesh.
 #[repr(transparent)]
 pub struct ConvexMesh {
     obj: physx_sys::PxConvexMesh,
@@ -94,7 +93,7 @@ impl ConvexMesh {
     }
 
     /// Returns the mass properties of the mesh assuming unit density (mass, local_inertia, local_center_of_mass).
-    pub fn get_mass_information(&self) -> (f32, physx_sys::PxMat33, PxVec3) {
+    pub fn get_mass_information(&self) -> ConvexMeshMassInformation {
         // TODO: replace physx_sys::PxMat33 with proper rust type
         let mut mass = MaybeUninit::uninit();
         let mut local_inertia = MaybeUninit::uninit();
@@ -103,7 +102,11 @@ impl ConvexMesh {
         unsafe {
             PxConvexMesh_getMassInformation(self.as_ptr(), mass.as_mut_ptr(), local_inertia.as_mut_ptr(), local_center_of_mass.as_mut_ptr());
 
-            (mass.assume_init(), local_inertia.assume_init(), local_center_of_mass.assume_init().into())
+            ConvexMeshMassInformation {
+                mass: mass.assume_init(),
+                local_inertia: local_inertia.assume_init(),
+                local_center_of_mass: local_center_of_mass.assume_init().into(),
+            }
         }
     }
 
@@ -158,4 +161,11 @@ impl From<HullPolygon> for PxHullPolygon {
             mIndexBase: value.index_base,
         }
     }
+}
+
+pub struct ConvexMeshMassInformation {
+    pub mass: f32,
+    // TODO: replace physx_sys::PxMat33 with proper rust type
+    pub local_inertia: physx_sys::PxMat33,
+    pub local_center_of_mass: PxVec3,
 }
