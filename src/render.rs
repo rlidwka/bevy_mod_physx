@@ -9,6 +9,18 @@ const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_U
 
 pub struct PhysXDebugRenderPlugin;
 
+#[derive(Resource, Reflect, Debug, Default, Clone, Copy)]
+#[reflect(Resource)]
+pub struct DebugRenderSettings {
+    pub enabled: bool,
+    pub color: Color,
+}
+
+#[derive(Resource)]
+pub struct DebugRenderMaterials {
+    base: Handle<DebugRenderMaterial>,
+}
+
 impl Plugin for PhysXDebugRenderPlugin {
     fn build(&self, app: &mut App) {
         let mut shaders = app.world.get_resource_mut::<Assets<Shader>>().unwrap();
@@ -40,8 +52,23 @@ impl Plugin for PhysXDebugRenderPlugin {
             }
         "));
 
+        let color = Color::rgba(0.5, 0.7, 0.8, 1.);
+        app.register_type::<DebugRenderSettings>();
+        app.insert_resource(DebugRenderSettings {
+            enabled: false,
+            color,
+        });
         app.add_plugin(MaterialPlugin::<DebugRenderMaterial>::default());
+
+        let material = app.world.resource_mut::<Assets<DebugRenderMaterial>>().add(
+            DebugRenderMaterial { color }
+        );
+        app.insert_resource(DebugRenderMaterials {
+            base: material,
+        });
+
         app.add_system(create_debug_meshes);
+        app.add_system(toggle_debug_meshes_visibility);
     }
 }
 
@@ -68,7 +95,8 @@ impl bevy::pbr::Material for DebugRenderMaterial {
 fn create_debug_meshes(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<DebugRenderMaterial>>,
+    materials: Res<DebugRenderMaterials>,
+    settings: Res<DebugRenderSettings>,
     geometries: Res<Assets<Geometry>>,
     query: Query<(Entity, &Shape), Added<Shape>>,
 ) {
@@ -206,15 +234,29 @@ fn create_debug_meshes(
         let mesh_entity = commands.spawn(DebugRenderMesh)
             .insert(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
-                material: materials.add(
-                    DebugRenderMaterial {
-                        color: Color::rgba(0.5, 0.7, 0.8, 1.),
-                    }
-                ),
+                material: materials.base.clone(),
+                visibility: if settings.enabled { Visibility::VISIBLE } else { Visibility::INVISIBLE },
                 ..default()
             })
             .id();
 
         commands.entity(entity).add_child(mesh_entity);
+    }
+}
+
+fn toggle_debug_meshes_visibility(
+    mut query: Query<&mut Visibility, With<DebugRenderMesh>>,
+    settings: Res<DebugRenderSettings>,
+    handles: Res<DebugRenderMaterials>,
+    mut materials: ResMut<Assets<DebugRenderMaterial>>,
+) {
+    if !settings.is_changed() { return; }
+
+    if let Some(base) = materials.get_mut(&handles.base) {
+        base.color = settings.color;
+    }
+
+    for mut visibility in query.iter_mut() {
+        visibility.is_visible = settings.enabled;
     }
 }

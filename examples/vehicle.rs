@@ -158,7 +158,7 @@ fn main() {
             },
             ..default()
         })
-        //.add_plugin(PhysXDebugRenderPlugin)
+        .add_plugin(PhysXDebugRenderPlugin)
         .add_plugin(FlyingCameraPlugin)
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_plane)

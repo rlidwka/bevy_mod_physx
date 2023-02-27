@@ -24,7 +24,7 @@ fn main() {
         .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PhysXPlugin::default())
-        //.add_plugin(PhysXDebugRenderPlugin)
+        .add_plugin(PhysXDebugRenderPlugin)
         .add_plugin(FlyingCameraPlugin)
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_camera)
