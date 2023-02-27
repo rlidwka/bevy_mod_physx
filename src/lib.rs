@@ -15,10 +15,11 @@ mod type_bridge;
 
 mod systems;
 pub mod assets;
-pub mod components;
 pub mod callbacks;
+pub mod components;
 pub mod prelude;
 pub mod resources;
+pub mod render;
 
 // reexport physx to avoid version conflicts
 pub use physx;

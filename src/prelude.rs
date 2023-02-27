@@ -17,3 +17,6 @@ pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Veloc
 
 #[doc(hidden)]
 pub use super::resources::{Physics, Scene, Cooking, VehicleSimulation};
+
+#[doc(hidden)]
+pub use super::render::PhysXDebugRenderPlugin;

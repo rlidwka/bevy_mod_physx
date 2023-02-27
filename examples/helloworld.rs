@@ -24,6 +24,7 @@ fn main() {
         .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PhysXPlugin::default())
+        //.add_plugin(PhysXDebugRenderPlugin)
         .add_plugin(FlyingCameraPlugin)
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_camera)
@@ -78,7 +79,7 @@ fn spawn_plane(
         })
         .with_children(|builder| {
             builder.spawn_empty()
-                .insert(TransformBundle::from_transform(
+                .insert(SpatialBundle::from_transform(
                     // physx default plane is rotated compared to bevy plane, we undo that
                     Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
                 ))
