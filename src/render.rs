@@ -98,11 +98,11 @@ fn create_debug_meshes(
     mut meshes: ResMut<Assets<Mesh>>,
     materials: Res<DebugRenderMaterials>,
     settings: Res<DebugRenderSettings>,
-    geometries: Res<Assets<Geometry>>,
+    mut geometries: ResMut<Assets<Geometry>>,
     query: Query<(Entity, &Shape), Added<Shape>>,
 ) {
     for (entity, shape) in query.iter() {
-        let Some(geometry) = geometries.get(&shape.geometry) else { continue; };
+        let Some(geometry) = geometries.get_mut(&shape.geometry) else { continue; };
         let mut positions = vec![];
         let mut indices = vec![];
         const SPHERE_SEGMENTS: u32 = 24;
@@ -231,8 +231,29 @@ fn create_debug_meshes(
                     }
                 }
             },
-            //GeometryInner::HeightField(ref mut geom) => { },
-            _=>{}
+            GeometryInner::HeightField(ref geom) => {
+                let mesh = geom.hfield.lock().unwrap();
+                let rows = mesh.get_nb_rows();
+                let columns = mesh.get_nb_columns();
+                let samples = mesh.save_cells();
+
+                for row in 0..rows {
+                    for column in 0..columns {
+                        let sample = samples[(row * columns + column) as usize];
+                        positions.push(geom.scale * Vec3::new(row as f32, sample.height as f32, column as f32));
+
+                        if column != 0 {
+                            indices.push(row * columns + column - 1);
+                            indices.push(row * columns + column);
+                        }
+
+                        if row != 0 {
+                            indices.push((row - 1) * columns + column);
+                            indices.push(row * columns + column);
+                        }
+                    }
+                }
+            },
         }
 
         let mut mesh = Mesh::new(PrimitiveTopology::LineList);

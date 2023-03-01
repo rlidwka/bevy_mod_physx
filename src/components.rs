@@ -82,9 +82,9 @@ impl ShapeHandle {
                 PxHeightFieldGeometry::new(
                     geom.hfield.lock().unwrap().as_mut(),
                     geom.flags,
-                    geom.scale.z,
-                    geom.scale.x,
                     geom.scale.y,
+                    geom.scale.x,
+                    geom.scale.z,
                 ).as_ptr()
             },
         };
