@@ -241,6 +241,7 @@ impl Plugin for PhysXPlugin {
 
         let mut stage = SystemStage::parallel();
         stage.add_system(time_sync.before(systems::scene_simulate));
+        stage.add_system(systems::apply_user_changes.before(systems::scene_simulate));
         stage.add_system(systems::scene_simulate);
         stage.add_system(systems::create_dynamic_actors.after(systems::scene_simulate));
         stage.add_system(systems::writeback_actors.after(systems::scene_simulate));

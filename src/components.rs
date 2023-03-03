@@ -139,21 +139,57 @@ impl DerefMut for ShapeHandle {
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub struct RigidDynamicHandle(Owner<PxRigidDynamic>);
+#[derive(Component)]
+pub struct RigidDynamicHandle {
+    pub handle: Owner<PxRigidDynamic>,
+    // used for change detection
+    pub cached_transform: GlobalTransform,
+}
 
 impl RigidDynamicHandle {
-    pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>) -> Self {
-        Self(px_rigid_dynamic)
+    pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>, transform: GlobalTransform) -> Self {
+        Self { handle: px_rigid_dynamic, cached_transform: transform }
     }
 }
 
-#[derive(Component, Deref, DerefMut)]
-pub struct RigidStaticHandle(Owner<PxRigidStatic>);
+impl Deref for RigidDynamicHandle {
+    type Target = Owner<PxRigidDynamic>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.handle
+    }
+}
+
+impl DerefMut for RigidDynamicHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.handle
+    }
+}
+
+#[derive(Component)]
+pub struct RigidStaticHandle {
+    pub handle: Owner<PxRigidStatic>,
+    // used for change detection
+    pub cached_transform: GlobalTransform,
+}
 
 impl RigidStaticHandle {
-    pub fn new(px_rigid_static: Owner<PxRigidStatic>) -> Self {
-        Self(px_rigid_static)
+    pub fn new(px_rigid_static: Owner<PxRigidStatic>, transform: GlobalTransform) -> Self {
+        Self { handle: px_rigid_static, cached_transform: transform }
+    }
+}
+
+impl Deref for RigidStaticHandle {
+    type Target = Owner<PxRigidStatic>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.handle
+    }
+}
+
+impl DerefMut for RigidStaticHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.handle
     }
 }
 

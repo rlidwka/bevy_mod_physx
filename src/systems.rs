@@ -215,7 +215,7 @@ pub fn create_dynamic_actors(
                 }
 
                 commands.entity(entity)
-                    .insert(RigidDynamicHandle::new(actor));
+                    .insert(RigidDynamicHandle::new(actor, *actor_transform));
             }
 
             bpx::RigidBody::Static => {
@@ -247,8 +247,27 @@ pub fn create_dynamic_actors(
                 }
 
                 commands.entity(entity)
-                    .insert(RigidStaticHandle::new(actor));
+                    .insert(RigidStaticHandle::new(actor, *actor_transform));
             }
+        }
+    }
+}
+
+pub fn apply_user_changes(
+    mut changed_dynamic: Query<(&mut RigidDynamicHandle, &GlobalTransform), Changed<GlobalTransform>>,
+    mut changed_static: Query<(&mut RigidStaticHandle, &GlobalTransform), Changed<GlobalTransform>>,
+) {
+    for (mut handle, xform) in changed_dynamic.iter_mut() {
+        if xform != &handle.cached_transform {
+            handle.cached_transform = *xform;
+            handle.set_global_pose(&xform.to_physx(), true);
+        }
+    }
+
+    for (mut handle, xform) in changed_static.iter_mut() {
+        if xform != &handle.cached_transform {
+            handle.cached_transform = *xform;
+            handle.set_global_pose(&xform.to_physx(), true);
         }
     }
 }
@@ -257,9 +276,9 @@ pub fn writeback_actors(
     global_transforms: Query<&GlobalTransform>,
     parents: Query<&Parent>,
     mut writeback_transform: Query<&mut Transform>,
-    mut actors: Query<(Entity, &RigidDynamicHandle, Option<&Parent>, Option<&mut Velocity>)>
+    mut actors: Query<(Entity, &mut RigidDynamicHandle, Option<&Parent>, Option<&mut Velocity>)>
 ) {
-    for (actor_entity, actor, parent, velocity) in actors.iter_mut() {
+    for (actor_entity, mut actor, parent, velocity) in actors.iter_mut() {
         let xform = actor.get_global_pose();
         let mut actor_xform = xform.to_bevy();
 
@@ -269,6 +288,10 @@ pub fn writeback_actors(
 
             actor_xform.rotation = inv_rotation * actor_xform.rotation;
             actor_xform.translation = inv_rotation * actor_xform.translation + inv_translation;
+
+            actor.cached_transform = parent_transform.mul_transform(actor_xform);
+        } else {
+            actor.cached_transform = actor_xform.into();
         }
 
         if let Ok(mut transform) = writeback_transform.get_mut(actor_entity) {
