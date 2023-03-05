@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::ptr::drop_in_place;
-use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
+use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::{Class, PxFlags};
 use physx_sys::{
@@ -18,6 +18,7 @@ use physx::vehicles::{
 use crate::assets::GeometryInner;
 use crate::bpx::{IntoPxVec3, IntoPxQuat};
 use crate::prelude as bpx;
+use crate::resources::SceneRwLock;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
@@ -121,7 +122,7 @@ impl Drop for ShapeHandle {
     }
 }
 
-impl Deref for ShapeHandle {
+impl std::ops::Deref for ShapeHandle {
     type Target = PxShape;
 
     fn deref(&self) -> &Self::Target {
@@ -131,7 +132,7 @@ impl Deref for ShapeHandle {
     }
 }
 
-impl DerefMut for ShapeHandle {
+impl std::ops::DerefMut for ShapeHandle {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // TODO: replace with Deref/DerefMut derive when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
@@ -139,57 +140,33 @@ impl DerefMut for ShapeHandle {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct RigidDynamicHandle {
-    pub handle: Owner<PxRigidDynamic>,
+    #[deref]
+    #[deref_mut]
+    pub handle: SceneRwLock<Owner<PxRigidDynamic>>,
     // used for change detection
     pub cached_transform: GlobalTransform,
 }
 
 impl RigidDynamicHandle {
     pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>, transform: GlobalTransform) -> Self {
-        Self { handle: px_rigid_dynamic, cached_transform: transform }
+        Self { handle: SceneRwLock::new(px_rigid_dynamic), cached_transform: transform }
     }
 }
 
-impl Deref for RigidDynamicHandle {
-    type Target = Owner<PxRigidDynamic>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.handle
-    }
-}
-
-impl DerefMut for RigidDynamicHandle {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.handle
-    }
-}
-
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct RigidStaticHandle {
-    pub handle: Owner<PxRigidStatic>,
+    #[deref]
+    #[deref_mut]
+    pub handle: SceneRwLock<Owner<PxRigidStatic>>,
     // used for change detection
     pub cached_transform: GlobalTransform,
 }
 
 impl RigidStaticHandle {
     pub fn new(px_rigid_static: Owner<PxRigidStatic>, transform: GlobalTransform) -> Self {
-        Self { handle: px_rigid_static, cached_transform: transform }
-    }
-}
-
-impl Deref for RigidStaticHandle {
-    type Target = Owner<PxRigidStatic>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.handle
-    }
-}
-
-impl DerefMut for RigidStaticHandle {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.handle
+        Self { handle: SceneRwLock::new(px_rigid_static), cached_transform: transform }
     }
 }
 
@@ -242,10 +219,10 @@ pub enum Vehicle {
 
 #[derive(Component)]
 pub enum VehicleHandle {
-    NoDrive(Owner<PxVehicleNoDrive>),
-    Drive4W(Owner<PxVehicleDrive4W>),
-    DriveNW(Owner<PxVehicleDriveNW>),
-    DriveTank(Owner<PxVehicleDriveTank>),
+    NoDrive(SceneRwLock<Owner<PxVehicleNoDrive>>),
+    Drive4W(SceneRwLock<Owner<PxVehicleDrive4W>>),
+    DriveNW(SceneRwLock<Owner<PxVehicleDriveNW>>),
+    DriveTank(SceneRwLock<Owner<PxVehicleDriveTank>>),
 }
 
 impl VehicleHandle {
@@ -270,22 +247,22 @@ impl VehicleHandle {
         match vehicle_desc {
             Vehicle::NoDrive { wheels: _, wheels_sim_data } => {
                 Self::NoDrive(
-                    VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap()
+                    SceneRwLock::new(VehicleNoDrive::new(physics.physics_mut(), actor, wheels_sim_data).unwrap())
                 )
             }
             Vehicle::Drive4W { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::Drive4W(
-                    VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap()
+                    SceneRwLock::new(VehicleDrive4W::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32 - 4).unwrap())
                 )
             }
             Vehicle::DriveNW { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::DriveNW(
-                    VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
+                    SceneRwLock::new(VehicleDriveNW::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap())
                 )
             }
             Vehicle::DriveTank { wheels, wheels_sim_data, drive_sim_data } => {
                 Self::DriveTank(
-                    VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap()
+                    SceneRwLock::new(VehicleDriveTank::new(physics.physics_mut(), actor, wheels_sim_data, drive_sim_data.as_ref(), wheels.len() as u32).unwrap())
                 )
             }
         }

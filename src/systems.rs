@@ -1,13 +1,17 @@
 use std::ptr::null;
 use bevy::prelude::*;
-use bevy::render::once_cell::unsync::Lazy;
 use physx::prelude::*;
 use physx::scene::Scene;
 use physx::traits::Class;
 use physx_sys::{
-    PxScene_addActor_mut, PxRigidBodyExt_updateMassAndInertia_mut_1, PxShape_setLocalPose_mut,
-    PxRigidBodyExt_setMassAndUpdateInertia_mut_1, PxVehicleWheels,
-    PxShape_getLocalPose, PxShape_setQueryFilterData_mut, PxFilterData, PxShape_setSimulationFilterData_mut,
+    PxFilterData,
+    PxRigidBodyExt_setMassAndUpdateInertia_mut_1,
+    PxRigidBodyExt_updateMassAndInertia_mut_1,
+    PxScene_addActor_mut,
+    PxShape_getLocalPose,
+    PxShape_setLocalPose_mut,
+    PxShape_setQueryFilterData_mut,
+    PxShape_setSimulationFilterData_mut,
 };
 
 use crate::resources::VehicleSimulation;
@@ -33,37 +37,43 @@ pub fn scene_simulate(
     mut vehicle_simulation: ResMut<VehicleSimulation>,
     mut vehicle_query: Query<&mut VehicleHandle>,
 ) {
-    let mut vehicles_and_wheel_count = Lazy::new(|| {
-        let mut wheel_count = 0;
-        let mut result: Vec<*mut PxVehicleWheels> = vec![];
-
-        for mut vehicle in vehicle_query.iter_mut() {
-            match vehicle.as_mut() {
-                VehicleHandle::NoDrive(vehicle) => {
-                    wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    result.push(vehicle.as_mut_ptr());
-                }
-                VehicleHandle::Drive4W(vehicle) => {
-                    wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    result.push(vehicle.as_mut_ptr());
-                }
-                VehicleHandle::DriveNW(vehicle) => {
-                    wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    result.push(vehicle.as_mut_ptr());
-                }
-                VehicleHandle::DriveTank(vehicle) => {
-                    wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                    result.push(vehicle.as_mut_ptr());
-                }
-            }
-        }
-        (result, wheel_count)
-    });
+    let mut vehicles = None;
+    let mut wheel_count = 0;
 
     for delta in simtime.ticks() {
-        let wheel_count = vehicles_and_wheel_count.1;
-        let vehicles = &mut vehicles_and_wheel_count.0;
-        vehicle_simulation.simulate(&mut scene, delta, vehicles, wheel_count);
+        if vehicles.is_none() {
+            let mut result = vec![];
+
+            for mut vehicle in vehicle_query.iter_mut() {
+                match vehicle.as_mut() {
+                    VehicleHandle::NoDrive(vehicle) => {
+                        let mut vehicle = vehicle.get_mut(&mut scene);
+                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                        result.push(vehicle.as_mut_ptr());
+                    }
+                    VehicleHandle::Drive4W(vehicle) => {
+                        let mut vehicle = vehicle.get_mut(&mut scene);
+                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                        result.push(vehicle.as_mut_ptr());
+                    }
+                    VehicleHandle::DriveNW(vehicle) => {
+                        let mut vehicle = vehicle.get_mut(&mut scene);
+                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                        result.push(vehicle.as_mut_ptr());
+                    }
+                    VehicleHandle::DriveTank(vehicle) => {
+                        let mut vehicle = vehicle.get_mut(&mut scene);
+                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                        result.push(vehicle.as_mut_ptr());
+                    }
+                }
+            }
+
+            vehicles = Some(result);
+        }
+
+        let mut scene = scene.get_mut();
+        vehicle_simulation.simulate(&mut scene, delta, vehicles.as_mut().unwrap(), wheel_count);
         scene.simulate(delta, None, None);
         scene.fetch_results(true).unwrap();
     }
@@ -163,6 +173,8 @@ pub fn create_dynamic_actors(
     mut default_material: ResMut<DefaultMaterial>,
 ) {
     for (entity, actor_cfg, actor_transform, mass_props, velocity, vehicle) in new_actors.iter_mut() {
+        let mut scene = scene.get_mut();
+
         match actor_cfg {
             bpx::RigidBody::Dynamic => {
                 let mut actor : Owner<PxRigidDynamic> = physics.create_dynamic(&actor_transform.to_physx(), entity).unwrap();
@@ -254,45 +266,48 @@ pub fn create_dynamic_actors(
 }
 
 pub fn apply_user_changes(
+    mut scene: ResMut<bpx::Scene>,
     mut changed_dynamic: Query<(&mut RigidDynamicHandle, &GlobalTransform), Changed<GlobalTransform>>,
     mut changed_static: Query<(&mut RigidStaticHandle, &GlobalTransform), Changed<GlobalTransform>>,
 ) {
     for (mut handle, xform) in changed_dynamic.iter_mut() {
         if xform != &handle.cached_transform {
             handle.cached_transform = *xform;
-            handle.set_global_pose(&xform.to_physx(), true);
+            handle.get_mut(&mut scene).set_global_pose(&xform.to_physx(), true);
         }
     }
 
     for (mut handle, xform) in changed_static.iter_mut() {
         if xform != &handle.cached_transform {
             handle.cached_transform = *xform;
-            handle.set_global_pose(&xform.to_physx(), true);
+            handle.get_mut(&mut scene).set_global_pose(&xform.to_physx(), true);
         }
     }
 }
 
 pub fn writeback_actors(
+    scene: Res<bpx::Scene>,
     global_transforms: Query<&GlobalTransform>,
     parents: Query<&Parent>,
     mut writeback_transform: Query<&mut Transform>,
     mut actors: Query<(Entity, &mut RigidDynamicHandle, Option<&Parent>, Option<&mut Velocity>)>
 ) {
     for (actor_entity, mut actor, parent, velocity) in actors.iter_mut() {
-        let xform = actor.get_global_pose();
+        let actor_handle = actor.get(&scene);
+        let xform = actor_handle.get_global_pose();
         let mut actor_xform = xform.to_bevy();
 
-        if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+        let next_transform = if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
             let (_scale, inv_rotation, inv_translation) =
                 parent_transform.affine().inverse().to_scale_rotation_translation();
 
             actor_xform.rotation = inv_rotation * actor_xform.rotation;
             actor_xform.translation = inv_rotation * actor_xform.translation + inv_translation;
 
-            actor.cached_transform = parent_transform.mul_transform(actor_xform);
+            parent_transform.mul_transform(actor_xform)
         } else {
-            actor.cached_transform = actor_xform.into();
-        }
+            actor_xform.into()
+        };
 
         if let Ok(mut transform) = writeback_transform.get_mut(actor_entity) {
             // avoid triggering bevy's change tracking if no change
@@ -302,7 +317,7 @@ pub fn writeback_actors(
         // this is actor transform from the previous frame
         let actor_xform = Transform::from(global_transforms.get(actor_entity).copied().unwrap_or(GlobalTransform::IDENTITY));
 
-        for shape in actor.get_shapes() {
+        for shape in actor_handle.get_shapes() {
             let shape_entity = *shape.get_user_data();
             if shape_entity == actor_entity {
                 // we already updated actor entity above,
@@ -329,12 +344,15 @@ pub fn writeback_actors(
 
         if let Some(mut velocity) = velocity {
             let newvel = Velocity::new(
-                actor.get_linear_velocity().to_bevy(),
-                actor.get_angular_velocity().to_bevy(),
+                actor_handle.get_linear_velocity().to_bevy(),
+                actor_handle.get_angular_velocity().to_bevy(),
             );
 
             // avoid triggering bevy's change tracking if no change
             if newvel != *velocity { *velocity = newvel; }
         }
+
+        drop(actor_handle);
+        actor.cached_transform = next_transform;
     }
 }

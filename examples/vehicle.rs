@@ -435,11 +435,13 @@ fn spawn_vehicle(
 }
 
 fn apply_vehicle_nodrive_controls(
+    mut scene: ResMut<bpx::Scene>,
     mut player_query: Query<&mut VehicleHandle, With<PlayerControlledNoDrive>>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
     let VehicleHandle::NoDrive(vehicle) = vehicle.as_mut() else { return; };
+    let mut vehicle = vehicle.get_mut(&mut scene);
 
     if keys.just_pressed(KeyCode::W) {
         vehicle.set_drive_torque(2, 4000.);
@@ -483,12 +485,14 @@ fn apply_vehicle_nodrive_controls(
 }
 
 fn apply_vehicle_tank_controls(
+    mut scene: ResMut<bpx::Scene>,
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveTank)>,
     simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
     let VehicleHandle::DriveTank(vehicle) = vehicle.as_mut() else { return; };
+    let mut vehicle = vehicle.get_mut(&mut scene);
 
     if !controls.initialized {
         controls.initialized = true;
@@ -546,12 +550,14 @@ fn apply_vehicle_tank_controls(
 }
 
 fn apply_vehicle_drive_nw_controls(
+    mut scene: ResMut<bpx::Scene>,
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveNW)>,
     simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
     let VehicleHandle::DriveNW(vehicle) = vehicle.as_mut() else { return; };
+    let mut vehicle = vehicle.get_mut(&mut scene);
 
     if !controls.initialized {
         controls.initialized = true;
@@ -593,12 +599,14 @@ fn apply_vehicle_drive_nw_controls(
 }
 
 fn apply_vehicle_drive_4w_controls(
+    mut scene: ResMut<bpx::Scene>,
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDrive4W)>,
     simtime: Res<SimTime>,
     keys: Res<Input<KeyCode>>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
     let VehicleHandle::Drive4W(vehicle) = vehicle.as_mut() else { return; };
+    let mut vehicle = vehicle.get_mut(&mut scene);
 
     if !controls.initialized {
         controls.initialized = true;

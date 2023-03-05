@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use derive_more::{Deref, DerefMut};
 use physx::cooking::{PxCooking, PxCookingParams};
 use physx::prelude::*;
 use physx::traits::Class;
@@ -11,6 +12,10 @@ use physx::vehicles::{
 };
 use physx_sys::{
     PxBatchQuery,
+    PxFilterData,
+    PxHitFlags,
+    PxQueryHit,
+    PxQueryHitType,
     PxRaycastHit,
     PxRaycastQueryResult,
     PxSweepHit,
@@ -19,11 +24,15 @@ use physx_sys::{
     PxBatchQueryDesc_new,
     PxScene_createBatchQuery_mut,
     PxScene_getGravity,
+    PxScene_lockRead_mut,
+    PxScene_lockWrite_mut,
+    PxScene_unlockRead_mut,
+    PxScene_unlockWrite_mut,
     phys_PxVehicleSuspensionRaycasts,
     phys_PxVehicleSuspensionSweeps,
-    phys_PxVehicleUpdates, PxQueryHitType, PxFilterData, PxHitFlags, PxQueryHit,
+    phys_PxVehicleUpdates,
 };
-use std::ptr::{null_mut, drop_in_place};
+use std::ptr::{null_mut, drop_in_place, null};
 
 use crate::{FoundationDescriptor, SceneDescriptor};
 
@@ -90,8 +99,11 @@ impl Physics {
     }
 }
 
-#[derive(Resource, Deref, DerefMut)]
-pub struct Scene(Owner<PxScene>);
+#[derive(Resource)]
+pub struct Scene {
+    scene: SceneRwLock<Owner<PxScene>>,
+    use_physx_lock: bool,
+}
 
 impl Scene {
     pub fn new(physics: &mut Physics, d: &SceneDescriptor) -> Self {
@@ -146,7 +158,110 @@ impl Scene {
             })
             .unwrap();
 
-        Self(scene)
+        Self {
+            scene: SceneRwLock::new(scene),
+            use_physx_lock: d.flags.contains(SceneFlag::RequireRwLock),
+        }
+    }
+
+    pub fn get(&self) -> SceneRwLockReadGuard<'_, PxScene> {
+        let scene = if self.use_physx_lock { Some(self.scene.0.as_ptr() as *mut _) } else { None };
+        SceneRwLockReadGuard::new(&self.scene.0, scene)
+    }
+
+    pub fn get_mut(&mut self) -> SceneRwLockWriteGuard<'_, PxScene> {
+        let scene = if self.use_physx_lock { Some(self.scene.0.as_mut_ptr()) } else { None };
+        SceneRwLockWriteGuard::new(&mut self.scene.0, scene)
+    }
+}
+
+pub struct SceneRwLock<T>(T);
+
+impl<T> SceneRwLock<T> {
+    // this structure forces user to ensure their system depends on &Scene for read access,
+    // and depends on &mut Scene for write access, letting bevy resolve conflicts
+    //
+    // scene is not really used (apart from eREQUIRE_RW_LOCK mode), but we just need to
+    // check that it's there
+    //
+    // SceneRwLockXXXGuard has to live longer than Scene, but it's not statically checked
+    // (we assume that user won't be manually destroying bevy's resources)
+    pub fn new(t: T) -> Self {
+        Self(t)
+    }
+
+    pub fn get(&self, scene: &Scene) -> SceneRwLockReadGuard<'_, T> {
+        // this is technically a conversion from *const to *mut, but shouldn't matter here;
+        // current physx binding requires mutable scene to establish a lock
+        let scene = if scene.use_physx_lock { Some(scene.scene.0.as_ptr() as *mut _) } else { None };
+        SceneRwLockReadGuard::new(&self.0, scene)
+    }
+
+    pub fn get_mut(&mut self, scene: &mut Scene) -> SceneRwLockWriteGuard<'_, T> {
+        let scene = if scene.use_physx_lock { Some(scene.scene.0.as_mut_ptr()) } else { None };
+        SceneRwLockWriteGuard::new(&mut self.0, scene)
+    }
+
+    /// # Safety
+    /// user must ensure that no other code is writing the same data concurrently
+    pub unsafe fn get_unsafe(&self) -> &T {
+        &self.0
+    }
+
+    /// # Safety
+    /// user must ensure that no other code is writing the same data concurrently
+    pub unsafe fn get_mut_unsafe(&mut self) -> &mut T {
+        &mut self.0
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct SceneRwLockReadGuard<'t, T> {
+    #[deref]
+    #[deref_mut]
+    payload: &'t T,
+    scene: Option<*mut physx_sys::PxScene>,
+}
+
+impl<'t, T> SceneRwLockReadGuard<'t, T> {
+    fn new(payload: &'t T, scene: Option<*mut physx_sys::PxScene>) -> Self {
+        if let Some(scene) = scene {
+            unsafe { PxScene_lockRead_mut(scene, null(), 0); }
+        }
+        Self { payload, scene }
+    }
+}
+
+impl<'t, T> Drop for SceneRwLockReadGuard<'t, T> {
+    fn drop(&mut self) {
+        if let Some(scene) = self.scene {
+            unsafe { PxScene_unlockRead_mut(scene) }
+        }
+    }
+}
+
+#[derive(Deref, DerefMut)]
+pub struct SceneRwLockWriteGuard<'t, T> {
+    #[deref]
+    #[deref_mut]
+    payload: &'t mut T,
+    scene: Option<*mut physx_sys::PxScene>,
+}
+
+impl<'t, T> SceneRwLockWriteGuard<'t, T> {
+    fn new(payload: &'t mut T, scene: Option<*mut physx_sys::PxScene>) -> Self {
+        if let Some(scene) = scene {
+            unsafe { PxScene_lockWrite_mut(scene, null(), 0); }
+        }
+        Self { payload, scene }
+    }
+}
+
+impl<'t, T> Drop for SceneRwLockWriteGuard<'t, T> {
+    fn drop(&mut self) {
+        if let Some(scene) = self.scene {
+            unsafe { PxScene_unlockWrite_mut(scene) }
+        }
     }
 }
 
@@ -230,7 +345,7 @@ impl VehicleSimulation {
         }
     }
 
-    pub fn alloc(&mut self, scene: &mut Scene, max_num_wheels: usize) {
+    pub fn alloc(&mut self, scene: &mut PxScene, max_num_wheels: usize) {
         // buffers already allocated
         if max_num_wheels <= self.current_size { return; }
 
@@ -294,7 +409,7 @@ impl VehicleSimulation {
         };
     }
 
-    pub fn simulate(&mut self, scene: &mut Scene, delta: f32, vehicles: &mut [*mut PxVehicleWheels], wheel_count: usize) {
+    pub fn simulate(&mut self, scene: &mut PxScene, delta: f32, vehicles: &mut [*mut PxVehicleWheels], wheel_count: usize) {
         if vehicles.is_empty() { return; }
 
         self.alloc(scene, wheel_count);
