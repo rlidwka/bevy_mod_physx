@@ -140,14 +140,8 @@ fn main() {
             brightness: 1.0 / 5.0f32,
         })
         .insert_resource(Msaa::default())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                present_mode: bevy::window::PresentMode::Immediate,
-                ..default()
-            },
-            ..default()
-        }))
-        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
+        .add_plugins(DefaultPlugins)
+        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin::default())
         .add_system(bevy::window::close_on_esc)
         .add_plugin(InfiniteGridPlugin)
         .add_plugin(PhysXPlugin {
@@ -177,7 +171,10 @@ fn spawn_light(mut commands: Commands) {
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(10.0, 1000.0, 10.0),
+        transform: Transform {
+            rotation: Quat::from_euler(EulerRot::XYZ, -0.6, 0.8, 0.),
+            ..default()
+        },
         ..default()
     })
     .insert(Name::new("Light"));

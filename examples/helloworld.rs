@@ -1,5 +1,6 @@
 mod flying_camera;
 
+use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use flying_camera::*;
 
@@ -14,14 +15,9 @@ fn main() {
             brightness: 1.0 / 5.0f32,
         })
         .insert_resource(Msaa::default())
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            window: WindowDescriptor {
-                present_mode: bevy::window::PresentMode::Immediate,
-                ..default()
-            },
-            ..default()
-        }))
-        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin)
+        .insert_resource(DirectionalLightShadowMap { size: 4096 })
+        .add_plugins(DefaultPlugins)
+        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin::default())
         .add_system(bevy::window::close_on_esc)
         .add_plugin(PhysXPlugin::default())
         .add_plugin(PhysXDebugRenderPlugin)
@@ -37,11 +33,14 @@ fn main() {
 fn spawn_light(mut commands: Commands) {
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
-            illuminance: 20000.0,
+            illuminance: 15000.,
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(10.0, 1000.0, 10.0),
+        transform: Transform {
+            rotation: Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.),
+            ..default()
+        },
         ..default()
     })
     .insert(Name::new("Light"));
@@ -50,7 +49,7 @@ fn spawn_light(mut commands: Commands) {
 fn spawn_camera(mut commands: Commands) {
     commands.spawn(FlyingCameraBundle {
         flying_camera: FlyingCamera {
-            distance: 60.,
+            distance: 40.,
             ..default()
         },
         ..default()
@@ -66,7 +65,7 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0 }));
+    let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0, subdivisions: 4 }));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
     let px_geometry = px_geometries.add(bpx::Geometry::halfspace());
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));

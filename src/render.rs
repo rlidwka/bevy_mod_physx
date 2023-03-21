@@ -7,14 +7,23 @@ use bevy::render::mesh::Indices;
 use physx::triangle_mesh::TriangleMeshIndices;
 
 const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 9326911668127598676);
-
+const DEFAULT_COLOR: Color = Color::rgba(0.5, 0.7, 0.8, 1.);
 pub struct PhysXDebugRenderPlugin;
 
-#[derive(Resource, Reflect, Debug, Default, Clone, Copy)]
+#[derive(Resource, Reflect, Debug, Clone, Copy)]
 #[reflect(Resource)]
 pub struct DebugRenderSettings {
-    pub enabled: bool,
+    pub visibility: Visibility,
     pub color: Color,
+}
+
+impl Default for DebugRenderSettings {
+    fn default() -> Self {
+        Self {
+            visibility: Visibility::Hidden,
+            color: DEFAULT_COLOR,
+        }
+    }
 }
 
 #[derive(Resource)]
@@ -53,16 +62,12 @@ impl Plugin for PhysXDebugRenderPlugin {
             }
         "));
 
-        let color = Color::rgba(0.5, 0.7, 0.8, 1.);
         app.register_type::<DebugRenderSettings>();
-        app.insert_resource(DebugRenderSettings {
-            enabled: false,
-            color,
-        });
+        app.init_resource::<DebugRenderSettings>();
         app.add_plugin(MaterialPlugin::<DebugRenderMaterial>::default());
 
         let material = app.world.resource_mut::<Assets<DebugRenderMaterial>>().add(
-            DebugRenderMaterial { color }
+            DebugRenderMaterial { color: DEFAULT_COLOR }
         );
         app.insert_resource(DebugRenderMaterials {
             base: material,
@@ -264,7 +269,7 @@ fn create_debug_meshes(
             .insert(MaterialMeshBundle {
                 mesh: meshes.add(mesh),
                 material: materials.base.clone(),
-                visibility: if settings.enabled { Visibility::VISIBLE } else { Visibility::INVISIBLE },
+                visibility: settings.visibility,
                 ..default()
             })
             .id();
@@ -286,6 +291,6 @@ fn toggle_debug_meshes_visibility(
     }
 
     for mut visibility in query.iter_mut() {
-        visibility.is_visible = settings.enabled;
+        *visibility = settings.visibility;
     }
 }
