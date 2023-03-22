@@ -211,7 +211,11 @@ pub struct PhysXPlugin {
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
 #[system_set(base)]
-pub struct PhysXSet;
+pub enum PhysicsSet {
+    First,
+    Simulation,
+    Last,
+}
 
 impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
@@ -240,13 +244,27 @@ impl Plugin for PhysXPlugin {
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
 
-        app.configure_set(PhysXSet.before(CoreSet::Update));
+        // user may want to add more restrictions on how sets are run,
+        // but it must run before PostUpdate for GlobalTransform to propagate
+        app.configure_sets((
+            PhysicsSet::First,
+            PhysicsSet::Simulation,
+            PhysicsSet::Last,
+        ).chain().before(CoreSet::PostUpdate));
 
-        app.add_system(time_sync.before(systems::scene_simulate).in_base_set(PhysXSet));
-        app.add_system(systems::apply_user_changes.before(systems::scene_simulate).in_base_set(PhysXSet));
-        app.add_system(systems::scene_simulate.in_base_set(PhysXSet));
-        app.add_system(systems::create_dynamic_actors.after(systems::scene_simulate).in_base_set(PhysXSet));
-        app.add_system(systems::writeback_actors.after(systems::scene_simulate).in_base_set(PhysXSet));
+        app.add_systems((
+            time_sync,
+            systems::apply_user_changes,
+        ).in_base_set(PhysicsSet::First));
+
+        app.add_systems((
+            systems::scene_simulate,
+        ).in_base_set(PhysicsSet::Simulation));
+
+        app.add_systems((
+            systems::create_dynamic_actors,
+            systems::writeback_actors,
+        ).in_base_set(PhysicsSet::Last));
     }
 }
 
