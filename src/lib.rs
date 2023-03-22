@@ -3,6 +3,7 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
+use bevy::ecs::schedule::SystemConfigs;
 use bevy::prelude::*;
 use enumflags2::BitFlags;
 use physx::prelude::*;
@@ -202,19 +203,56 @@ impl Default for SceneDescriptor {
     }
 }
 
-#[derive(Default)]
-pub struct PhysXPlugin {
-    pub foundation: FoundationDescriptor,
-    pub scene: SceneDescriptor,
-    pub timestep: TimestepMode,
-}
-
-#[derive(Debug, Hash, PartialEq, Eq, Clone, SystemSet)]
+#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
     First,
     Simulation,
     Last,
+}
+
+impl PhysicsSet {
+    pub fn iter() -> impl Iterator<Item = Self> {
+        [Self::First, Self::Simulation, Self::Last].into_iter()
+    }
+}
+
+pub struct PhysXPlugin {
+    pub foundation: FoundationDescriptor,
+    pub scene: SceneDescriptor,
+    pub timestep: TimestepMode,
+    pub default_system_setup: bool,
+}
+
+impl Default for PhysXPlugin {
+    fn default() -> Self {
+        Self {
+            foundation: default(),
+            scene: default(),
+            timestep: default(),
+            default_system_setup: true,
+        }
+    }
+}
+
+impl PhysXPlugin {
+    pub fn get_systems(set: PhysicsSet) -> SystemConfigs {
+        match set {
+            PhysicsSet::First => (
+                time_sync,
+                systems::apply_user_changes,
+            ).into_configs(),
+
+            PhysicsSet::Simulation => (
+                systems::scene_simulate,
+            ).into_configs(),
+
+            PhysicsSet::Last => (
+                systems::create_dynamic_actors,
+                systems::writeback_actors,
+            ).into_configs(),
+        }
+    }
 }
 
 impl Plugin for PhysXPlugin {
@@ -244,27 +282,19 @@ impl Plugin for PhysXPlugin {
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
 
-        // user may want to add more restrictions on how sets are run,
-        // but it must run before PostUpdate for GlobalTransform to propagate
-        app.configure_sets((
-            PhysicsSet::First,
-            PhysicsSet::Simulation,
-            PhysicsSet::Last,
-        ).chain().before(CoreSet::PostUpdate));
+        if self.default_system_setup {
+            // user may want to add more restrictions on how sets are run,
+            // but it must run before PostUpdate for GlobalTransform to propagate
+            app.configure_sets((
+                PhysicsSet::First,
+                PhysicsSet::Simulation,
+                PhysicsSet::Last,
+            ).chain().before(CoreSet::PostUpdate));
 
-        app.add_systems((
-            time_sync,
-            systems::apply_user_changes,
-        ).in_base_set(PhysicsSet::First));
-
-        app.add_systems((
-            systems::scene_simulate,
-        ).in_base_set(PhysicsSet::Simulation));
-
-        app.add_systems((
-            systems::create_dynamic_actors,
-            systems::writeback_actors,
-        ).in_base_set(PhysicsSet::Last));
+            for set in PhysicsSet::iter() {
+                app.add_systems(Self::get_systems(set).in_base_set(set));
+            }
+        }
     }
 }
 
