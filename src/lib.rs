@@ -3,7 +3,7 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use bevy::ecs::schedule::SystemConfigs;
+use bevy::ecs::schedule::{SystemConfigs, SystemSetConfigs};
 use bevy::prelude::*;
 use enumflags2::BitFlags;
 use physx::prelude::*;
@@ -206,14 +206,42 @@ impl Default for SceneDescriptor {
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
-    First,
-    Simulation,
-    Last,
+    Sync,
+    ApplyChanges,
+    Simulate,
+    Writeback,
 }
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::First, Self::Simulation, Self::Last].into_iter()
+        [Self::Sync, Self::ApplyChanges, Self::Simulate, Self::Writeback].into_iter()
+    }
+
+    pub fn sets() -> SystemSetConfigs {
+        (Self::Sync, Self::ApplyChanges, Self::Simulate, Self::Writeback).chain()
+    }
+
+    pub fn systems(self) -> SystemConfigs {
+        match self {
+            PhysicsSet::Sync => (
+                time_sync,
+                bevy::transform::systems::propagate_transforms,
+                bevy::transform::systems::sync_simple_transforms,
+            ).into_configs(),
+
+            PhysicsSet::ApplyChanges => (
+                systems::apply_user_changes,
+                systems::create_dynamic_actors,
+            ).into_configs(),
+
+            PhysicsSet::Simulate => (
+                systems::scene_simulate,
+            ).into_configs(),
+
+            PhysicsSet::Writeback => (
+                systems::writeback_actors,
+            ).into_configs(),
+        }
     }
 }
 
@@ -231,26 +259,6 @@ impl Default for PhysXPlugin {
             scene: default(),
             timestep: default(),
             default_system_setup: true,
-        }
-    }
-}
-
-impl PhysXPlugin {
-    pub fn get_systems(set: PhysicsSet) -> SystemConfigs {
-        match set {
-            PhysicsSet::First => (
-                time_sync,
-                systems::apply_user_changes,
-            ).into_configs(),
-
-            PhysicsSet::Simulation => (
-                systems::scene_simulate,
-            ).into_configs(),
-
-            PhysicsSet::Last => (
-                systems::create_dynamic_actors,
-                systems::writeback_actors,
-            ).into_configs(),
         }
     }
 }
@@ -285,14 +293,10 @@ impl Plugin for PhysXPlugin {
         if self.default_system_setup {
             // user may want to add more restrictions on how sets are run,
             // but it must run before PostUpdate for GlobalTransform to propagate
-            app.configure_sets((
-                PhysicsSet::First,
-                PhysicsSet::Simulation,
-                PhysicsSet::Last,
-            ).chain().before(CoreSet::PostUpdate));
+            app.configure_sets(PhysicsSet::sets().before(bevy::transform::TransformSystem::TransformPropagate));
 
             for set in PhysicsSet::iter() {
-                app.add_systems(Self::get_systems(set).in_base_set(set));
+                app.add_systems(PhysicsSet::systems(set).in_base_set(set));
             }
         }
     }
