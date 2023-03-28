@@ -3,7 +3,9 @@
 #![allow(clippy::type_complexity)]
 #![allow(clippy::too_many_arguments)]
 
-use bevy::ecs::schedule::{SystemConfigs, SystemSetConfigs};
+use std::time::Duration;
+
+use bevy::ecs::schedule::{SystemConfigs, SystemSetConfigs, ScheduleLabel};
 use bevy::prelude::*;
 use enumflags2::BitFlags;
 use physx::prelude::*;
@@ -203,6 +205,9 @@ impl Default for SceneDescriptor {
     }
 }
 
+#[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
+pub struct PhysicsSchedule;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
@@ -224,7 +229,6 @@ impl PhysicsSet {
     pub fn systems(self) -> SystemConfigs {
         match self {
             PhysicsSet::Sync => (
-                time_sync,
                 bevy::transform::systems::propagate_transforms,
                 bevy::transform::systems::sync_simple_transforms,
             ).into_configs(),
@@ -249,7 +253,6 @@ pub struct PhysXPlugin {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
     pub timestep: TimestepMode,
-    pub default_system_setup: bool,
 }
 
 impl Default for PhysXPlugin {
@@ -258,7 +261,6 @@ impl Default for PhysXPlugin {
             foundation: default(),
             scene: default(),
             timestep: default(),
-            default_system_setup: true,
         }
     }
 }
@@ -267,6 +269,12 @@ impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
         let mut physics = bpx::Physics::new(&self.foundation);
         let scene = bpx::Scene::new(&mut physics, &self.scene);
+
+        app.init_schedule(PhysicsSchedule);
+
+        if !app.is_plugin_added::<AssetPlugin>() {
+            app.add_plugin(AssetPlugin::default());
+        }
 
         app.add_asset::<bpx::Geometry>();
         app.add_asset::<bpx::Material>();
@@ -284,110 +292,40 @@ impl Plugin for PhysXPlugin {
         app.insert_resource(scene);
         app.insert_resource(DefaultMaterial::default());
 
-        app.register_type::<SimTime>();
-        app.insert_resource(SimTime::new(self.timestep));
+        app.register_type::<PhysicsTime>();
+        app.insert_resource(PhysicsTime::new(self.timestep));
+        app.init_resource::<BevyTimeDelta>();
 
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
 
-        if self.default_system_setup {
-            // user may want to add more restrictions on how sets are run,
-            // but it must run before PostUpdate for GlobalTransform to propagate
-            app.configure_sets(PhysicsSet::sets().before(bevy::transform::TransformSystem::TransformPropagate));
+        // it's important here to configure set order
+        app.configure_sets(PhysicsSet::sets());
 
-            for set in PhysicsSet::iter() {
-                app.add_systems(PhysicsSet::systems(set).in_base_set(set));
-            }
+        // add all systems to the set
+        for set in PhysicsSet::iter() {
+            app.add_systems(
+                PhysicsSet::systems(set)
+                    .in_base_set(set)
+                    .in_schedule(PhysicsSchedule)
+            );
         }
+
+        // add scheduler
+        app.add_system(
+            run_physics_schedule
+                .in_base_set(CoreSet::FixedUpdate)
+                .before(bevy::time::fixed_timestep::run_fixed_update_schedule)
+        );
     }
 }
-
-#[derive(Resource, Default, Debug, Reflect)]
-#[reflect(Resource)]
-pub struct SimTime {
-    pub timestep: TimestepMode,
-    delta: f32,
-    current_tick: (f32, usize),
-}
-
-impl SimTime {
-    pub fn new(timestep: TimestepMode) -> Self {
-        Self { timestep, delta: 0., current_tick: (0., 1) }
-    }
-
-    pub fn update(&mut self, time: &Time) {
-        match self.timestep {
-            TimestepMode::Fixed { dt, substeps } => {
-                self.delta = 0.;
-                self.current_tick = (dt / substeps as f32, substeps);
-            },
-            TimestepMode::Variable { max_dt, time_scale, substeps } => {
-                self.delta += time.delta_seconds() * time_scale;
-
-                if self.delta > max_dt && max_dt > 0. {
-                    self.current_tick = (max_dt / substeps as f32, substeps);
-                    self.delta = 0.;
-                    //self.delta -= max_dt;
-                } else {
-                    self.current_tick = (self.delta / substeps as f32, substeps);
-                    self.delta = 0.;
-                }
-            },
-            TimestepMode::Interpolated { dt, time_scale, substeps } => {
-                self.delta += time.delta_seconds() * time_scale;
-
-                if self.delta > dt && dt > 0. {
-                    self.current_tick = (dt / substeps as f32, substeps);
-                    self.delta -= dt;
-                    // avoid endless accumulating of lag
-                    if self.delta > dt { self.delta = dt; }
-                } else {
-                    self.current_tick = (0., 0);
-                }
-            }
-        }
-    }
-
-    pub fn delta(&self) -> f32 {
-        self.delta
-    }
-
-    pub fn ticks(&self) -> impl Iterator<Item = f32> + '_ {
-        SimTimeIterator::new(self.current_tick.0, self.current_tick.1)
-    }
-}
-
-struct SimTimeIterator {
-    duration: f32,
-    remaining: usize,
-}
-
-impl SimTimeIterator {
-    fn new(duration: f32, substeps: usize) -> Self {
-        Self { duration, remaining: substeps }
-    }
-}
-
-impl Iterator for SimTimeIterator {
-    type Item = f32;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.remaining > 0 {
-            self.remaining -= 1;
-            Some(self.duration)
-        } else {
-            None
-        }
-    }
-}
-
-impl std::iter::FusedIterator for SimTimeIterator {}
 
 #[derive(Debug, Reflect, PartialEq, Clone, Copy)]
 pub enum TimestepMode {
     /// Physics simulation will be advanced by dt at each Bevy tick.
     /// Real time does not make any difference for this timestep mode.
-    /// This is preferred method if you have fixed FPS with the tools like bevy_framepace.
+    /// This is preferred method if you have fixed FPS with the tools like bevy_framepace,
+    /// or running it in a FixedUpdate schedule.
     Fixed {
         dt: f32,
         substeps: usize,
@@ -410,6 +348,9 @@ pub enum TimestepMode {
         time_scale: f32,
         substeps: usize,
     },
+    /// Physics simulation advancement is controlled by user manually running
+    /// `world.run_schedule(PhysicsSchedule)`.
+    Custom,
 }
 
 impl Default for TimestepMode {
@@ -418,6 +359,124 @@ impl Default for TimestepMode {
     }
 }
 
-fn time_sync(time: Res<Time>, mut simtime: ResMut<SimTime>) {
-    simtime.update(&time);
+#[derive(Resource, Default, Debug, Reflect)]
+#[reflect(Resource)]
+pub struct PhysicsTime {
+    timestep: TimestepMode,
+    delta: Duration,
+    delta_seconds: f32,
+    delta_seconds_f64: f64,
+    elapsed: Duration,
+    elapsed_seconds: f32,
+    elapsed_seconds_f64: f64,
+}
+
+impl PhysicsTime {
+    pub fn new(timestep: TimestepMode) -> Self {
+        Self { timestep, ..default() }
+    }
+
+    pub fn update(&mut self, delta: Duration) {
+        self.delta = delta;
+        self.delta_seconds = self.delta.as_secs_f32();
+        self.delta_seconds_f64 = self.delta.as_secs_f64();
+
+        self.elapsed += delta;
+        self.elapsed_seconds = self.elapsed.as_secs_f32();
+        self.elapsed_seconds_f64 = self.elapsed.as_secs_f64();
+    }
+
+    #[inline]
+    pub fn timestep(&self) -> TimestepMode {
+        self.timestep
+    }
+
+    #[inline]
+    pub fn set_timestep(&mut self, timestep: TimestepMode) {
+        self.timestep = timestep;
+    }
+
+    #[inline]
+    pub fn delta(&self) -> Duration {
+        self.delta
+    }
+
+    #[inline]
+    pub fn delta_seconds(&self) -> f32 {
+        self.delta_seconds
+    }
+
+    #[inline]
+    pub fn delta_seconds_f64(&self) -> f64 {
+        self.delta_seconds_f64
+    }
+
+    #[inline]
+    pub fn elapsed(&self) -> Duration {
+        self.elapsed
+    }
+
+    #[inline]
+    pub fn elapsed_seconds(&self) -> f32 {
+        self.elapsed_seconds
+    }
+
+    #[inline]
+    pub fn elapsed_seconds_f64(&self) -> f64 {
+        self.elapsed_seconds_f64
+    }
+}
+
+#[derive(Resource, Default)]
+struct BevyTimeDelta(f32);
+
+pub fn run_physics_schedule(world: &mut World) {
+    fn simulate(world: &mut World, delta: f32, substeps: usize) {
+        let dt = Duration::from_secs_f32(delta / substeps as f32);
+        for _ in 0..substeps {
+            let mut pxtime = world.resource_mut::<PhysicsTime>();
+            pxtime.update(dt);
+            world.run_schedule(PhysicsSchedule);
+        }
+    }
+
+    match world.resource::<PhysicsTime>().timestep() {
+        TimestepMode::Fixed { dt, substeps } => {
+            let mut pxdelta = world.resource_mut::<BevyTimeDelta>();
+            pxdelta.0 = 0.;
+            simulate(world, dt, substeps);
+        }
+
+        TimestepMode::Variable { max_dt, time_scale, substeps } => {
+            let bevy_delta = world.resource::<Time>().delta_seconds();
+            let mut pxdelta = world.resource_mut::<BevyTimeDelta>();
+            pxdelta.0 += bevy_delta * time_scale;
+
+            let dt = if pxdelta.0 > max_dt && max_dt > 0. {
+                max_dt
+            } else {
+                pxdelta.0
+            };
+            pxdelta.0 = 0.;
+
+            simulate(world, dt, substeps);
+        }
+
+        TimestepMode::Interpolated { dt, time_scale, substeps } => {
+            let bevy_delta = world.resource::<Time>().delta_seconds();
+            let mut pxdelta = world.resource_mut::<BevyTimeDelta>();
+            pxdelta.0 += bevy_delta * time_scale;
+
+            if pxdelta.0 > dt && dt > 0. {
+                pxdelta.0 -= dt;
+                // avoid endless accumulating of lag
+                if pxdelta.0 > dt { pxdelta.0 = dt; }
+                simulate(world, dt, substeps);
+            }
+        }
+
+        TimestepMode::Custom => {
+            // up to the user to handle this
+        }
+    }
 }

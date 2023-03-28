@@ -4,7 +4,9 @@ pub use super::type_bridge::*;
 #[doc(hidden)]
 pub use super::{
     PhysXPlugin,
-    SimTime,
+    PhysicsSchedule,
+    PhysicsSet,
+    PhysicsTime,
     FoundationDescriptor,
     SceneDescriptor,
 };

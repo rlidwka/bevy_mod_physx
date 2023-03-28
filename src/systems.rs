@@ -33,50 +33,43 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
-    simtime: Res<SimTime>,
+    time: Res<PhysicsTime>,
     mut vehicle_simulation: ResMut<VehicleSimulation>,
     mut vehicle_query: Query<&mut VehicleHandle>,
 ) {
-    let mut vehicles = None;
+    let delta = time.delta_seconds;
+    let mut vehicles = vec![];
     let mut wheel_count = 0;
 
-    for delta in simtime.ticks() {
-        if vehicles.is_none() {
-            let mut result = vec![];
-
-            for mut vehicle in vehicle_query.iter_mut() {
-                match vehicle.as_mut() {
-                    VehicleHandle::NoDrive(vehicle) => {
-                        let mut vehicle = vehicle.get_mut(&mut scene);
-                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                        result.push(vehicle.as_mut_ptr());
-                    }
-                    VehicleHandle::Drive4W(vehicle) => {
-                        let mut vehicle = vehicle.get_mut(&mut scene);
-                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                        result.push(vehicle.as_mut_ptr());
-                    }
-                    VehicleHandle::DriveNW(vehicle) => {
-                        let mut vehicle = vehicle.get_mut(&mut scene);
-                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                        result.push(vehicle.as_mut_ptr());
-                    }
-                    VehicleHandle::DriveTank(vehicle) => {
-                        let mut vehicle = vehicle.get_mut(&mut scene);
-                        wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                        result.push(vehicle.as_mut_ptr());
-                    }
-                }
+    for mut vehicle in vehicle_query.iter_mut() {
+        match vehicle.as_mut() {
+            VehicleHandle::NoDrive(vehicle) => {
+                let mut vehicle = vehicle.get_mut(&mut scene);
+                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                vehicles.push(vehicle.as_mut_ptr());
             }
-
-            vehicles = Some(result);
+            VehicleHandle::Drive4W(vehicle) => {
+                let mut vehicle = vehicle.get_mut(&mut scene);
+                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                vehicles.push(vehicle.as_mut_ptr());
+            }
+            VehicleHandle::DriveNW(vehicle) => {
+                let mut vehicle = vehicle.get_mut(&mut scene);
+                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                vehicles.push(vehicle.as_mut_ptr());
+            }
+            VehicleHandle::DriveTank(vehicle) => {
+                let mut vehicle = vehicle.get_mut(&mut scene);
+                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
+                vehicles.push(vehicle.as_mut_ptr());
+            }
         }
-
-        let mut scene = scene.get_mut();
-        vehicle_simulation.simulate(&mut scene, delta, vehicles.as_mut().unwrap(), wheel_count);
-        scene.simulate(delta, None, None);
-        scene.fetch_results(true).unwrap();
     }
+
+    let mut scene = scene.get_mut();
+    vehicle_simulation.simulate(&mut scene, delta, vehicles.as_mut(), wheel_count);
+    scene.simulate(delta, None, None);
+    scene.fetch_results(true).unwrap();
 }
 
 fn find_nested_shapes(

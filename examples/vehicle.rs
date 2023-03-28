@@ -110,21 +110,6 @@ unsafe extern "C" fn query_pre_filter_shader<'a>(_data0: &'a PxFilterData, data1
 struct PlayerControlledNoDrive;
 
 #[derive(Component, Default)]
-struct PlayerControlledDriveTank {
-    initialized: bool,
-    smoothing: Option<VehicleKeySmoothingData>,
-    input: Option<Owner<PxVehicleDriveTankRawInputData>>,
-}
-
-#[derive(Component, Default)]
-struct PlayerControlledDriveNW {
-    initialized: bool,
-    steer_table: Option<VehicleSteerVsForwardSpeedTable>,
-    smoothing: Option<VehicleKeySmoothingData>,
-    input: Option<Owner<PxVehicleDriveNWRawInputData>>,
-}
-
-#[derive(Component, Default)]
 struct PlayerControlledDrive4W {
     initialized: bool,
     steer_table: Option<VehicleSteerVsForwardSpeedTable>,
@@ -157,10 +142,8 @@ fn main() {
         .add_startup_system(spawn_light)
         .add_startup_system(spawn_plane)
         .add_startup_system(spawn_vehicle)
-        .add_system(apply_vehicle_nodrive_controls)
-        .add_system(apply_vehicle_tank_controls)
-        .add_system(apply_vehicle_drive_nw_controls)
         .add_system(apply_vehicle_drive_4w_controls)
+        .add_system(simulate_vehicle_drive_4w_controls)
         .run();
 }
 
@@ -381,44 +364,12 @@ fn spawn_vehicle(
         .insert(bpx::RigidBody::Dynamic)
         .insert(MassProperties::mass_with_center(HULL_MASS, CENTER_OF_MASS))
 
-        ////////////////////////////////////////////////////////
-        // uncomment this to test vehicle without a drive
-        /*.insert(Vehicle::NoDrive {
-            wheels: wheels.clone(),
-            wheels_sim_data: create_wheels_sim_data(),
-        })
-        .insert(PlayerControlledNoDrive)*/
-        ////////////////////////////////////////////////////////
-
-        ////////////////////////////////////////////////////////
-        // uncomment this to test a tank
-        /*.insert(Vehicle::DriveTank {
-            wheels: wheels.clone(),
-            wheels_sim_data: create_wheels_sim_data(),
-            drive_sim_data: Box::default(),
-        })
-        .insert(PlayerControlledDriveTank::default())*/
-        ////////////////////////////////////////////////////////
-
-        ////////////////////////////////////////////////////////
-        // uncomment this to test vehicle with N wheels
-        /*.insert(Vehicle::DriveNW {
-            wheels: wheels.clone(),
-            wheels_sim_data: create_wheels_sim_data(),
-            drive_sim_data: create_drive_nw_sim_data(),
-        })
-        .insert(PlayerControlledDriveNW::default())*/
-        ////////////////////////////////////////////////////////
-
-        ////////////////////////////////////////////////////////
-        // uncomment this to test vehicle with 4 wheels
         .insert(Vehicle::Drive4W {
             wheels: wheels.clone(),
             wheels_sim_data: create_wheels_sim_data(),
             drive_sim_data: create_drive_4w_sim_data(),
         })
         .insert(PlayerControlledDrive4W::default())
-        ////////////////////////////////////////////////////////
 
         .insert(bpx::Shape {
             material,
@@ -431,175 +382,25 @@ fn spawn_vehicle(
         .add_child(camera);
 }
 
-fn apply_vehicle_nodrive_controls(
-    mut scene: ResMut<bpx::Scene>,
-    mut player_query: Query<&mut VehicleHandle, With<PlayerControlledNoDrive>>,
-    keys: Res<Input<KeyCode>>,
-) {
-    let Ok(mut vehicle) = player_query.get_single_mut() else { return; };
-    let VehicleHandle::NoDrive(vehicle) = vehicle.as_mut() else { return; };
-    let mut vehicle = vehicle.get_mut(&mut scene);
-
-    if keys.just_pressed(KeyCode::W) {
-        vehicle.set_drive_torque(2, 4000.);
-        vehicle.set_drive_torque(3, 4000.);
-    }
-
-    if keys.just_released(KeyCode::W) {
-        vehicle.set_drive_torque(2, 0.);
-        vehicle.set_drive_torque(3, 0.);
-    }
-
-    if keys.just_pressed(KeyCode::S) {
-        vehicle.set_brake_torque(2, 15000.);
-        vehicle.set_brake_torque(3, 15000.);
-    }
-
-    if keys.just_released(KeyCode::S) {
-        vehicle.set_brake_torque(2, 0.);
-        vehicle.set_brake_torque(3, 0.);
-    }
-
-    if keys.just_pressed(KeyCode::A) {
-        vehicle.set_steer_angle(0, 0.5);
-        vehicle.set_steer_angle(1, 0.5);
-    }
-
-    if keys.just_released(KeyCode::A) {
-        vehicle.set_steer_angle(0, 0.);
-        vehicle.set_steer_angle(1, 0.);
-    }
-
-    if keys.just_pressed(KeyCode::D) {
-        vehicle.set_steer_angle(0, -0.5);
-        vehicle.set_steer_angle(1, -0.5);
-    }
-
-    if keys.just_released(KeyCode::D) {
-        vehicle.set_steer_angle(0, 0.);
-        vehicle.set_steer_angle(1, 0.);
-    }
-}
-
-fn apply_vehicle_tank_controls(
-    mut scene: ResMut<bpx::Scene>,
-    mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveTank)>,
-    simtime: Res<SimTime>,
-    keys: Res<Input<KeyCode>>,
-) {
-    let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
-    let VehicleHandle::DriveTank(vehicle) = vehicle.as_mut() else { return; };
-    let mut vehicle = vehicle.get_mut(&mut scene);
-
-    if !controls.initialized {
-        controls.initialized = true;
-        vehicle.drive_dyn_data_mut().set_current_gear(VehicleGearsRatio::First);
-        vehicle.drive_dyn_data_mut().set_use_auto_gears(true);
-
-        let mut smoothing = VehicleKeySmoothingData::new();
-        smoothing.set_rise_rates(&[6., 6., 6., 2.5, 2.5]);
-        smoothing.set_fall_rates(&[10., 10., 10., 5., 5.]);
-        controls.smoothing = Some(smoothing);
-
-        let input: Owner<PxVehicleDriveTankRawInputData> = VehicleDriveTankRawInputData::new().unwrap();
-        controls.input = Some(input);
-    }
-
-    for timestep in simtime.ticks() {
-        let input = controls.input.as_mut().unwrap();
-
-        // WARNING: tank requires different drive settings, and with default drive
-        // controls are really wonky, need to adjust settings
-        input.set_digital_accel(false);
-        input.set_digital_left_brake(false);
-        input.set_digital_left_thrust(false);
-        input.set_digital_right_brake(false);
-        input.set_digital_right_thrust(false);
-
-        if keys.pressed(KeyCode::W) {
-            input.set_digital_accel(true);
-            input.set_digital_left_thrust(true);
-            input.set_digital_right_thrust(true);
-        }
-
-        if keys.pressed(KeyCode::S) {
-            input.set_digital_left_brake(true);
-            input.set_digital_right_brake(true);
-        }
-
-        if keys.pressed(KeyCode::A) {
-            input.set_digital_accel(true);
-            input.set_digital_right_brake(true);
-            input.set_digital_left_thrust(true);
-        }
-
-        if keys.pressed(KeyCode::D) {
-            input.set_digital_accel(true);
-            input.set_digital_left_brake(true);
-            input.set_digital_right_thrust(true);
-        }
-
-        let smoothing = controls.smoothing.as_ref().unwrap();
-        let input = controls.input.as_ref().unwrap();
-
-        vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(smoothing, input, timestep)
-    }
-}
-
-fn apply_vehicle_drive_nw_controls(
-    mut scene: ResMut<bpx::Scene>,
-    mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDriveNW)>,
-    simtime: Res<SimTime>,
-    keys: Res<Input<KeyCode>>,
-) {
-    let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
-    let VehicleHandle::DriveNW(vehicle) = vehicle.as_mut() else { return; };
-    let mut vehicle = vehicle.get_mut(&mut scene);
-
-    if !controls.initialized {
-        controls.initialized = true;
-        vehicle.drive_dyn_data_mut().set_current_gear(VehicleGearsRatio::First);
-        vehicle.drive_dyn_data_mut().set_use_auto_gears(true);
-
-        let mut smoothing = VehicleKeySmoothingData::new();
-        smoothing.set_rise_rates(&[6., 6., 6., 2.5, 2.5]);
-        smoothing.set_fall_rates(&[10., 10., 10., 5., 5.]);
-        controls.smoothing = Some(smoothing);
-
-        let mut steer_table = VehicleSteerVsForwardSpeedTable::new();
-        steer_table.set_data(&[
-            (0., 0.75),
-            (5., 0.75),
-            (30., 0.125),
-            (120., 0.1),
-        ]);
-        controls.steer_table = Some(steer_table);
-
-        let input: Owner<PxVehicleDriveNWRawInputData> = VehicleDriveNWRawInputData::new().unwrap();
-        controls.input = Some(input);
-    }
-
-    for timestep in simtime.ticks() {
-        let input = controls.input.as_mut().unwrap();
-
-        input.set_digital_accel(keys.pressed(KeyCode::W));
-        input.set_digital_brake(keys.pressed(KeyCode::S));
-        input.set_digital_steer_left(keys.pressed(KeyCode::A));
-        input.set_digital_steer_right(keys.pressed(KeyCode::D));
-
-        let smoothing = controls.smoothing.as_ref().unwrap();
-        let input = controls.input.as_ref().unwrap();
-        let steer_table = controls.steer_table.as_ref().unwrap();
-
-        vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(steer_table, smoothing, input, timestep, false);
-    }
-}
-
 fn apply_vehicle_drive_4w_controls(
+    mut player_query: Query<&mut PlayerControlledDrive4W>,
+    keys: Res<Input<KeyCode>>,
+) {
+    let Ok(mut controls) = player_query.get_single_mut() else { return; };
+    if !controls.initialized { return; }
+
+    let input = controls.input.as_mut().unwrap();
+
+    input.set_digital_accel(keys.pressed(KeyCode::W));
+    input.set_digital_brake(keys.pressed(KeyCode::S));
+    input.set_digital_steer_right(keys.pressed(KeyCode::A));
+    input.set_digital_steer_left(keys.pressed(KeyCode::D));
+}
+
+fn simulate_vehicle_drive_4w_controls(
     mut scene: ResMut<bpx::Scene>,
     mut player_query: Query<(&mut VehicleHandle, &mut PlayerControlledDrive4W)>,
-    simtime: Res<SimTime>,
-    keys: Res<Input<KeyCode>>,
+    time: Res<PhysicsTime>,
 ) {
     let Ok((mut vehicle, mut controls)) = player_query.get_single_mut() else { return; };
     let VehicleHandle::Drive4W(vehicle) = vehicle.as_mut() else { return; };
@@ -628,18 +429,9 @@ fn apply_vehicle_drive_4w_controls(
         controls.input = Some(input);
     }
 
-    for timestep in simtime.ticks() {
-        let input = controls.input.as_mut().unwrap();
+    let smoothing = controls.smoothing.as_ref().unwrap();
+    let input = controls.input.as_ref().unwrap();
+    let steer_table = controls.steer_table.as_ref().unwrap();
 
-        input.set_digital_accel(keys.pressed(KeyCode::W));
-        input.set_digital_brake(keys.pressed(KeyCode::S));
-        input.set_digital_steer_right(keys.pressed(KeyCode::A));
-        input.set_digital_steer_left(keys.pressed(KeyCode::D));
-
-        let smoothing = controls.smoothing.as_ref().unwrap();
-        let input = controls.input.as_ref().unwrap();
-        let steer_table = controls.steer_table.as_ref().unwrap();
-
-        vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(steer_table, smoothing, input, timestep, false);
-    }
+    vehicle.smooth_digital_raw_inputs_and_set_analog_inputs(steer_table, smoothing, input, time.delta_seconds(), false);
 }
