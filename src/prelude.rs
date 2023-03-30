@@ -15,10 +15,10 @@ pub use super::{
 pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
-pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Velocity, Vehicle, VehicleHandle};
+pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Velocity};
 
 #[doc(hidden)]
-pub use super::resources::{Physics, Scene, Cooking, VehicleSimulation};
+pub use super::resources::{Physics, Scene, Cooking};
 
 #[doc(hidden)]
 pub use super::render::PhysXDebugRenderPlugin;

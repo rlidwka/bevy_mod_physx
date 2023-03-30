@@ -5,13 +5,13 @@
 
 use std::time::Duration;
 
-use bevy::ecs::schedule::{SystemConfigs, SystemSetConfigs, ScheduleLabel};
+use bevy::ecs::schedule::{SystemSetConfigs, ScheduleLabel};
 use bevy::prelude::*;
 use enumflags2::BitFlags;
 use physx::prelude::*;
-use physx::vehicles::VehicleUpdateMode;
 use physx::scene::{FilterShaderDescriptor, SceneQueryUpdateMode, PruningStructureType, PairFilteringMode, BroadPhaseType, SceneLimits, SolverType, FrictionType, SceneFlag};
 use physx_sys::{PxTolerancesScale, PxTolerancesScale_new};
+use vehicles::{PhysXVehiclesPlugin, VehicleExtensionDescriptor};
 use crate::prelude::*;
 use crate::prelude as bpx;
 mod type_bridge;
@@ -23,12 +23,13 @@ pub mod components;
 pub mod prelude;
 pub mod resources;
 pub mod render;
+pub mod vehicles;
 
 // reexport physx to avoid version conflicts
 pub use physx;
 pub use physx_sys;
 
-use resources::{DefaultMaterial, VehicleSimulation, VehicleSimulationMethod};
+use resources::DefaultMaterial;
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
@@ -88,17 +89,9 @@ pub struct FoundationDescriptor {
     pub cooking: bool,
     pub extensions: bool,
     pub tolerances: TolerancesScale,
-
     pub visual_debugger: bool,
     pub visual_debugger_port: i32,
     pub visual_debugger_remote: Option<String>,
-
-    pub vehicles: bool,
-    pub vehicles_basis_vectors: [ Vec3; 2 ],
-    pub vehicles_update_mode: VehicleUpdateMode,
-    pub vehicles_max_hit_actor_acceleration: f32,
-    pub vehicles_sweep_hit_rejection_angles: [ f32; 2 ],
-    pub vehicles_simulation_method: VehicleSimulationMethod,
 }
 
 impl Default for FoundationDescriptor {
@@ -110,16 +103,6 @@ impl Default for FoundationDescriptor {
             visual_debugger: true,
             visual_debugger_port: 5425,
             visual_debugger_remote: None,
-            vehicles: true,
-            vehicles_basis_vectors: [ Vec3::new(0., 1., 0.), Vec3::new(0., 0., 1.) ],
-            vehicles_update_mode: VehicleUpdateMode::VelocityChange,
-            vehicles_max_hit_actor_acceleration: std::f32::MAX,
-            vehicles_sweep_hit_rejection_angles: [ 0.707f32, 0.707f32 ],
-            vehicles_simulation_method: VehicleSimulationMethod::Sweep {
-                nb_hits_per_query: 1,
-                sweep_width_scale: 1.,
-                sweep_radius_scale: 1.01,
-            },
         }
     }
 }
@@ -211,47 +194,27 @@ pub struct PhysicsSchedule;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
-    Sync,
+    TransformPropagate,
     ApplyChanges,
+    Flush,
     Simulate,
     Writeback,
 }
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::Sync, Self::ApplyChanges, Self::Simulate, Self::Writeback].into_iter()
+        [Self::TransformPropagate, Self::ApplyChanges, Self::Flush, Self::Simulate, Self::Writeback].into_iter()
     }
 
     pub fn sets() -> SystemSetConfigs {
-        (Self::Sync, Self::ApplyChanges, Self::Simulate, Self::Writeback).chain()
-    }
-
-    pub fn systems(self) -> SystemConfigs {
-        match self {
-            PhysicsSet::Sync => (
-                bevy::transform::systems::propagate_transforms,
-                bevy::transform::systems::sync_simple_transforms,
-            ).into_configs(),
-
-            PhysicsSet::ApplyChanges => (
-                systems::apply_user_changes,
-                systems::create_dynamic_actors,
-            ).into_configs(),
-
-            PhysicsSet::Simulate => (
-                systems::scene_simulate,
-            ).into_configs(),
-
-            PhysicsSet::Writeback => (
-                systems::writeback_actors,
-            ).into_configs(),
-        }
+        (Self::TransformPropagate, Self::ApplyChanges, Self::Flush, Self::Simulate, Self::Writeback).chain()
     }
 }
 
 pub struct PhysXPlugin {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
+    pub vehicles: VehicleExtensionDescriptor,
     pub timestep: TimestepMode,
 }
 
@@ -260,6 +223,7 @@ impl Default for PhysXPlugin {
         Self {
             foundation: default(),
             scene: default(),
+            vehicles: default(),
             timestep: default(),
         }
     }
@@ -285,8 +249,8 @@ impl Plugin for PhysXPlugin {
             app.insert_resource(Cooking::new(&mut physics));
         }
 
-        if self.foundation.vehicles {
-            app.insert_resource(VehicleSimulation::new(self.foundation.vehicles_simulation_method));
+        if self.vehicles.enabled {
+            app.add_plugin(PhysXVehiclesPlugin(self.vehicles.clone()));
         }
 
         app.insert_resource(scene);
@@ -300,16 +264,32 @@ impl Plugin for PhysXPlugin {
         app.insert_resource(physics);
 
         // it's important here to configure set order
-        app.configure_sets(PhysicsSet::sets());
+        app.edit_schedule(PhysicsSchedule, |schedule| {
+            schedule.configure_sets(PhysicsSet::sets());
+        });
 
         // add all systems to the set
-        for set in PhysicsSet::iter() {
-            app.add_systems(
-                PhysicsSet::systems(set)
-                    .in_base_set(set)
-                    .in_schedule(PhysicsSchedule)
-            );
-        }
+        app.add_systems((
+            bevy::transform::systems::propagate_transforms,
+            bevy::transform::systems::sync_simple_transforms,
+        ).chain().in_base_set(PhysicsSet::TransformPropagate).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            systems::apply_user_changes,
+            systems::create_dynamic_actors,
+        ).in_base_set(PhysicsSet::ApplyChanges).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            apply_system_buffers,
+        ).in_base_set(PhysicsSet::Flush).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            systems::scene_simulate,
+        ).in_base_set(PhysicsSet::Simulate).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            systems::writeback_actors,
+        ).in_base_set(PhysicsSet::Writeback).in_schedule(PhysicsSchedule));
 
         // add scheduler
         app.add_system(

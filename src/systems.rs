@@ -14,16 +14,14 @@ use physx_sys::{
     PxShape_setSimulationFilterData_mut,
 };
 
-use crate::resources::VehicleSimulation;
-
 use super::prelude as bpx;
 use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
 use super::components::{RigidDynamicHandle, RigidStaticHandle};
 use super::resources::DefaultMaterial;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>, Option<&'a mut Vehicle>),
-    (Without<RigidDynamicHandle>, Without<RigidStaticHandle>, Without<VehicleHandle>)
+    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>),
+    (Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
 >;
 
 type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
@@ -34,41 +32,9 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
 pub fn scene_simulate(
     mut scene: ResMut<bpx::Scene>,
     time: Res<PhysicsTime>,
-    mut vehicle_simulation: ResMut<VehicleSimulation>,
-    mut vehicle_query: Query<&mut VehicleHandle>,
 ) {
-    let delta = time.delta_seconds;
-    let mut vehicles = vec![];
-    let mut wheel_count = 0;
-
-    for mut vehicle in vehicle_query.iter_mut() {
-        match vehicle.as_mut() {
-            VehicleHandle::NoDrive(vehicle) => {
-                let mut vehicle = vehicle.get_mut(&mut scene);
-                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                vehicles.push(vehicle.as_mut_ptr());
-            }
-            VehicleHandle::Drive4W(vehicle) => {
-                let mut vehicle = vehicle.get_mut(&mut scene);
-                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                vehicles.push(vehicle.as_mut_ptr());
-            }
-            VehicleHandle::DriveNW(vehicle) => {
-                let mut vehicle = vehicle.get_mut(&mut scene);
-                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                vehicles.push(vehicle.as_mut_ptr());
-            }
-            VehicleHandle::DriveTank(vehicle) => {
-                let mut vehicle = vehicle.get_mut(&mut scene);
-                wheel_count += vehicle.wheels_sim_data().get_nb_wheels() as usize;
-                vehicles.push(vehicle.as_mut_ptr());
-            }
-        }
-    }
-
     let mut scene = scene.get_mut();
-    vehicle_simulation.simulate(&mut scene, delta, vehicles.as_mut(), wheel_count);
-    scene.simulate(delta, None, None);
+    scene.simulate(time.delta_seconds, None, None);
     scene.fetch_results(true).unwrap();
 }
 
@@ -165,7 +131,7 @@ pub fn create_dynamic_actors(
     mut materials: ResMut<Assets<bpx::Material>>,
     mut default_material: ResMut<DefaultMaterial>,
 ) {
-    for (entity, actor_cfg, actor_transform, mass_props, velocity, vehicle) in new_actors.iter_mut() {
+    for (entity, actor_cfg, actor_transform, mass_props, velocity) in new_actors.iter_mut() {
         let mut scene = scene.get_mut();
 
         match actor_cfg {
@@ -202,11 +168,6 @@ pub fn create_dynamic_actors(
                         );
                     }
                     None => {}
-                }
-
-                if let Some(mut vehicle) = vehicle {
-                    commands.entity(entity)
-                        .insert(VehicleHandle::new(&mut vehicle, &mut physics, &mut actor));
                 }
 
                 if let Some(Velocity { linvel, angvel }) = velocity {

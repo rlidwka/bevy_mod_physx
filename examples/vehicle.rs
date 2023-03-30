@@ -4,6 +4,7 @@ use flying_camera::*;
 use bevy::prelude::*;
 use bevy_infinite_grid::{InfiniteGridBundle, InfiniteGridPlugin, InfiniteGrid};
 use bevy_physx::prelude::*;
+use bevy_physx::vehicles::*;
 use bevy_physx::prelude as bpx;
 use bevy_physx::components::FilterData;
 use physx::prelude::*;
@@ -133,6 +134,10 @@ fn main() {
             scene: bpx::SceneDescriptor {
                 gravity: GRAVITY_FORCE,
                 simulation_filter_shader: FilterShaderDescriptor::CallDefaultFirst(simulation_filter_shader),
+                ..default()
+            },
+            vehicles: VehicleExtensionDescriptor {
+                enabled: true,
                 ..default()
             },
             ..default()
