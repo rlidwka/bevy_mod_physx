@@ -3,7 +3,7 @@ use std::ptr::drop_in_place;
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
-use physx::traits::{Class, PxFlags};
+use physx::traits::Class;
 use physx_sys::{
     PxShape_release_mut, PxPhysics_createShape_mut, PxFilterData, PxFilterData_new_2, PxMeshScale_new_3,
 };
@@ -91,7 +91,7 @@ impl ShapeHandle {
                     geometry_ptr,
                     material.as_ptr(),
                     true,
-                    (ShapeFlag::SceneQueryShape | ShapeFlag::SimulationShape | ShapeFlag::Visualization).into_px(),
+                    ShapeFlags::SceneQueryShape | ShapeFlags::SimulationShape | ShapeFlags::Visualization,
                 ),
                 user_data
             ).unwrap()

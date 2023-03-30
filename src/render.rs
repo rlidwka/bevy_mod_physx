@@ -245,7 +245,7 @@ fn create_debug_meshes(
                 for row in 0..rows {
                     for column in 0..columns {
                         let sample = samples[(row * columns + column) as usize];
-                        positions.push(geom.scale * Vec3::new(row as f32, sample.height as f32, column as f32));
+                        positions.push(geom.scale * Vec3::new(row as f32, sample.height() as f32, column as f32));
 
                         if column != 0 {
                             indices.push(row * columns + column - 1);

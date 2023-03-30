@@ -1,8 +1,10 @@
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
+use physx::scene::SceneFlags;
 use physx::traits::Class;
 use physx_sys::{
+    PxErrorCode,
     PxScene_lockRead_mut,
     PxScene_lockWrite_mut,
     PxScene_unlockRead_mut,
@@ -19,14 +21,8 @@ use super::{PxShape, PxScene};
 struct ErrorCallback;
 
 impl physx::physics::ErrorCallback for ErrorCallback {
-    fn report_error(
-        &self,
-        code: enumflags2::BitFlags<physx::foundation::ErrorCode>,
-        message: &str,
-        file: &str,
-        line: u32,
-    ) {
-        bevy::log::error!(target: "bevy_physx", "[{file:}:{line:}] {code:40}: {message:}");
+    fn report_error(&self, code: PxErrorCode, message: &str, file: &str, line: u32) {
+        bevy::log::error!(target: "bevy_physx", "[{file:}:{line:}] {code:40}: {message:}", code=code as i32);
     }
 }
 
@@ -38,7 +34,6 @@ impl Physics {
         let mut builder = physx::physics::PhysicsFoundationBuilder::default();
         builder.enable_visual_debugger(foundation_desc.visual_debugger);
         builder.with_extensions(foundation_desc.extensions);
-        builder.with_vehicle_sdk(true);
         builder.set_pvd_port(foundation_desc.visual_debugger_port);
         if let Some(host) = foundation_desc.visual_debugger_remote.as_ref() {
             builder.set_pvd_host(host);
@@ -96,7 +91,6 @@ impl Scene {
                 bounce_threshold_velocity: d.bounce_threshold_velocity,
                 friction_offset_threshold: d.friction_offset_threshold,
                 ccd_max_separation: d.ccd_max_separation,
-                solver_offset_slop: d.solver_offset_slop,
                 flags: d.flags,
                 static_structure: d.static_structure,
                 dynamic_structure: d.dynamic_structure,
@@ -122,7 +116,7 @@ impl Scene {
 
         Self {
             scene: SceneRwLock::new(scene),
-            use_physx_lock: d.flags.contains(SceneFlag::RequireRwLock),
+            use_physx_lock: d.flags.contains(SceneFlags::RequireRwLock),
         }
     }
 

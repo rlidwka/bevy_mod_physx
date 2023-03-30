@@ -5,8 +5,8 @@ use physx::scene::Scene;
 use physx::traits::Class;
 use physx_sys::{
     PxFilterData,
-    PxRigidBodyExt_setMassAndUpdateInertia_mut_1,
-    PxRigidBodyExt_updateMassAndInertia_mut_1,
+    PxRigidBodyExt_setMassAndUpdateInertia_1,
+    PxRigidBodyExt_updateMassAndInertia_1,
     PxScene_addActor_mut,
     PxShape_getLocalPose,
     PxShape_setLocalPose_mut,
@@ -152,7 +152,7 @@ pub fn create_dynamic_actors(
 
                 match mass_props {
                     Some(MassProperties::Density { density, center }) => unsafe {
-                        PxRigidBodyExt_updateMassAndInertia_mut_1(
+                        PxRigidBodyExt_updateMassAndInertia_1(
                             actor.as_mut_ptr(),
                             *density,
                             center.to_physx_sys().as_ptr(),
@@ -160,7 +160,7 @@ pub fn create_dynamic_actors(
                         );
                     }
                     Some(MassProperties::Mass { mass, center }) => unsafe {
-                        PxRigidBodyExt_setMassAndUpdateInertia_mut_1(
+                        PxRigidBodyExt_setMassAndUpdateInertia_1(
                             actor.as_mut_ptr(),
                             *mass,
                             center.to_physx_sys().as_ptr(),
