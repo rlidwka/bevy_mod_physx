@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use physx::convex_mesh::ConvexMesh;
-use physx::cooking::{TriangleMeshCookingResult, PxTriangleMeshDesc, ConvexMeshCookingResult, PxConvexMeshDesc, PxHeightFieldDesc};
+use physx::cooking::{TriangleMeshCookingResult, PxTriangleMeshDesc, ConvexMeshCookingResult, PxConvexMeshDesc, PxHeightFieldDesc, PxCookingParams, PxCooking};
 use physx::prelude::*;
 use physx::triangle_mesh::TriangleMesh;
 use physx_sys::{
@@ -125,7 +125,6 @@ impl Geometry {
 
     pub fn convex_mesh(
         physics: &mut bpx::Physics,
-        cooking: &Cooking,
         verts: &[Vec3],
     ) -> Result<Self, ConvexMeshCookingError> {
         let verts = verts.iter().map(|v| v.to_physx()).collect::<Vec<_>>();
@@ -135,6 +134,9 @@ impl Geometry {
         mesh_desc.obj.points.stride = std::mem::size_of::<PxVec3>() as u32;
         mesh_desc.obj.points.data = verts.as_ptr() as *const c_void;
         mesh_desc.obj.flags = PxConvexFlags { mBits: PxConvexFlag::eCOMPUTE_CONVEX as u16 };
+
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
 
         match cooking.create_convex_mesh(physics.physics_mut(), &mesh_desc) {
             ConvexMeshCookingResult::Success(mesh) => Ok(mesh.into()),
@@ -147,7 +149,6 @@ impl Geometry {
 
     pub fn trimesh(
         physics: &mut bpx::Physics,
-        cooking: &Cooking,
         verts: &[Vec3],
         indices: &[[u32; 3]],
     ) -> Result<Self, TriangleMeshCookingError> {
@@ -162,6 +163,9 @@ impl Geometry {
         mesh_desc.obj.triangles.stride = std::mem::size_of::<[u32; 3]>() as u32;
         mesh_desc.obj.triangles.data = indices.as_ptr() as *const c_void;
 
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
+
         match cooking.create_triangle_mesh(physics.physics_mut(), &mesh_desc) {
             TriangleMeshCookingResult::Success(mesh) => Ok(mesh.into()),
             TriangleMeshCookingResult::Failure => Err(TriangleMeshCookingError::Failure),
@@ -172,7 +176,6 @@ impl Geometry {
 
     pub fn cylinder(
         physics: &mut bpx::Physics,
-        cooking: &Cooking,
         half_height: f32,
         radius: f32,
         segments: usize,
@@ -188,12 +191,11 @@ impl Geometry {
             points[2 * i + 1] = Vec3::new(half_height, y, z);
         }
 
-        Self::convex_mesh(physics, cooking, &points)
+        Self::convex_mesh(physics, &points)
     }
 
     pub fn heightfield(
         physics: &mut bpx::Physics,
-        cooking: &Cooking,
         heights: &[i16],
         num_rows: usize,
         num_cols: usize,
@@ -216,6 +218,9 @@ impl Geometry {
         hfield_desc.obj.nbRows = num_rows as u32;
         hfield_desc.obj.samples.stride = std::mem::size_of::<PxHeightFieldSample>() as u32;
         hfield_desc.obj.samples.data = samples.as_ptr() as *const c_void;
+
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
 
         let mesh = cooking.create_height_field(physics.physics_mut(), &hfield_desc)
             .expect("create_height_field failure");

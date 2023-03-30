@@ -86,7 +86,6 @@ impl Default for TolerancesScale {
 
 #[derive(Debug, Clone)]
 pub struct FoundationDescriptor {
-    pub cooking: bool,
     pub extensions: bool,
     pub tolerances: TolerancesScale,
     pub visual_debugger: bool,
@@ -97,7 +96,6 @@ pub struct FoundationDescriptor {
 impl Default for FoundationDescriptor {
     fn default() -> Self {
         Self {
-            cooking: true,
             extensions: true,
             tolerances: default(),
             visual_debugger: true,
@@ -244,10 +242,6 @@ impl Plugin for PhysXPlugin {
         app.add_asset::<bpx::Material>();
 
         app.register_type::<Velocity>();
-
-        if self.foundation.cooking {
-            app.insert_resource(Cooking::new(&mut physics));
-        }
 
         if self.vehicles.enabled {
             app.add_plugin(PhysXVehiclesPlugin(self.vehicles.clone()));

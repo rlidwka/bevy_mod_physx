@@ -18,7 +18,7 @@ pub use super::assets::{Geometry, Material};
 pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Velocity};
 
 #[doc(hidden)]
-pub use super::resources::{Physics, Scene, Cooking};
+pub use super::resources::{Physics, Scene};
 
 #[doc(hidden)]
 pub use super::render::PhysXDebugRenderPlugin;

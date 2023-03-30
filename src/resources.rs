@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
-use physx::cooking::{PxCooking, PxCookingParams};
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
@@ -225,17 +224,6 @@ impl<'t, T> Drop for SceneRwLockWriteGuard<'t, T> {
         if let Some(scene) = self.scene {
             unsafe { PxScene_unlockWrite_mut(scene) }
         }
-    }
-}
-
-#[derive(Resource, Deref, DerefMut)]
-pub struct Cooking(Owner<PxCooking>);
-
-impl Cooking {
-    pub fn new(physics: &mut Physics) -> Self {
-        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
-        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
-        Self(cooking)
     }
 }
 
