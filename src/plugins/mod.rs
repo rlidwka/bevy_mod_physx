@@ -1,3 +1,6 @@
+mod damping;
+pub use damping::{Damping, DampingPlugin};
+
 mod external_force;
 pub use external_force::{ExternalForce, ExternalForcePlugin};
 

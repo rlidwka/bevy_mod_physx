@@ -222,4 +222,4 @@ impl<'t, T> Drop for SceneRwLockWriteGuard<'t, T> {
 }
 
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct DefaultMaterial(Option<Handle<bpx::Material>>);
+pub struct DefaultMaterial(pub Handle<bpx::Material>);

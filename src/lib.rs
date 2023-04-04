@@ -212,7 +212,12 @@ impl Plugin for PhysXPlugin {
         app.add_asset::<bpx::Material>();
 
         app.insert_resource(scene);
-        app.insert_resource(DefaultMaterial::default());
+
+        let default_material = DefaultMaterial(
+            app.world.resource_mut::<Assets<bpx::Material>>()
+                .add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into())
+        );
+        app.insert_resource(default_material);
 
         app.register_type::<PhysicsTime>();
         app.insert_resource(PhysicsTime::new(self.timestep));
@@ -226,6 +231,7 @@ impl Plugin for PhysXPlugin {
             schedule.configure_sets(PhysicsSet::sets());
         });
 
+        app.add_plugin(crate::plugins::DampingPlugin);
         app.add_plugin(crate::plugins::ExternalForcePlugin);
         app.add_plugin(crate::plugins::VelocityPlugin);
 

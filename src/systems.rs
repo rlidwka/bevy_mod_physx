@@ -69,7 +69,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     materials: &mut ResMut<Assets<bpx::Material>>,
     query: &ShapesQuery,
     actor_transform: &GlobalTransform,
-    default_material: &mut ResMut<DefaultMaterial>,
+    default_material: &Handle<bpx::Material>,
 ) {
     let mut found_shapes = vec![];
     find_nested_shapes(entity, query, &mut found_shapes, 0);
@@ -85,16 +85,10 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }).unwrap_or_default();
 
         if material.is_none() {
-            // fetch default material if it exists, create if it doesn't
-            if default_material.is_none() {
-                let material = materials.add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into());
-                ***default_material = Some(material);
-            }
-
-            material = materials.get_mut(default_material.as_ref().as_ref().unwrap());
+            material = materials.get_mut(default_material);
         }
 
-        let material = material.unwrap(); // we create default material above, so we guarantee it exists
+        let material = material.expect("default material not found");
         let (mut shape_handle, transform) = ShapeHandle::create_shape(physics, geometry, material, entity);
 
         unsafe {
@@ -129,7 +123,7 @@ pub fn create_dynamic_actors(
     mut new_actors: ActorsQuery,
     mut geometries: ResMut<Assets<bpx::Geometry>>,
     mut materials: ResMut<Assets<bpx::Material>>,
-    mut default_material: ResMut<DefaultMaterial>,
+    default_material: Res<DefaultMaterial>,
 ) {
     for (entity, actor_cfg, actor_transform, mass_props) in new_actors.iter_mut() {
         let mut scene = scene.get_mut();
@@ -147,7 +141,7 @@ pub fn create_dynamic_actors(
                     &mut materials,
                     &query,
                     actor_transform,
-                    &mut default_material,
+                    &default_material,
                 );
 
                 match mass_props {
@@ -191,7 +185,7 @@ pub fn create_dynamic_actors(
                     &mut materials,
                     &query,
                     actor_transform,
-                    &mut default_material,
+                    &default_material,
                 );
 
                 if mass_props.is_some() {
