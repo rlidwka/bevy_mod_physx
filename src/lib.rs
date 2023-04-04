@@ -20,7 +20,6 @@ use physx::scene::{
     SolverType,
 };
 use physx_sys::PxTolerancesScale;
-use crate::prelude::*;
 use crate::prelude as bpx;
 mod type_bridge;
 
@@ -28,6 +27,7 @@ mod systems;
 pub mod assets;
 pub mod callbacks;
 pub mod components;
+pub mod plugins;
 pub mod prelude;
 pub mod resources;
 pub mod render;
@@ -165,20 +165,19 @@ pub struct PhysicsSchedule;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
-    TransformPropagate,
+    First,
     ApplyChanges,
-    Flush,
     Simulate,
     Writeback,
 }
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::TransformPropagate, Self::ApplyChanges, Self::Flush, Self::Simulate, Self::Writeback].into_iter()
+        [Self::First, Self::ApplyChanges, Self::Simulate, Self::Writeback].into_iter()
     }
 
     pub fn sets() -> SystemSetConfigs {
-        (Self::TransformPropagate, Self::ApplyChanges, Self::Flush, Self::Simulate, Self::Writeback).chain()
+        (Self::First, Self::ApplyChanges, Self::Simulate, Self::Writeback).chain()
     }
 }
 
@@ -212,8 +211,6 @@ impl Plugin for PhysXPlugin {
         app.add_asset::<bpx::Geometry>();
         app.add_asset::<bpx::Material>();
 
-        app.register_type::<Velocity>();
-
         app.insert_resource(scene);
         app.insert_resource(DefaultMaterial::default());
 
@@ -229,20 +226,20 @@ impl Plugin for PhysXPlugin {
             schedule.configure_sets(PhysicsSet::sets());
         });
 
+        app.add_plugin(crate::plugins::ExternalForcePlugin);
+        app.add_plugin(crate::plugins::VelocityPlugin);
+
         // add all systems to the set
         app.add_systems((
-            bevy::transform::systems::propagate_transforms,
-            bevy::transform::systems::sync_simple_transforms,
-        ).chain().in_base_set(PhysicsSet::TransformPropagate).in_schedule(PhysicsSchedule));
+            bevy::transform::systems::propagate_transforms.before(systems::create_dynamic_actors),
+            bevy::transform::systems::sync_simple_transforms.before(systems::create_dynamic_actors),
+            systems::create_dynamic_actors.before(apply_system_buffers),
+            apply_system_buffers,
+        ).in_base_set(PhysicsSet::First).in_schedule(PhysicsSchedule));
 
         app.add_systems((
             systems::apply_user_changes,
-            systems::create_dynamic_actors,
         ).in_base_set(PhysicsSet::ApplyChanges).in_schedule(PhysicsSchedule));
-
-        app.add_systems((
-            apply_system_buffers,
-        ).in_base_set(PhysicsSet::Flush).in_schedule(PhysicsSchedule));
 
         app.add_systems((
             systems::scene_simulate,

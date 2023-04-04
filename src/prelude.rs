@@ -15,7 +15,10 @@ pub use super::{
 pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
-pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties, Velocity};
+pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties};
+
+#[doc(hidden)]
+pub use super::plugins::{ExternalForce, Velocity};
 
 #[doc(hidden)]
 pub use super::resources::{Physics, Scene};

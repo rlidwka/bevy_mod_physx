@@ -20,7 +20,7 @@ use super::components::{RigidDynamicHandle, RigidStaticHandle};
 use super::resources::DefaultMaterial;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>, Option<&'a Velocity>),
+    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>),
     (Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
 >;
 
@@ -131,7 +131,7 @@ pub fn create_dynamic_actors(
     mut materials: ResMut<Assets<bpx::Material>>,
     mut default_material: ResMut<DefaultMaterial>,
 ) {
-    for (entity, actor_cfg, actor_transform, mass_props, velocity) in new_actors.iter_mut() {
+    for (entity, actor_cfg, actor_transform, mass_props) in new_actors.iter_mut() {
         let mut scene = scene.get_mut();
 
         match actor_cfg {
@@ -170,11 +170,6 @@ pub fn create_dynamic_actors(
                     None => {}
                 }
 
-                if let Some(Velocity { linvel, angvel }) = velocity {
-                    actor.set_linear_velocity(&linvel.to_physx(), false);
-                    actor.set_angular_velocity(&angvel.to_physx(), false);
-                }
-
                 // unsafe raw function call is required to avoid consuming actor
                 unsafe {
                     PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
@@ -201,10 +196,6 @@ pub fn create_dynamic_actors(
 
                 if mass_props.is_some() {
                     bevy::log::warn!("ignoring BPxMassProperties component from a static actor");
-                }
-
-                if velocity.is_some() {
-                    bevy::log::warn!("ignoring BPxVelocity component from a static actor");
                 }
 
                 // unsafe raw function call is required to avoid consuming actor
@@ -244,9 +235,9 @@ pub fn writeback_actors(
     global_transforms: Query<&GlobalTransform>,
     parents: Query<&Parent>,
     mut writeback_transform: Query<&mut Transform>,
-    mut actors: Query<(Entity, &mut RigidDynamicHandle, Option<&Parent>, Option<&mut Velocity>)>
+    mut actors: Query<(Entity, &mut RigidDynamicHandle, Option<&Parent>)>
 ) {
-    for (actor_entity, mut actor, parent, velocity) in actors.iter_mut() {
+    for (actor_entity, mut actor, parent) in actors.iter_mut() {
         let actor_handle = actor.get(&scene);
         let xform = actor_handle.get_global_pose();
         let mut actor_xform = xform.to_bevy();
@@ -294,16 +285,6 @@ pub fn writeback_actors(
                 // avoid triggering bevy's change tracking if no change
                 if shape_xform != *transform { *transform = shape_xform; }
             }
-        }
-
-        if let Some(mut velocity) = velocity {
-            let newvel = Velocity::new(
-                actor_handle.get_linear_velocity().to_bevy(),
-                actor_handle.get_angular_velocity().to_bevy(),
-            );
-
-            // avoid triggering bevy's change tracking if no change
-            if newvel != *velocity { *velocity = newvel; }
         }
 
         drop(actor_handle);

@@ -169,30 +169,6 @@ impl RigidStaticHandle {
     }
 }
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
-pub struct Velocity {
-    pub linvel: Vec3,
-    pub angvel: Vec3,
-}
-
-impl Velocity {
-    pub fn new(linvel: Vec3, angvel: Vec3) -> Self {
-        Self { linvel, angvel }
-    }
-
-    pub fn zero() -> Self {
-        Self { ..default() }
-    }
-
-    pub fn linear(linvel: Vec3) -> Self {
-        Self { linvel, ..default() }
-    }
-
-    pub fn angular(angvel: Vec3) -> Self {
-        Self { angvel, ..default() }
-    }
-}
-
 #[derive(Component, Debug, Clone)]
 pub enum MassProperties {
     Density {
