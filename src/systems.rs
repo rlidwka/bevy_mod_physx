@@ -95,12 +95,12 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }
 
         let material = material.unwrap(); // we create default material above, so we guarantee it exists
-        let mut shape_handle = ShapeHandle::create_shape(physics, geometry, material, entity);
+        let (mut shape_handle, transform) = ShapeHandle::create_shape(physics, geometry, material, entity);
 
         unsafe {
             PxShape_setLocalPose_mut(
                 shape_handle.as_mut_ptr(),
-                relative_transform.to_physx().as_ptr(),
+                (relative_transform * transform).to_physx().as_ptr(),
             );
 
             if query_filter_data != default() {

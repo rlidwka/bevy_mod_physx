@@ -52,10 +52,16 @@ impl ShapeHandle {
         Self(Some(px_shape))
     }
 
-    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> Self {
-        let geometry_ptr = match geometry.obj {
+    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> (Self, Transform) {
+        // we want to specify outward normal for PxPlane specifically, so need to return transform for this
+        let mut transform = Transform::IDENTITY;
+
+        let geometry_ptr = match &mut geometry.obj {
             GeometryInner::Sphere(geom)  => { geom.as_ptr() },
-            GeometryInner::Plane(geom)   => { geom.as_ptr() },
+            GeometryInner::Plane(geom)   => {
+                transform.rotate(Quat::from_rotation_arc(Vec3::X, geom.normal));
+                geom.plane.as_ptr()
+            },
             GeometryInner::Capsule(geom) => { geom.as_ptr() },
             GeometryInner::Box(geom)     => { geom.as_ptr() },
             GeometryInner::ConvexMesh(ref mut geom) => {
@@ -97,7 +103,7 @@ impl ShapeHandle {
             ).unwrap()
         };
 
-        Self::new(shape)
+        (Self::new(shape), transform)
     }
 }
 

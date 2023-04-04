@@ -36,7 +36,7 @@ pub struct Geometry {
 #[derive(Clone)]
 pub enum GeometryInner {
     Sphere(PxSphereGeometry),
-    Plane(PxPlaneGeometry),
+    Plane(GeometryInnerPlane),
     Capsule(PxCapsuleGeometry),
     Box(PxBoxGeometry),
 
@@ -55,7 +55,8 @@ impl From<PxSphereGeometry> for Geometry {
 
 impl From<PxPlaneGeometry> for Geometry {
     fn from(value: PxPlaneGeometry) -> Self {
-        Self { obj: GeometryInner::Plane(value) }
+        // makes more sense to default normal to Y axis (ground), but physx defaults to X axis
+        Self { obj: GeometryInner::Plane(GeometryInnerPlane { plane: value, normal: Vec3::X }) }
     }
 }
 
@@ -108,8 +109,11 @@ impl Geometry {
         PxSphereGeometry::new(radius).into()
     }
 
-    pub fn halfspace() -> Self {
-        PxPlaneGeometry::new().into()
+    pub fn halfspace(outward_normal: Vec3) -> Self {
+        let Some(outward_normal) = outward_normal.try_normalize() else {
+            panic!("halfspace outward normal is zero");
+        };
+        Self { obj: GeometryInner::Plane(GeometryInnerPlane { plane: PxPlaneGeometry::new(), normal: outward_normal }) }
     }
 
     pub fn capsule(half_height: f32, radius: f32) -> Self {
@@ -284,6 +288,12 @@ pub enum TriangleMeshCookingError {
     Failure,
     InvalidDescriptor,
     LargeTriangle,
+}
+
+#[derive(Clone)]
+pub struct GeometryInnerPlane {
+    pub plane: PxPlaneGeometry,
+    pub normal: Vec3,
 }
 
 #[derive(Clone)]

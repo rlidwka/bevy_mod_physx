@@ -67,7 +67,7 @@ fn spawn_plane(
 ) {
     let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0, subdivisions: 4 }));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
-    let px_geometry = px_geometries.add(bpx::Geometry::halfspace());
+    let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
@@ -76,18 +76,11 @@ fn spawn_plane(
             material,
             ..default()
         })
-        .with_children(|builder| {
-            builder.spawn_empty()
-                .insert(SpatialBundle::from_transform(
-                    // physx default plane is rotated compared to bevy plane, we undo that
-                    Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2))
-                ))
-                .insert(bpx::RigidBody::Static)
-                .insert(bpx::Shape {
-                    geometry: px_geometry,
-                    material: px_material,
-                    ..default()
-                });
+        .insert(bpx::RigidBody::Static)
+        .insert(bpx::Shape {
+            geometry: px_geometry,
+            material: px_material,
+            ..default()
         })
         .insert(Name::new("Plane"));
 }
