@@ -112,7 +112,7 @@ fn create_debug_meshes(
         let mut indices = vec![];
         const SPHERE_SEGMENTS: u32 = 24;
 
-        match geometry.obj {
+        match &geometry.obj {
             GeometryInner::Sphere(geom)  => {
                 for i in 0..SPHERE_SEGMENTS {
                     let arclen = std::f32::consts::TAU / SPHERE_SEGMENTS as f32 * i as f32;
@@ -127,7 +127,7 @@ fn create_debug_meshes(
                     }
                 }
             },
-            GeometryInner::Plane(_) => {
+            GeometryInner::Plane { .. } => {
                 for x in 0..=0 {
                     indices.push(positions.len() as u32);
                     positions.push(Vec3::new(0., x as f32, -1000000.));
@@ -186,10 +186,10 @@ fn create_debug_meshes(
                     indices.push(idx);
                 }
             },
-            GeometryInner::ConvexMesh(ref geom) => {
-                let mesh = geom.mesh.lock().unwrap();
+            GeometryInner::ConvexMesh { mesh, scale, rotation, .. } => {
+                let mesh = mesh.lock().unwrap();
                 for vertex in mesh.get_vertices() {
-                    positions.push(geom.rotation * vertex.to_bevy() * geom.scale);
+                    positions.push(*rotation * vertex.to_bevy() * *scale);
                 }
 
                 let index_buffer = mesh.get_index_buffer();
@@ -209,10 +209,10 @@ fn create_debug_meshes(
                     }
                 }
             },
-            GeometryInner::TriangleMesh(ref geom) => {
-                let mesh = geom.mesh.lock().unwrap();
+            GeometryInner::TriangleMesh { mesh, scale, rotation, .. } => {
+                let mesh = mesh.lock().unwrap();
                 for vertex in mesh.get_vertices() {
-                    positions.push(geom.rotation * vertex.to_bevy() * geom.scale);
+                    positions.push(*rotation * vertex.to_bevy() * *scale);
                 }
 
                 let index_buffer = mesh.get_triangles();
@@ -236,8 +236,8 @@ fn create_debug_meshes(
                     }
                 }
             },
-            GeometryInner::HeightField(ref geom) => {
-                let mesh = geom.hfield.lock().unwrap();
+            GeometryInner::HeightField { mesh, scale, .. } => {
+                let mesh = mesh.lock().unwrap();
                 let rows = mesh.get_nb_rows();
                 let columns = mesh.get_nb_columns();
                 let samples = mesh.save_cells();
@@ -245,7 +245,7 @@ fn create_debug_meshes(
                 for row in 0..rows {
                     for column in 0..columns {
                         let sample = samples[(row * columns + column) as usize];
-                        positions.push(geom.scale * Vec3::new(row as f32, sample.height() as f32, column as f32));
+                        positions.push(*scale * Vec3::new(row as f32, sample.height() as f32, column as f32));
 
                         if column != 0 {
                             indices.push(row * columns + column - 1);

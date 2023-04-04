@@ -58,33 +58,33 @@ impl ShapeHandle {
 
         let geometry_ptr = match &mut geometry.obj {
             GeometryInner::Sphere(geom)  => { geom.as_ptr() },
-            GeometryInner::Plane(geom)   => {
-                transform.rotate(Quat::from_rotation_arc(Vec3::X, geom.normal));
-                geom.plane.as_ptr()
+            GeometryInner::Plane { plane, normal } => {
+                transform.rotate(Quat::from_rotation_arc(Vec3::X, *normal));
+                plane.as_ptr()
             },
             GeometryInner::Capsule(geom) => { geom.as_ptr() },
             GeometryInner::Box(geom)     => { geom.as_ptr() },
-            GeometryInner::ConvexMesh(ref mut geom) => {
+            GeometryInner::ConvexMesh { mesh, scale, rotation, flags } => {
                 PxConvexMeshGeometry::new(
-                    geom.mesh.lock().unwrap().as_mut(),
-                    unsafe { &PxMeshScale_new_3(geom.scale.to_physx_sys().as_ptr(), geom.rotation.to_physx().as_ptr()) },
-                    geom.flags,
+                    mesh.lock().unwrap().as_mut(),
+                    unsafe { &PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) },
+                    *flags,
                 ).as_ptr()
             },
-            GeometryInner::TriangleMesh(ref mut geom) => {
+            GeometryInner::TriangleMesh { mesh, scale, rotation, flags } => {
                 PxTriangleMeshGeometry::new(
-                    geom.mesh.lock().unwrap().as_mut(),
-                    unsafe { &PxMeshScale_new_3(geom.scale.to_physx_sys().as_ptr(), geom.rotation.to_physx().as_ptr()) },
-                    geom.flags,
+                    mesh.lock().unwrap().as_mut(),
+                    unsafe { &PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) },
+                    *flags,
                 ).as_ptr()
             },
-            GeometryInner::HeightField(ref mut geom) => {
+            GeometryInner::HeightField { mesh, scale, flags } => {
                 PxHeightFieldGeometry::new(
-                    geom.hfield.lock().unwrap().as_mut(),
-                    geom.flags,
-                    geom.scale.y,
-                    geom.scale.x,
-                    geom.scale.z,
+                    mesh.lock().unwrap().as_mut(),
+                    *flags,
+                    scale.y,
+                    scale.x,
+                    scale.z,
                 ).as_ptr()
             },
         };

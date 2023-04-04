@@ -36,15 +36,38 @@ pub struct Geometry {
 #[derive(Clone)]
 pub enum GeometryInner {
     Sphere(PxSphereGeometry),
-    Plane(GeometryInnerPlane),
     Capsule(PxCapsuleGeometry),
     Box(PxBoxGeometry),
 
+    // physx plane always faces in X direction,
+    // but it's convenient to be able to customize this (similar to rapier api),
+    // thus a lot of complications here
+    Plane {
+        plane: PxPlaneGeometry,
+        normal: Vec3,
+    },
+
     // for convexmesh and triangle mesh we have to own the mesh,
     // so it's simpler to construct geometry on demand
-    ConvexMesh(GeometryInnerConvexMesh),
-    TriangleMesh(GeometryInnerTriangleMesh),
-    HeightField(GeometryInnerHeightField),
+    ConvexMesh {
+        mesh: Arc<Mutex<Owner<ConvexMesh>>>,
+        scale: Vec3,
+        rotation: Quat,
+        flags: PxConvexMeshGeometryFlags,
+    },
+
+    TriangleMesh {
+        mesh: Arc<Mutex<Owner<TriangleMesh>>>,
+        scale: Vec3,
+        rotation: Quat,
+        flags: PxMeshGeometryFlags,
+    },
+
+    HeightField {
+        mesh: Arc<Mutex<Owner<HeightField>>>,
+        scale: Vec3,
+        flags: PxMeshGeometryFlags,
+    },
 }
 
 impl From<PxSphereGeometry> for Geometry {
@@ -56,7 +79,7 @@ impl From<PxSphereGeometry> for Geometry {
 impl From<PxPlaneGeometry> for Geometry {
     fn from(value: PxPlaneGeometry) -> Self {
         // makes more sense to default normal to Y axis (ground), but physx defaults to X axis
-        Self { obj: GeometryInner::Plane(GeometryInnerPlane { plane: value, normal: Vec3::X }) }
+        Self { obj: GeometryInner::Plane { plane: value, normal: Vec3::X } }
     }
 }
 
@@ -74,33 +97,33 @@ impl From<PxBoxGeometry> for Geometry {
 
 impl From<Owner<ConvexMesh>> for Geometry {
     fn from(value: Owner<ConvexMesh>) -> Self {
-        Self { obj: GeometryInner::ConvexMesh(GeometryInnerConvexMesh {
+        Self { obj: GeometryInner::ConvexMesh {
             mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
             rotation: Quat::IDENTITY,
             flags: ConvexMeshGeometryFlags::TightBounds,
-        }) }
+        } }
     }
 }
 
 impl From<Owner<TriangleMesh>> for Geometry {
     fn from(value: Owner<TriangleMesh>) -> Self {
-        Self { obj: GeometryInner::TriangleMesh(GeometryInnerTriangleMesh {
+        Self { obj: GeometryInner::TriangleMesh {
             mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
             rotation: Quat::IDENTITY,
             flags: MeshGeometryFlags::TightBounds,
-        }) }
+        } }
     }
 }
 
 impl From<Owner<HeightField>> for Geometry {
     fn from(value: Owner<HeightField>) -> Self {
-        Self { obj: GeometryInner::HeightField(GeometryInnerHeightField {
-            hfield: Arc::new(Mutex::new(value)),
+        Self { obj: GeometryInner::HeightField {
+            mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
             flags: MeshGeometryFlags::TightBounds,
-        }) }
+        } }
     }
 }
 
@@ -113,7 +136,7 @@ impl Geometry {
         let Some(outward_normal) = outward_normal.try_normalize() else {
             panic!("halfspace outward normal is zero");
         };
-        Self { obj: GeometryInner::Plane(GeometryInnerPlane { plane: PxPlaneGeometry::new(), normal: outward_normal }) }
+        Self { obj: GeometryInner::Plane { plane: PxPlaneGeometry::new(), normal: outward_normal } }
     }
 
     pub fn capsule(half_height: f32, radius: f32) -> Self {
@@ -218,11 +241,11 @@ impl Geometry {
         mesh.into()
     }
 
-    pub fn with_scale(mut self, scale: Vec3) -> Self {
-        match &mut self.obj {
-            GeometryInner::ConvexMesh(ref mut obj) => { obj.scale = scale; }
-            GeometryInner::TriangleMesh(ref mut obj) => { obj.scale = scale; }
-            GeometryInner::HeightField(ref mut obj) => { obj.scale = scale; }
+    pub fn with_scale(mut self, new_scale: Vec3) -> Self {
+        match self.obj {
+            GeometryInner::ConvexMesh { ref mut scale, .. } => { *scale = new_scale; }
+            GeometryInner::TriangleMesh { ref mut scale, .. } => { *scale = new_scale; }
+            GeometryInner::HeightField { ref mut scale, .. } => { *scale = new_scale; }
             _ => {
                 bevy::log::warn!("unable to set scale, wrong geometry type (not ConvexMesh, TriangleMesh or HeightField)");
             }
@@ -230,10 +253,10 @@ impl Geometry {
         self
     }
 
-    pub fn with_rotation(mut self, rotation: Quat) -> Self {
+    pub fn with_rotation(mut self, new_rotation: Quat) -> Self {
         match &mut self.obj {
-            GeometryInner::ConvexMesh(ref mut obj) => { obj.rotation = rotation; }
-            GeometryInner::TriangleMesh(ref mut obj) => { obj.rotation = rotation; }
+            GeometryInner::ConvexMesh { ref mut rotation, .. } => { *rotation = new_rotation; }
+            GeometryInner::TriangleMesh { ref mut rotation, .. } => { *rotation = new_rotation; }
             _ => {
                 bevy::log::warn!("unable to set rotation, wrong geometry type (not ConvexMesh or TriangleMesh)");
             }
@@ -243,14 +266,14 @@ impl Geometry {
 
     pub fn with_tight_bounds(mut self, tight_bounds: bool) -> Self {
         match &mut self.obj {
-            GeometryInner::ConvexMesh(ref mut obj) => {
-                obj.flags.set(ConvexMeshGeometryFlags::TightBounds, tight_bounds);
+            GeometryInner::ConvexMesh { ref mut flags, .. } => {
+                flags.set(ConvexMeshGeometryFlags::TightBounds, tight_bounds);
             }
-            GeometryInner::TriangleMesh(ref mut obj) => {
-                obj.flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
+            GeometryInner::TriangleMesh { ref mut flags, .. } => {
+                flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
             }
-            GeometryInner::HeightField(ref mut obj) => {
-                obj.flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
+            GeometryInner::HeightField { ref mut flags, .. } => {
+                flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
             }
             _ => {
                 bevy::log::warn!("unable to set tight bounds, wrong geometry type (not ConvexMesh, TriangleMesh or HeightField)");
@@ -261,11 +284,11 @@ impl Geometry {
 
     pub fn with_double_sided(mut self, double_sided: bool) -> Self {
         match &mut self.obj {
-            GeometryInner::TriangleMesh(ref mut obj) => {
-                obj.flags.set(MeshGeometryFlags::DoubleSided, double_sided);
+            GeometryInner::TriangleMesh { ref mut flags, .. } => {
+                flags.set(MeshGeometryFlags::DoubleSided, double_sided);
             }
-            GeometryInner::HeightField(ref mut obj) => {
-                obj.flags.set(MeshGeometryFlags::DoubleSided, double_sided);
+            GeometryInner::HeightField { ref mut flags, .. } => {
+                flags.set(MeshGeometryFlags::DoubleSided, double_sided);
             }
             _ => {
                 bevy::log::warn!("unable to set double sided, wrong geometry type (not TriangleMesh or HeightField)");
@@ -294,27 +317,4 @@ pub enum TriangleMeshCookingError {
 pub struct GeometryInnerPlane {
     pub plane: PxPlaneGeometry,
     pub normal: Vec3,
-}
-
-#[derive(Clone)]
-pub struct GeometryInnerConvexMesh {
-    pub mesh: Arc<Mutex<Owner<ConvexMesh>>>,
-    pub scale: Vec3,
-    pub rotation: Quat,
-    pub flags: PxConvexMeshGeometryFlags,
-}
-
-#[derive(Clone)]
-pub struct GeometryInnerTriangleMesh {
-    pub mesh: Arc<Mutex<Owner<TriangleMesh>>>,
-    pub scale: Vec3,
-    pub rotation: Quat,
-    pub flags: PxMeshGeometryFlags,
-}
-
-#[derive(Clone)]
-pub struct GeometryInnerHeightField {
-    pub hfield: Arc<Mutex<Owner<HeightField>>>,
-    pub scale: Vec3,
-    pub flags: PxMeshGeometryFlags,
 }
