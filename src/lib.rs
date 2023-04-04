@@ -29,6 +29,7 @@ pub mod callbacks;
 pub mod components;
 pub mod plugins;
 pub mod prelude;
+pub mod raycast;
 pub mod resources;
 pub mod render;
 

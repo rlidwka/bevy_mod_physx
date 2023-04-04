@@ -21,6 +21,9 @@ pub use super::components::{RigidBody, Shape, ShapeHandle, MassProperties};
 pub use super::plugins::{Damping, ExternalForce, Velocity};
 
 #[doc(hidden)]
+pub use super::raycast::{RaycastHit, SceneQueryExt};
+
+#[doc(hidden)]
 pub use super::resources::{Physics, Scene};
 
 #[doc(hidden)]
