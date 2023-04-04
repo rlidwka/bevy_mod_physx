@@ -120,8 +120,8 @@ impl Geometry {
         PxCapsuleGeometry::new(radius, half_height).into()
     }
 
-    pub fn cuboid(hx: f32, hy: f32, hz: f32) -> Self {
-        PxBoxGeometry::new(hx / 2., hy / 2., hz / 2.).into()
+    pub fn cuboid(half_x: f32, half_y: f32, half_z: f32) -> Self {
+        PxBoxGeometry::new(half_x, half_y, half_z).into()
     }
 
     pub fn convex_mesh(

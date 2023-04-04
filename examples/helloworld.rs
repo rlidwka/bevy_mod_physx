@@ -97,7 +97,7 @@ fn spawn_stacks(
     let mesh = meshes.add(Mesh::from(shape::Cube { size: WIDTH }));
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
 
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(WIDTH, WIDTH, WIDTH));
+    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(WIDTH / 2., WIDTH / 2., WIDTH / 2.));
 
     for i in 0..5 {
         commands.spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., -1.25 * i as f32)))
