@@ -1,8 +1,11 @@
 mod damping;
-pub use damping::{Damping, DampingPlugin};
+pub use damping::*;
 
 mod external_force;
-pub use external_force::{ExternalForce, ExternalForcePlugin};
+pub use external_force::*;
+
+mod mass_properties;
+pub use mass_properties::*;
 
 mod velocity;
-pub use velocity::{Velocity, VelocityPlugin};
+pub use velocity::*;

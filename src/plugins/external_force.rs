@@ -34,11 +34,11 @@ pub struct ExternalForcePlugin;
 impl Plugin for ExternalForcePlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ExternalForce>();
-        app.add_system(sync.in_base_set(PhysicsSet::Writeback).in_schedule(PhysicsSchedule));
+        app.add_system(external_force_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
     }
 }
 
-pub fn sync(
+pub fn external_force_sync(
     mut scene: ResMut<Scene>,
     mut actors: Query<(&mut RigidDynamicHandle, &ExternalForce)>
 ) {

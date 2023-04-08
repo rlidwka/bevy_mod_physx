@@ -45,14 +45,18 @@ impl From<FilterData> for PxFilterData {
 }
 
 #[derive(Component)]
-pub struct ShapeHandle(Option<Owner<PxShape>>);
+pub struct ShapeHandle {
+    pub handle: Option<SceneRwLock<Owner<PxShape>>>,
+    // we want to specify outward normal for PxPlane specifically, so need to return transform for this
+    pub custom_xform: Transform,
+}
 
 impl ShapeHandle {
-    pub fn new(px_shape: Owner<PxShape>) -> Self {
-        Self(Some(px_shape))
+    pub fn new(px_shape: Owner<PxShape>, custom_xform: Transform) -> Self {
+        Self { handle: Some(SceneRwLock::new(px_shape)), custom_xform }
     }
 
-    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> (Self, Transform) {
+    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> Self {
         // we want to specify outward normal for PxPlane specifically, so need to return transform for this
         let mut transform = Transform::IDENTITY;
 
@@ -103,7 +107,7 @@ impl ShapeHandle {
             ).unwrap()
         };
 
-        (Self::new(shape), transform)
+        Self::new(shape, transform)
     }
 }
 
@@ -111,23 +115,23 @@ impl Drop for ShapeHandle {
     fn drop(&mut self) {
         // TODO: remove this entire drop when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
-        let mut shape = self.0.take().unwrap();
+        let mut shape = self.handle.take().unwrap();
         unsafe {
             use physx::shape::Shape;
-            drop_in_place(shape.get_user_data_mut());
-            PxShape_release_mut(shape.as_mut_ptr());
+            drop_in_place(shape.get_mut_unsafe().get_user_data_mut());
+            PxShape_release_mut(shape.get_mut_unsafe().as_mut_ptr());
         }
         std::mem::forget(shape);
     }
 }
 
 impl std::ops::Deref for ShapeHandle {
-    type Target = PxShape;
+    type Target = SceneRwLock<Owner<PxShape>>;
 
     fn deref(&self) -> &Self::Target {
         // TODO: replace with Deref/DerefMut derive when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
-        self.0.as_ref().unwrap()
+        self.handle.as_ref().unwrap()
     }
 }
 
@@ -135,7 +139,7 @@ impl std::ops::DerefMut for ShapeHandle {
     fn deref_mut(&mut self) -> &mut Self::Target {
         // TODO: replace with Deref/DerefMut derive when this gets fixed:
         // https://github.com/EmbarkStudios/physx-rs/issues/180
-        self.0.as_mut().unwrap()
+        self.handle.as_mut().unwrap()
     }
 }
 
@@ -145,12 +149,12 @@ pub struct RigidDynamicHandle {
     #[deref_mut]
     pub handle: SceneRwLock<Owner<PxRigidDynamic>>,
     // used for change detection
-    pub cached_transform: GlobalTransform,
+    pub predicted_gxform: GlobalTransform,
 }
 
 impl RigidDynamicHandle {
-    pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>, transform: GlobalTransform) -> Self {
-        Self { handle: SceneRwLock::new(px_rigid_dynamic), cached_transform: transform }
+    pub fn new(px_rigid_dynamic: Owner<PxRigidDynamic>, predicted_gxform: GlobalTransform) -> Self {
+        Self { handle: SceneRwLock::new(px_rigid_dynamic), predicted_gxform }
     }
 }
 
@@ -160,41 +164,11 @@ pub struct RigidStaticHandle {
     #[deref_mut]
     pub handle: SceneRwLock<Owner<PxRigidStatic>>,
     // used for change detection
-    pub cached_transform: GlobalTransform,
+    pub predicted_gxform: GlobalTransform,
 }
 
 impl RigidStaticHandle {
-    pub fn new(px_rigid_static: Owner<PxRigidStatic>, transform: GlobalTransform) -> Self {
-        Self { handle: SceneRwLock::new(px_rigid_static), cached_transform: transform }
-    }
-}
-
-#[derive(Component, Debug, Clone)]
-pub enum MassProperties {
-    Density {
-        density: f32,
-        center: Vec3,
-    },
-    Mass {
-        mass: f32,
-        center: Vec3,
-    },
-}
-
-impl MassProperties {
-    pub fn density(density: f32) -> Self {
-        Self::Density { density, center: Vec3::ZERO }
-    }
-
-    pub fn mass(mass: f32) -> Self {
-        Self::Mass { mass, center: Vec3::ZERO }
-    }
-
-    pub fn density_with_center(density: f32, center: Vec3) -> Self {
-        Self::Density { density, center }
-    }
-
-    pub fn mass_with_center(mass: f32, center: Vec3) -> Self {
-        Self::Mass { mass, center }
+    pub fn new(px_rigid_static: Owner<PxRigidStatic>, predicted_gxform: GlobalTransform) -> Self {
+        Self { handle: SceneRwLock::new(px_rigid_static), predicted_gxform }
     }
 }

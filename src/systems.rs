@@ -5,8 +5,6 @@ use physx::scene::Scene;
 use physx::traits::Class;
 use physx_sys::{
     PxFilterData,
-    PxRigidBodyExt_setMassAndUpdateInertia_1,
-    PxRigidBodyExt_updateMassAndInertia_1,
     PxScene_addActor_mut,
     PxShape_getLocalPose,
     PxShape_setLocalPose_mut,
@@ -20,7 +18,7 @@ use super::components::{RigidDynamicHandle, RigidStaticHandle};
 use super::resources::DefaultMaterial;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a MassProperties>),
+    (Entity, &'a bpx::RigidBody, &'a GlobalTransform),
     (Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
 >;
 
@@ -38,28 +36,6 @@ pub fn scene_simulate(
     scene.fetch_results(true).unwrap();
 }
 
-fn find_nested_shapes(
-    entity: Entity,
-    query: &ShapesQuery,
-    result: &mut Vec<(Entity, bpx::Shape, Option<GlobalTransform>)>,
-    level: u32,
-) {
-    if let Ok((entity, bpactor, children, shape_cfg, gtransform)) = query.get(entity) {
-        // if we find BPxActor which is not the current one (level > 0), don't add its shapes
-        if level > 0 && bpactor.is_some() { return; }
-
-        if let Some(shape_cfg) = shape_cfg {
-            result.push((entity, shape_cfg.clone(), gtransform.copied()));
-        }
-
-        if let Some(children) = children {
-            for child in children.iter().copied() {
-                find_nested_shapes(child, query, result, level + 1);
-            }
-        }
-    }
-}
-
 fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     commands: &mut Commands,
     entity: Entity,
@@ -72,7 +48,25 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     default_material: &Handle<bpx::Material>,
 ) {
     let mut found_shapes = vec![];
-    find_nested_shapes(entity, query, &mut found_shapes, 0);
+
+    let Ok((entity, _bpactor, children, shape_cfg, gtransform)) = query.get(entity) else { return; };
+
+    if let Some(shape_cfg) = shape_cfg {
+        // single shape, matches root
+        found_shapes.push((entity, shape_cfg.clone(), gtransform.copied()));
+    } else if let Some(children) = children {
+        // children, possibly multiple shapes
+        for child in children.iter().copied() {
+            let Ok((_entity, bpactor, _children, shape_cfg, gtransform)) = query.get(child) else { continue; };
+
+            // if we find Actor which is not the current one (level > 0), don't add its shapes
+            if bpactor.is_some() { continue; }
+
+            if let Some(shape_cfg) = shape_cfg {
+                found_shapes.push((child, shape_cfg.clone(), gtransform.copied()));
+            }
+        }
+    }
 
     for (entity, shape_cfg, gtransform) in found_shapes {
         let bpx::Shape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
@@ -89,12 +83,15 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }
 
         let material = material.expect("default material not found");
-        let (mut shape_handle, transform) = ShapeHandle::create_shape(physics, geometry, material, entity);
+        let mut shape_component = ShapeHandle::create_shape(physics, geometry, material, entity);
+        let custom_transform = shape_component.custom_xform;
+        // SAFETY: scene locking is done by the caller
+        let shape_handle = unsafe { shape_component.get_mut_unsafe() };
 
         unsafe {
             PxShape_setLocalPose_mut(
                 shape_handle.as_mut_ptr(),
-                (relative_transform * transform).to_physx().as_ptr(),
+                (relative_transform * custom_transform).to_physx().as_ptr(),
             );
 
             if query_filter_data != default() {
@@ -108,14 +105,14 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
             }
         }
 
-        actor.attach_shape(&mut shape_handle);
+        actor.attach_shape(shape_handle);
 
         commands.entity(entity)
-            .insert(shape_handle);
+            .insert(shape_component);
     }
 }
 
-pub fn create_dynamic_actors(
+pub fn create_rigid_actors(
     mut commands: Commands,
     mut physics: ResMut<bpx::Physics>,
     mut scene: ResMut<bpx::Scene>,
@@ -125,7 +122,7 @@ pub fn create_dynamic_actors(
     mut materials: ResMut<Assets<bpx::Material>>,
     default_material: Res<DefaultMaterial>,
 ) {
-    for (entity, actor_cfg, actor_transform, mass_props) in new_actors.iter_mut() {
+    for (entity, actor_cfg, actor_transform) in new_actors.iter_mut() {
         let mut scene = scene.get_mut();
 
         match actor_cfg {
@@ -143,26 +140,6 @@ pub fn create_dynamic_actors(
                     actor_transform,
                     &default_material,
                 );
-
-                match mass_props {
-                    Some(MassProperties::Density { density, center }) => unsafe {
-                        PxRigidBodyExt_updateMassAndInertia_1(
-                            actor.as_mut_ptr(),
-                            *density,
-                            center.to_physx_sys().as_ptr(),
-                            false
-                        );
-                    }
-                    Some(MassProperties::Mass { mass, center }) => unsafe {
-                        PxRigidBodyExt_setMassAndUpdateInertia_1(
-                            actor.as_mut_ptr(),
-                            *mass,
-                            center.to_physx_sys().as_ptr(),
-                            false
-                        );
-                    }
-                    None => {}
-                }
 
                 // unsafe raw function call is required to avoid consuming actor
                 unsafe {
@@ -188,10 +165,6 @@ pub fn create_dynamic_actors(
                     &default_material,
                 );
 
-                if mass_props.is_some() {
-                    bevy::log::warn!("ignoring BPxMassProperties component from a static actor");
-                }
-
                 // unsafe raw function call is required to avoid consuming actor
                 unsafe {
                     PxScene_addActor_mut(scene.as_mut_ptr(), actor.as_mut_ptr(), null());
@@ -204,84 +177,97 @@ pub fn create_dynamic_actors(
     }
 }
 
-pub fn apply_user_changes(
+pub fn sync_transform_dynamic(
     mut scene: ResMut<bpx::Scene>,
-    mut changed_dynamic: Query<(&mut RigidDynamicHandle, &GlobalTransform), Changed<GlobalTransform>>,
-    mut changed_static: Query<(&mut RigidStaticHandle, &GlobalTransform), Changed<GlobalTransform>>,
+    global_transforms: Query<&GlobalTransform>,
+    mut actors: Query<(&mut RigidDynamicHandle, &mut Transform, &GlobalTransform, Option<&Parent>)>,
 ) {
-    for (mut handle, xform) in changed_dynamic.iter_mut() {
-        if xform != &handle.cached_transform {
-            handle.cached_transform = *xform;
-            handle.get_mut(&mut scene).set_global_pose(&xform.to_physx(), true);
-        }
-    }
+    // this function does two things: sets physx property (if changed) or writes it back (if not);
+    // we need it to happen inside a single system to avoid change detection loops, but
+    // user will experience 1-tick delay on any changes
+    for (mut actor, mut xform, gxform, parent) in actors.iter_mut() {
+        if *gxform != actor.predicted_gxform {
+            actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
+            actor.predicted_gxform = *gxform;
+        } else {
+            let actor_handle = actor.get(&scene);
+            let new_gxform = actor_handle.get_global_pose().to_bevy();
+            let mut new_xform = new_gxform;
 
-    for (mut handle, xform) in changed_static.iter_mut() {
-        if xform != &handle.cached_transform {
-            handle.cached_transform = *xform;
-            handle.get_mut(&mut scene).set_global_pose(&xform.to_physx(), true);
+            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+                let (_scale, inv_rotation, inv_translation) =
+                    parent_transform.affine().inverse().to_scale_rotation_translation();
+
+                new_xform.rotation = inv_rotation * new_xform.rotation;
+                new_xform.translation = inv_rotation * new_xform.translation + inv_translation;
+            }
+
+            // avoid triggering bevy's change tracking if no change
+            if *xform != new_xform { *xform = new_xform; }
+
+            drop(actor_handle);
+            actor.predicted_gxform = new_gxform.into();
         }
     }
 }
 
-pub fn writeback_actors(
-    scene: Res<bpx::Scene>,
-    global_transforms: Query<&GlobalTransform>,
-    parents: Query<&Parent>,
-    mut writeback_transform: Query<&mut Transform>,
-    mut actors: Query<(Entity, &mut RigidDynamicHandle, Option<&Parent>)>
+pub fn sync_transform_static(
+    mut scene: ResMut<bpx::Scene>,
+    mut actors: Query<(&mut RigidStaticHandle, &GlobalTransform), Changed<GlobalTransform>>,
 ) {
-    for (actor_entity, mut actor, parent) in actors.iter_mut() {
-        let actor_handle = actor.get(&scene);
-        let xform = actor_handle.get_global_pose();
-        let mut actor_xform = xform.to_bevy();
+    // we don't expect static object position to change from physx, so we only sync user changes
+    for (mut actor, gxform) in actors.iter_mut() {
+        if *gxform != actor.predicted_gxform {
+            actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
+            actor.predicted_gxform = *gxform;
+        }
+    }
+}
 
-        let next_transform = if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
-            let (_scale, inv_rotation, inv_translation) =
-                parent_transform.affine().inverse().to_scale_rotation_translation();
+pub fn sync_transform_nested_shapes(
+    mut scene: ResMut<bpx::Scene>,
+    mut shapes: Query<
+        (&mut ShapeHandle, &mut Transform),
+        (Without<RigidStaticHandle>, Without<RigidDynamicHandle>)
+    >,
+) {
+    // this function does two things: sets physx property (if changed) or writes it back (if not);
+    // we need it to happen inside a single system to avoid change detection loops, but
+    // user will experience 1-tick delay on any changes
+    for (mut shape, mut shape_xform) in shapes.iter_mut() {
+        // we assume that nested Shape is always a child of an Actor parent in bevy hierarchy,
+        // (so physx hierarchy matches bevy's), otherwise math gets too complicated and expensive
+        if shape_xform.is_changed() {
+            let custom_transform = shape.custom_xform;
+            let mut bevy_xform = *shape_xform;
 
-            actor_xform.rotation = inv_rotation * actor_xform.rotation;
-            actor_xform.translation = inv_rotation * actor_xform.translation + inv_translation;
+            if custom_transform != Transform::IDENTITY {
+                bevy_xform = custom_transform * bevy_xform;
+            }
 
-            parent_transform.mul_transform(actor_xform)
+            unsafe {
+                PxShape_setLocalPose_mut(
+                    shape.get_mut(&mut scene).as_mut_ptr(),
+                    bevy_xform.to_physx().as_ptr(),
+                );
+            }
         } else {
-            actor_xform.into()
-        };
+            let custom_transform = shape.custom_xform;
+            let handle = shape.get(&scene);
+            let mut physx_xform = unsafe {
+                PxShape_getLocalPose(handle.as_ptr())
+            }.to_bevy();
 
-        if let Ok(mut transform) = writeback_transform.get_mut(actor_entity) {
-            // avoid triggering bevy's change tracking if no change
-            if actor_xform != *transform { *transform = actor_xform; }
-        }
-
-        // this is actor transform from the previous frame
-        let actor_xform = Transform::from(global_transforms.get(actor_entity).copied().unwrap_or(GlobalTransform::IDENTITY));
-
-        for shape in actor_handle.get_shapes() {
-            let shape_entity = *shape.get_user_data();
-            if shape_entity == actor_entity {
-                // we already updated actor entity above,
-                // and in this case local transform will always be IDENTITY
-                continue;
-            }
-
-            let shape_local_xform = unsafe { PxShape_getLocalPose(shape.as_ptr()) }.to_bevy();
-            let mut shape_xform = actor_xform * shape_local_xform;
-
-            if let Some(parent_transform) = parents.get(shape_entity).ok().and_then(|p| global_transforms.get(**p).ok()) {
+            if custom_transform != Transform::IDENTITY {
                 let (_scale, inv_rotation, inv_translation) =
-                    parent_transform.affine().inverse().to_scale_rotation_translation();
+                custom_transform.compute_affine().inverse().to_scale_rotation_translation();
 
-                shape_xform.rotation = inv_rotation * shape_xform.rotation;
-                shape_xform.translation = inv_rotation * shape_xform.translation + inv_translation;
+                physx_xform.rotation = inv_rotation * physx_xform.rotation;
+                physx_xform.translation = inv_rotation * physx_xform.translation + inv_translation;
             }
 
-            if let Ok(mut transform) = writeback_transform.get_mut(shape_entity) {
-                // avoid triggering bevy's change tracking if no change
-                if shape_xform != *transform { *transform = shape_xform; }
-            }
+            // avoid triggering bevy's change tracking if no change
+            if *shape_xform != physx_xform { *shape_xform = physx_xform; }
         }
-
-        drop(actor_handle);
-        actor.cached_transform = next_transform;
     }
 }

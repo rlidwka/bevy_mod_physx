@@ -5,6 +5,7 @@ use physx::scene::SceneFlags;
 use physx::traits::Class;
 use physx_sys::{
     PxErrorCode,
+    PxBase_getConcreteType,
     PxScene_lockRead_mut,
     PxScene_lockWrite_mut,
     PxScene_unlockRead_mut,
@@ -128,6 +129,50 @@ impl Scene {
     pub fn get_mut(&mut self) -> SceneRwLockWriteGuard<'_, PxScene> {
         let scene = if self.use_physx_lock { Some(self.scene.0.as_mut_ptr()) } else { None };
         SceneRwLockWriteGuard::new(&mut self.scene.0, scene)
+    }
+
+    /// # Safety
+    /// User must ensure that pointer is valid.
+    pub unsafe fn get_actor_entity_from_ptr(&self, actor: *const physx_sys::PxRigidActor) -> Entity {
+        // SAFETY: PxRigidActor is subclass of PxBase
+        let actor_type = ConcreteType::from(unsafe { PxBase_getConcreteType(actor as *const _) });
+        match actor_type {
+            ConcreteType::RigidDynamic => {
+                // SAFETY: assume that every shape in physx scene is created by us,
+                // with our prototype and userdata; and that physx returns proper concrete type
+                let actor: Owner<crate::PxRigidDynamic> = unsafe { std::mem::transmute(&*actor) };
+                let entity = *actor.get_user_data();
+                // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
+                // so we must drop it until anything bad happens
+                std::mem::forget(actor);
+                entity
+            }
+            ConcreteType::RigidStatic => {
+                // SAFETY: assume that every shape in physx scene is created by us,
+                // with our prototype and userdata; and that physx returns proper concrete type
+                let actor: Owner<crate::PxRigidStatic> = unsafe { std::mem::transmute(&*actor) };
+                let entity = *actor.get_user_data();
+                // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
+                // so we must drop it until anything bad happens
+                std::mem::forget(actor);
+                entity
+            }
+            // SAFETY: actor must be either dynamic or static, otherwise physx hierarchy is broken
+            _ => unreachable!()
+        }
+    }
+
+    /// # Safety
+    /// User must ensure that pointer is valid.
+    pub unsafe fn get_shape_entity_from_ptr(&self, shape: *const physx_sys::PxShape) -> Entity {
+        // SAFETY: assume that every shape in physx scene is created by us,
+        // with our prototype and userdata
+        let shape: Owner<crate::PxShape> = unsafe { std::mem::transmute(&*shape) };
+        let entity = *shape.get_user_data();
+        // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
+        // so we must drop it until anything bad happens
+        std::mem::forget(shape);
+        entity
     }
 }
 

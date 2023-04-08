@@ -1,8 +1,7 @@
 use std::{mem::MaybeUninit, ptr::null_mut};
 use bevy::prelude::{Entity, Vec3};
-use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxSceneQueryExt_raycastSingle, PxHitFlags, PxQueryFilterData_new, PxBase_getConcreteType, PxConcreteType};
+use physx_sys::{PxSceneQueryExt_raycastSingle, PxHitFlags, PxQueryFilterData_new};
 
 use crate::prelude::{*, Scene};
 
@@ -45,47 +44,9 @@ impl SceneQueryExt for Scene {
         // SAFETY: raycastSingle returned true, so we assume buffer is initialized
         let raycast_hit = unsafe { raycast_hit.assume_init() };
 
-        // SAFETY: PxRigidActor is subclass of PxBase
-        let actor_type = PxConcreteType::from(unsafe { PxBase_getConcreteType(raycast_hit.actor as *const _) });
-        let actor_entity = match actor_type {
-            PxConcreteType::RigidDynamic => {
-                // SAFETY: assume that every shape in physx scene is created by us,
-                // with our prototype and userdata; and that physx returns proper concrete type
-                let actor: Owner<crate::PxRigidDynamic> = unsafe { std::mem::transmute(raycast_hit.actor) };
-                let entity = *actor.get_user_data();
-                // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
-                // so we must drop it until anything bad happens
-                std::mem::forget(actor);
-                entity
-            }
-            PxConcreteType::RigidStatic => {
-                // SAFETY: assume that every shape in physx scene is created by us,
-                // with our prototype and userdata; and that physx returns proper concrete type
-                let actor: Owner<crate::PxRigidStatic> = unsafe { std::mem::transmute(raycast_hit.actor) };
-                let entity = *actor.get_user_data();
-                // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
-                // so we must drop it until anything bad happens
-                std::mem::forget(actor);
-                entity
-            }
-            // SAFETY: actor must be either dynamic or static, otherwise physx hierarchy is broken
-            _ => unreachable!()
-        };
-
-        let shape_entity = {
-            // SAFETY: assume that every shape in physx scene is created by us,
-            // with our prototype and userdata
-            let shape: Owner<crate::PxShape> = unsafe { std::mem::transmute(raycast_hit.shape) };
-            let entity = *shape.get_user_data();
-            // SAFETY: we temporarily create second owned pointer (first one is stored in bevy ECS),
-            // so we must drop it until anything bad happens
-            std::mem::forget(shape);
-            entity
-        };
-
         Some(RaycastHit {
-            actor: actor_entity,
-            shape: shape_entity,
+            actor: unsafe { self.get_actor_entity_from_ptr(raycast_hit.actor) },
+            shape: unsafe { self.get_shape_entity_from_ptr(raycast_hit.shape) },
             face_index: raycast_hit.faceIndex,
             flags: raycast_hit.flags,
             position: raycast_hit.position.to_bevy(),

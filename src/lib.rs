@@ -166,19 +166,27 @@ pub struct PhysicsSchedule;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 #[system_set(base)]
 pub enum PhysicsSet {
-    First,
-    ApplyChanges,
+    // everything related to simulation itself
+    // (scene simulation + vehicle simulation)
     Simulate,
-    Writeback,
+    // - propagate transforms
+    // - create new actors, and everything else that uses
+    //   commands to insert new components
+    // - apply system buffers
+    // maybe it should be split to more stages, but I don't expect
+    // this to have too many systems
+    Create,
+    // two-way sync of physx state with existing bevy components
+    Sync,
 }
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::First, Self::ApplyChanges, Self::Simulate, Self::Writeback].into_iter()
+        [Self::Simulate, Self::Create, Self::Sync].into_iter()
     }
 
     pub fn sets() -> SystemSetConfigs {
-        (Self::First, Self::ApplyChanges, Self::Simulate, Self::Writeback).chain()
+        (Self::Simulate, Self::Create, Self::Sync).chain()
     }
 }
 
@@ -234,27 +242,26 @@ impl Plugin for PhysXPlugin {
 
         app.add_plugin(crate::plugins::DampingPlugin);
         app.add_plugin(crate::plugins::ExternalForcePlugin);
+        app.add_plugin(crate::plugins::MassPropertiesPlugin);
         app.add_plugin(crate::plugins::VelocityPlugin);
 
         // add all systems to the set
-        app.add_systems((
-            bevy::transform::systems::propagate_transforms.before(systems::create_dynamic_actors),
-            bevy::transform::systems::sync_simple_transforms.before(systems::create_dynamic_actors),
-            systems::create_dynamic_actors.before(apply_system_buffers),
-            apply_system_buffers,
-        ).in_base_set(PhysicsSet::First).in_schedule(PhysicsSchedule));
-
-        app.add_systems((
-            systems::apply_user_changes,
-        ).in_base_set(PhysicsSet::ApplyChanges).in_schedule(PhysicsSchedule));
-
         app.add_systems((
             systems::scene_simulate,
         ).in_base_set(PhysicsSet::Simulate).in_schedule(PhysicsSchedule));
 
         app.add_systems((
-            systems::writeback_actors,
-        ).in_base_set(PhysicsSet::Writeback).in_schedule(PhysicsSchedule));
+            bevy::transform::systems::propagate_transforms.before(systems::create_rigid_actors),
+            bevy::transform::systems::sync_simple_transforms.before(systems::create_rigid_actors),
+            systems::create_rigid_actors.before(apply_system_buffers),
+            apply_system_buffers,
+        ).in_base_set(PhysicsSet::Create).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            systems::sync_transform_static,
+            systems::sync_transform_dynamic,
+            systems::sync_transform_nested_shapes,
+        ).in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
 
         // add scheduler
         app.add_system(

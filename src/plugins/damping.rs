@@ -14,11 +14,11 @@ pub struct DampingPlugin;
 impl Plugin for DampingPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Damping>();
-        app.add_system(sync.in_base_set(PhysicsSet::Writeback).in_schedule(PhysicsSchedule));
+        app.add_system(damping_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
     }
 }
 
-pub fn sync(
+pub fn damping_sync(
     mut scene: ResMut<Scene>,
     mut actors: Query<(&mut RigidDynamicHandle, &Damping), Changed<Damping>>
 ) {
