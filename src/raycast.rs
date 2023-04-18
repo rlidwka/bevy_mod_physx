@@ -4,6 +4,7 @@ use physx::traits::Class;
 use physx_sys::{PxSceneQueryExt_raycastSingle, PxHitFlags, PxQueryFilterData_new};
 
 use crate::prelude::{*, Scene};
+use crate::utils::{get_shape_entity_from_ptr, get_actor_entity_from_ptr};
 
 #[derive(Debug)]
 pub struct RaycastHit {
@@ -45,8 +46,8 @@ impl SceneQueryExt for Scene {
         let raycast_hit = unsafe { raycast_hit.assume_init() };
 
         Some(RaycastHit {
-            actor: unsafe { self.get_actor_entity_from_ptr(raycast_hit.actor) },
-            shape: unsafe { self.get_shape_entity_from_ptr(raycast_hit.shape) },
+            actor: unsafe { get_actor_entity_from_ptr(raycast_hit.actor) },
+            shape: unsafe { get_shape_entity_from_ptr(raycast_hit.shape) },
             face_index: raycast_hit.faceIndex,
             flags: raycast_hit.flags,
             position: raycast_hit.position.to_bevy(),

@@ -1,5 +1,5 @@
 #[doc(hidden)]
-pub use super::type_bridge::*;
+pub use super::utils::type_bridge::*;
 
 #[doc(hidden)]
 pub use super::{

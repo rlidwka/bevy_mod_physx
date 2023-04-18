@@ -21,17 +21,17 @@ use physx::scene::{
 };
 use physx_sys::PxTolerancesScale;
 use crate::prelude as bpx;
-mod type_bridge;
 
-mod systems;
 pub mod assets;
 pub mod callbacks;
 pub mod components;
 pub mod plugins;
 pub mod prelude;
 pub mod raycast;
-pub mod resources;
 pub mod render;
+pub mod resources;
+pub mod systems;
+pub mod utils;
 
 // reexport physx to avoid version conflicts
 pub use physx;
