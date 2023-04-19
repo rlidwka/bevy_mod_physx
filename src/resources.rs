@@ -81,6 +81,11 @@ impl Scene {
 
         let scene = physics
             .create(physx::traits::descriptor::SceneDescriptor {
+                on_collide: d.on_collision.as_ref().map(|x| x.initialize()),
+                on_trigger: d.on_trigger.as_ref().map(|x| x.initialize()),
+                on_constraint_break: d.on_constraint_break.as_ref().map(|x| x.initialize()),
+                on_wake_sleep: d.on_wake_sleep.as_ref().map(|x| x.initialize()),
+                on_advance: d.on_advance.as_ref().map(|x| x.initialize()),
                 gravity: d.gravity.to_physx(),
                 kine_kine_filtering_mode: d.kine_kine_filtering_mode,
                 static_kine_filtering_mode: d.static_kine_filtering_mode,

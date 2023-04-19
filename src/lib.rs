@@ -82,6 +82,11 @@ impl Default for FoundationDescriptor {
 }
 
 pub struct SceneDescriptor {
+    pub on_collision: Option<callbacks::OnCollision>,
+    pub on_trigger: Option<callbacks::OnTrigger>,
+    pub on_constraint_break: Option<callbacks::OnConstraintBreak>,
+    pub on_wake_sleep: Option<callbacks::OnWakeSleep>,
+    pub on_advance: Option<callbacks::OnAdvance>,
     pub gravity: Vec3,
     pub kine_kine_filtering_mode: PairFilteringMode,
     pub static_kine_filtering_mode: PairFilteringMode,
@@ -125,6 +130,11 @@ impl Default for SceneDescriptor {
         >::new(());
 
         SceneDescriptor {
+            on_collision: None,
+            on_trigger: None,
+            on_constraint_break: None,
+            on_wake_sleep: None,
+            on_advance: None,
             // override default gravity, as we know bevy's coordinate system,
             // and default zero gravity doesn't work with vehicles and such
             gravity: Vec3::new(0.0, -9.81, 0.0),
