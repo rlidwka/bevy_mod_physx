@@ -190,7 +190,7 @@ fn hover_highlight(
     for (camera, camera_transform) in &cameras {
         let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else { continue; };
 
-        if let Some(hit) = scene.raycast(ray.origin, ray.direction, f32::MAX) {
+        if let Some(hit) = scene.raycast(ray.origin, ray.direction, f32::MAX, &default()) {
             if highlighable.get(hit.actor).is_ok() {
                 commands.entity(hit.actor)
                     .insert(materials.highlighted.clone())

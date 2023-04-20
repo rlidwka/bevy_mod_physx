@@ -1,7 +1,21 @@
+use std::ffi::c_void;
+use std::ptr::drop_in_place;
 use std::{mem::MaybeUninit, ptr::null_mut};
-use bevy::prelude::{Entity, Vec3};
+use bevy::prelude::*;
+use physx::rigid_actor::RigidActor;
 use physx::traits::Class;
-use physx_sys::{PxSceneQueryExt_raycastSingle, PxHitFlags, PxQueryFilterData_new};
+use physx_sys::{
+    PxHitFlags,
+    PxQueryFilterCallback,
+    PxQueryFilterData,
+    PxQueryFlags,
+    RaycastHitCallback,
+    PxQueryFilterCallback_delete,
+    PxQueryFilterData_new,
+    PxSceneQueryExt_raycastSingle,
+    create_raycast_filter_callback,
+    create_raycast_filter_callback_func,
+};
 
 use crate::prelude::{*, Scene};
 use crate::utils::{get_shape_entity_from_ptr, get_actor_entity_from_ptr};
@@ -19,12 +33,72 @@ pub struct RaycastHit {
     pub v: f32,
 }
 
+pub struct SceneQueryFilter {
+    filter_data: PxQueryFilterData,
+    pre_filter_callback: Option<*mut PxQueryFilterCallback>, // owned
+}
+
+impl SceneQueryFilter {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn ignore<T: RigidActor>(actor: &T) -> Self {
+        let mut result = Self::new();
+        result.filter_data.flags.insert(PxQueryFlags::Prefilter);
+        result.pre_filter_callback = Some(unsafe {
+            create_raycast_filter_callback(actor.as_ptr())
+        });
+        result
+    }
+
+    // false positive: https://github.com/rust-lang/rust-clippy/issues/3045
+    // userdata deref will be done in user function, this function is safe
+    #[allow(clippy::not_unsafe_ptr_arg_deref)]
+    pub fn callback(callback: RaycastHitCallback, userdata: *mut c_void) -> Self {
+        let mut result = Self::new();
+        result.filter_data.flags.insert(PxQueryFlags::Prefilter);
+        result.pre_filter_callback = Some(unsafe {
+            create_raycast_filter_callback_func(callback, userdata)
+        });
+        result
+    }
+
+    pub fn without_static(mut self) -> Self {
+        self.filter_data.flags.remove(PxQueryFlags::Static);
+        self
+    }
+
+    pub fn without_dynamic(mut self) -> Self {
+        self.filter_data.flags.remove(PxQueryFlags::Dynamic);
+        self
+    }
+}
+
+impl Default for SceneQueryFilter {
+    fn default() -> Self {
+        Self {
+            filter_data: unsafe { PxQueryFilterData_new() },
+            pre_filter_callback: None,
+        }
+    }
+}
+
+impl Drop for SceneQueryFilter {
+    fn drop(&mut self) {
+        if let Some(ptr) = self.pre_filter_callback.take() {
+            unsafe { PxQueryFilterCallback_delete(ptr) };
+            unsafe { drop_in_place(ptr); }
+        }
+    }
+}
+
 pub trait SceneQueryExt {
-    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32) -> Option<RaycastHit>;
+    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit>;
 }
 
 impl SceneQueryExt for Scene {
-    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32) -> Option<RaycastHit> {
+    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit> {
         let scene = self.get();
         let mut raycast_hit = MaybeUninit::uninit();
 
@@ -36,8 +110,8 @@ impl SceneQueryExt for Scene {
                 max_distance,
                 PxHitFlags::Default,
                 raycast_hit.as_mut_ptr(),
-                &PxQueryFilterData_new(),
-                null_mut(),
+                &filter.filter_data as *const _,
+                filter.pre_filter_callback.unwrap_or(null_mut()),
                 null_mut(),
             )
         } { return None; }
