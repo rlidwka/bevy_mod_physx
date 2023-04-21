@@ -29,8 +29,6 @@ pub struct RaycastHit {
     pub position: Vec3,
     pub normal: Vec3,
     pub distance: f32,
-    pub u: f32,
-    pub v: f32,
 }
 
 pub struct SceneQueryFilter {
@@ -127,8 +125,6 @@ impl SceneQueryExt for Scene {
             position: raycast_hit.position.to_bevy(),
             normal: raycast_hit.normal.to_bevy(),
             distance: raycast_hit.distance,
-            u: raycast_hit.u,
-            v: raycast_hit.v,
         })
     }
 }
