@@ -16,7 +16,7 @@ fn main() {
 pub fn raycast_system(
     scene: Res<bpx::Scene>,
 ) {
-    let ray_cast_result = scene.raycast(Vec3::Y * 100.0, Vec3::NEG_Y, 200.0);
+    let ray_cast_result = scene.raycast(Vec3::Y * 100.0, Vec3::NEG_Y, 200.0, &default());
     println!("{ray_cast_result:?}");
 }
 

@@ -1,5 +1,5 @@
 // this covers ExternalForce and ExternalImpulse (see ForceMode attribute of the struct)
-use crate::components::RigidDynamicHandle;
+use crate::components::{RigidDynamicHandle, ArticulationLinkHandle};
 use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
@@ -40,14 +40,21 @@ impl Plugin for ExternalForcePlugin {
 
 pub fn external_force_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(&mut RigidDynamicHandle, &ExternalForce)>
+    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &ExternalForce)>
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
-    for (mut actor, extforce) in actors.iter_mut() {
+    for (dynamic, articulation, extforce) in actors.iter_mut() {
         if extforce.force != Vec3::ZERO || extforce.torque != Vec3::ZERO {
-            let mut actor_handle = actor.get_mut(&mut scene);
-            actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode);
+            if let Some(mut actor) = dynamic {
+                let mut actor_handle = actor.get_mut(&mut scene);
+                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode);
+            } else if let Some(mut actor) = articulation {
+                let mut actor_handle = actor.get_mut(&mut scene);
+                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode);
+            } else {
+                bevy::log::warn!("ExternalForce component exists, but it's neither a rigid dynamic nor articulation link");
+            };
         }
     }
 }

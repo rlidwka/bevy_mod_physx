@@ -41,11 +41,11 @@ use resources::DefaultMaterial;
 
 type PxMaterial = physx::material::PxMaterial<()>;
 type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
-type PxArticulationLink = physx::articulation_link::PxArticulationLink<(), PxShape>;
+type PxArticulationLink = physx::articulation_link::PxArticulationLink<Entity, PxShape>;
 type PxRigidStatic = physx::rigid_static::PxRigidStatic<Entity, PxShape>;
 type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<Entity, PxShape>;
 type PxArticulationReducedCoordinate =
-    physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<(), PxArticulationLink>;
+    physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<Entity, PxArticulationLink>;
 
 type PxScene = physx::scene::PxScene<
     (),
@@ -250,9 +250,11 @@ impl Plugin for PhysXPlugin {
             schedule.configure_sets(PhysicsSet::sets());
         });
 
+        app.add_plugin(crate::plugins::ArticulationPlugin);
         app.add_plugin(crate::plugins::DampingPlugin);
         app.add_plugin(crate::plugins::ExternalForcePlugin);
         app.add_plugin(crate::plugins::MassPropertiesPlugin);
+        app.add_plugin(crate::plugins::MaxVelocityPlugin);
         app.add_plugin(crate::plugins::VelocityPlugin);
 
         // add all systems to the set
@@ -270,6 +272,7 @@ impl Plugin for PhysXPlugin {
         app.add_systems((
             systems::sync_transform_static,
             systems::sync_transform_dynamic,
+            systems::sync_transform_articulation_links,
             systems::sync_transform_nested_shapes,
         ).in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
 

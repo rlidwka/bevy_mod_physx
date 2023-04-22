@@ -7,6 +7,7 @@ use physx_sys::{
     PxErrorCode,
     PxScene_lockRead_mut,
     PxScene_lockWrite_mut,
+    PxScene_removeArticulation_mut,
     PxScene_unlockRead_mut,
     PxScene_unlockWrite_mut,
 };
@@ -133,6 +134,22 @@ impl Scene {
     pub fn get_mut(&mut self) -> SceneRwLockWriteGuard<'_, PxScene> {
         let scene = if self.use_physx_lock { Some(self.scene.0.as_mut_ptr()) } else { None };
         SceneRwLockWriteGuard::new(&mut self.scene.0, scene)
+    }
+}
+
+impl Drop for Scene {
+    fn drop(&mut self) {
+        use physx::prelude::Scene;
+        let scene_ptr = unsafe { self.scene.get_mut_unsafe().as_mut_ptr() };
+        let articulations = unsafe { self.scene.get_mut_unsafe() }.get_articulations();
+
+        for articulation in articulations {
+            unsafe {
+                // TODO: articulations themselves are never freed,
+                // need to restructure this to avoid memory leaks
+                PxScene_removeArticulation_mut(scene_ptr, articulation.as_mut_ptr(), false);
+            }
+        }
     }
 }
 

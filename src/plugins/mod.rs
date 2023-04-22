@@ -1,3 +1,6 @@
+mod articulation;
+pub use articulation::*;
+
 mod damping;
 pub use damping::*;
 
@@ -6,6 +9,9 @@ pub use external_force::*;
 
 mod mass_properties;
 pub use mass_properties::*;
+
+mod max_velocity;
+pub use max_velocity::*;
 
 mod velocity;
 pub use velocity::*;

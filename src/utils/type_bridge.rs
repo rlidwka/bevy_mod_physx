@@ -12,6 +12,7 @@ pub trait IntoBevyVec3 {
 
 pub trait IntoPxQuat {
     fn to_physx(&self) -> PxQuat;
+    fn to_physx_sys(&self) -> physx_sys::PxQuat;
 }
 
 pub trait IntoBevyQuat {
@@ -20,6 +21,7 @@ pub trait IntoBevyQuat {
 
 pub trait IntoPxTransform {
     fn to_physx(&self) -> PxTransform;
+    fn to_physx_sys(&self) -> physx_sys::PxTransform;
 }
 
 pub trait IntoBevyTransform {
@@ -52,6 +54,10 @@ impl IntoPxQuat for Quat {
     fn to_physx(&self) -> PxQuat {
         PxQuat::new(self.x, self.y, self.z, self.w)
     }
+
+    fn to_physx_sys(&self) -> physx_sys::PxQuat {
+        self.to_physx().into()
+    }
 }
 
 impl IntoBevyQuat for PxQuat {
@@ -73,6 +79,10 @@ impl IntoPxTransform for Transform {
             &self.rotation.to_physx(),
         )
     }
+
+    fn to_physx_sys(&self) -> physx_sys::PxTransform {
+        self.to_physx().into()
+    }
 }
 
 impl IntoPxTransform for GlobalTransform {
@@ -83,6 +93,10 @@ impl IntoPxTransform for GlobalTransform {
             &translation.to_physx(),
             &rotation.to_physx(),
         )
+    }
+
+    fn to_physx_sys(&self) -> physx_sys::PxTransform {
+        self.to_physx().into()
     }
 }
 

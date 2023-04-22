@@ -5,12 +5,16 @@ use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
-    PxShape_release_mut, PxPhysics_createShape_mut, PxFilterData, PxFilterData_new_2, PxMeshScale_new_3,
+    PxFilterData,
+    PxFilterData_new_2,
+    PxMeshScale_new_3,
+    PxPhysics_createShape_mut,
+    PxShape_release_mut,
 };
 
 use crate::assets::GeometryInner;
-use crate::bpx::{IntoPxVec3, IntoPxQuat};
-use crate::prelude as bpx;
+use crate::{prelude as bpx, PxArticulationLink, PxArticulationReducedCoordinate};
+use crate::prelude::{IntoPxVec3, IntoPxQuat};
 use crate::resources::SceneRwLock;
 use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 
@@ -18,6 +22,68 @@ use super::{PxRigidStatic, PxRigidDynamic, PxShape};
 pub enum RigidBody {
     Dynamic,
     Static,
+    ArticulationLink,
+}
+
+#[derive(Component, Clone)]
+pub struct ArticulationJoint {
+    pub parent: Entity,
+    pub joint_type: ArticulationJointType,
+    pub motion_twist: ArticulationMotion,
+    pub motion_swing1: ArticulationMotion,
+    pub motion_swing2: ArticulationMotion,
+    pub motion_x: ArticulationMotion,
+    pub motion_y: ArticulationMotion,
+    pub motion_z: ArticulationMotion,
+    pub parent_pose: Transform,
+    pub child_pose: Transform,
+    pub max_joint_velocity: f32,
+    pub friction_coefficient: f32,
+}
+
+impl Default for ArticulationJoint {
+    fn default() -> Self {
+        Self {
+            // Making invalid Entity here, because we want Default trait for creating
+            // ArticulationJoint with ..default(), but user must always set this.
+            //
+            // If user leaves it as is, entity won't be found, and user will get runtime error.
+            //
+            // Default invalid Handle exists, so why not have default invalid Entity?
+            // All accesses to it are checked anyways.
+            //
+            parent: unsafe { std::mem::transmute(u64::MAX) },
+
+            // For Fixed joints all motions must be locked (0 degrees of freedom).
+            //
+            // For Prismatic joints there is one motion (x, y or z) that's not locked
+            // (1 degree of freedom).
+            //
+            // For Revolute/RevoluteUnwrapped joints there is one motion (twist, swing1
+            // or swing2), that's not locked (1 degree of freedom).
+            //
+            // For Spherical joints twist, swing1, or swing2 can be in any state
+            // (up to 3 degrees of freedom).
+            //
+            joint_type: ArticulationJointType::Fix,
+            motion_twist: ArticulationMotion::Locked,
+            motion_swing1: ArticulationMotion::Locked,
+            motion_swing2: ArticulationMotion::Locked,
+            motion_x: ArticulationMotion::Locked,
+            motion_y: ArticulationMotion::Locked,
+            motion_z: ArticulationMotion::Locked,
+
+            // Pose should always be set by user.
+            // Parent and child pose can in theory be set at runtime, but it results
+            // in funky behavior in my testing, so we only set it on creation.
+            parent_pose: default(),
+            child_pose: default(),
+
+            // Physx default values.
+            max_joint_velocity: 100.,
+            friction_coefficient: 0.5,
+        }
+    }
 }
 
 #[derive(Component, Clone, Default)]
@@ -46,7 +112,7 @@ impl From<FilterData> for PxFilterData {
 
 #[derive(Component)]
 pub struct ShapeHandle {
-    pub handle: Option<SceneRwLock<Owner<PxShape>>>,
+    handle: Option<SceneRwLock<Owner<PxShape>>>,
     // we want to specify outward normal for PxPlane specifically, so need to return transform for this
     pub custom_xform: Transform,
 }
@@ -147,7 +213,7 @@ impl std::ops::DerefMut for ShapeHandle {
 pub struct RigidDynamicHandle {
     #[deref]
     #[deref_mut]
-    pub handle: SceneRwLock<Owner<PxRigidDynamic>>,
+    handle: SceneRwLock<Owner<PxRigidDynamic>>,
     // used for change detection
     pub predicted_gxform: GlobalTransform,
 }
@@ -162,7 +228,7 @@ impl RigidDynamicHandle {
 pub struct RigidStaticHandle {
     #[deref]
     #[deref_mut]
-    pub handle: SceneRwLock<Owner<PxRigidStatic>>,
+    handle: SceneRwLock<Owner<PxRigidStatic>>,
     // used for change detection
     pub predicted_gxform: GlobalTransform,
 }
@@ -170,5 +236,72 @@ pub struct RigidStaticHandle {
 impl RigidStaticHandle {
     pub fn new(px_rigid_static: Owner<PxRigidStatic>, predicted_gxform: GlobalTransform) -> Self {
         Self { handle: SceneRwLock::new(px_rigid_static), predicted_gxform }
+    }
+}
+
+#[derive(Component)]
+pub struct ArticulationRootHandle {
+    handle: Option<SceneRwLock<Owner<PxArticulationReducedCoordinate>>>,
+}
+
+impl ArticulationRootHandle {
+    pub fn new(px_articulation_root: Owner<PxArticulationReducedCoordinate>) -> Self {
+        Self { handle: Some(SceneRwLock::new(px_articulation_root)) }
+    }
+}
+
+impl std::ops::Deref for ArticulationRootHandle {
+    type Target = SceneRwLock<Owner<PxArticulationReducedCoordinate>>;
+
+    fn deref(&self) -> &Self::Target {
+        self.handle.as_ref().unwrap()
+    }
+}
+
+impl std::ops::DerefMut for ArticulationRootHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.handle.as_mut().unwrap()
+    }
+}
+
+impl Drop for ArticulationRootHandle {
+    fn drop(&mut self) {
+        // TODO: it needs to be removed from scene first
+        std::mem::forget(self.handle.take());
+    }
+}
+
+#[derive(Component)]
+pub struct ArticulationLinkHandle {
+    handle: Option<SceneRwLock<Owner<PxArticulationLink>>>,
+    // used for change detection
+    pub predicted_gxform: GlobalTransform,
+}
+
+impl ArticulationLinkHandle {
+    pub fn new(px_articulation_link: Owner<PxArticulationLink>, predicted_gxform: GlobalTransform) -> Self {
+        Self { handle: Some(SceneRwLock::new(px_articulation_link)), predicted_gxform }
+    }
+}
+
+impl std::ops::Deref for ArticulationLinkHandle {
+    type Target = SceneRwLock<Owner<PxArticulationLink>>;
+
+    fn deref(&self) -> &Self::Target {
+        self.handle.as_ref().unwrap()
+    }
+}
+
+impl std::ops::DerefMut for ArticulationLinkHandle {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.handle.as_mut().unwrap()
+    }
+}
+
+impl Drop for ArticulationLinkHandle {
+    fn drop(&mut self) {
+        // avoid calling release, because we cannot release an articulation link while it's attached to a scene;
+        // TODO: this should be released from ArticulationRoot
+        std::mem::forget(self.handle.take());
     }
 }

@@ -4,12 +4,12 @@ use bevy::prelude::*;
 use physx::prelude::*;
 
 #[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
-pub struct Damping {
+pub struct MaxVelocity {
     pub linear: f32,
     pub angular: f32,
 }
 
-impl Damping {
+impl MaxVelocity {
     pub fn new(linear: f32, angular: f32) -> Self {
         Self { linear, angular }
     }
@@ -23,30 +23,30 @@ impl Damping {
     }
 }
 
-pub struct DampingPlugin;
+pub struct MaxVelocityPlugin;
 
-impl Plugin for DampingPlugin {
+impl Plugin for MaxVelocityPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<Damping>();
-        app.add_system(damping_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        app.register_type::<MaxVelocity>();
+        app.add_system(max_velocity_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
     }
 }
 
-pub fn damping_sync(
+pub fn max_velocity_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &Damping), Changed<Damping>>
+    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &MaxVelocity), Changed<MaxVelocity>>
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
-    for (dynamic, articulation, damping) in actors.iter_mut() {
+    for (dynamic, articulation, max_velocity) in actors.iter_mut() {
         if let Some(mut actor) = dynamic {
             let mut actor_handle = actor.get_mut(&mut scene);
-            actor_handle.set_linear_damping(damping.linear);
-            actor_handle.set_angular_damping(damping.angular);
+            actor_handle.set_max_linear_velocity(max_velocity.linear);
+            actor_handle.set_max_angular_velocity(max_velocity.angular);
         } else if let Some(mut actor) = articulation {
             let mut actor_handle = actor.get_mut(&mut scene);
-            actor_handle.set_linear_damping(damping.linear);
-            actor_handle.set_angular_damping(damping.angular);
+            actor_handle.set_max_linear_velocity(max_velocity.linear);
+            actor_handle.set_max_angular_velocity(max_velocity.angular);
         } else {
             bevy::log::warn!("Damping component exists, but it's neither a rigid dynamic nor articulation link");
         };

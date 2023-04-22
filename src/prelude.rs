@@ -15,10 +15,10 @@ pub use super::{
 pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
-pub use super::components::{RigidBody, Shape, ShapeHandle};
+pub use super::components::{ArticulationJoint, RigidBody, Shape, ShapeHandle};
 
 #[doc(hidden)]
-pub use super::plugins::{Damping, ExternalForce, MassProperties, Velocity};
+pub use super::plugins::{ArticulationRoot, Damping, ExternalForce, MassProperties, MaxVelocity, Velocity};
 
 #[doc(hidden)]
 pub use super::raycast::{RaycastHit, SceneQueryExt};

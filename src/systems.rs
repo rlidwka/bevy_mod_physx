@@ -1,25 +1,35 @@
-use std::ptr::null;
+use std::collections::HashMap;
+use std::ptr::{null, null_mut};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::scene::Scene;
 use physx::traits::Class;
 use physx_sys::{
     PxFilterData,
+    PxArticulationJointReducedCoordinate_setChildPose_mut,
+    PxArticulationJointReducedCoordinate_setFrictionCoefficient_mut,
+    PxArticulationJointReducedCoordinate_setMaxJointVelocity_mut,
+    PxArticulationJointReducedCoordinate_setParentPose_mut,
+    PxArticulationLink_getInboundJoint,
+    PxArticulationReducedCoordinate_createLink_mut,
     PxScene_addActor_mut,
+    PxScene_addArticulation_mut,
     PxShape_getLocalPose,
     PxShape_setLocalPose_mut,
     PxShape_setQueryFilterData_mut,
     PxShape_setSimulationFilterData_mut,
 };
 
+use crate::components::ArticulationJoint;
+
 use super::prelude as bpx;
-use super::{prelude::*, PxRigidDynamic, PxRigidStatic};
-use super::components::{RigidDynamicHandle, RigidStaticHandle};
+use super::{prelude::*, PxArticulationReducedCoordinate, PxRigidDynamic, PxRigidStatic};
+use super::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle, RigidStaticHandle};
 use super::resources::DefaultMaterial;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
-    (Entity, &'a bpx::RigidBody, &'a GlobalTransform),
-    (Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
+    (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a ArticulationJoint>),
+    (Without<RigidDynamicHandle>, Without<RigidStaticHandle>, Without<ArticulationLinkHandle>)
 >;
 
 type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
@@ -70,7 +80,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
 
     for (entity, shape_cfg, gtransform) in found_shapes {
         let bpx::Shape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
-        let geometry = geometries.get_mut(&geometry).expect("geometry not found for BPxGeometry");
+        let geometry = geometries.get_mut(&geometry).expect("geometry not found");
         let mut material = materials.get_mut(&material);
 
         let relative_transform = gtransform.map(|gtransform| {
@@ -117,12 +127,23 @@ pub fn create_rigid_actors(
     mut physics: ResMut<bpx::Physics>,
     mut scene: ResMut<bpx::Scene>,
     query: ShapesQuery,
-    mut new_actors: ActorsQuery,
+    new_actors: ActorsQuery,
     mut geometries: ResMut<Assets<bpx::Geometry>>,
     mut materials: ResMut<Assets<bpx::Material>>,
     default_material: Res<DefaultMaterial>,
 ) {
-    for (entity, actor_cfg, actor_transform) in new_actors.iter_mut() {
+    struct ArticulationTreeNode<'a> {
+        entity: Entity,
+        transform: GlobalTransform,
+        ptr: *mut physx_sys::PxArticulationLink,
+        joint: Option<&'a ArticulationJoint>,
+        children: Vec<usize>,
+    }
+
+    let mut articulation_link_tree = vec![];
+    let mut articulation_entity_mapping = HashMap::new();
+
+    for (entity, actor_cfg, actor_transform, inbound_joint) in new_actors.iter() {
         let mut scene = scene.get_mut();
 
         match actor_cfg {
@@ -173,6 +194,127 @@ pub fn create_rigid_actors(
                 commands.entity(entity)
                     .insert(RigidStaticHandle::new(actor, *actor_transform));
             }
+
+            bpx::RigidBody::ArticulationLink => {
+                articulation_entity_mapping.insert(entity, articulation_link_tree.len());
+
+                articulation_link_tree.push(ArticulationTreeNode {
+                    entity,
+                    transform: *actor_transform,
+                    joint: inbound_joint,
+                    ptr: null_mut(),
+                    children: vec![],
+                });
+            }
+        }
+    }
+
+    if !articulation_link_tree.is_empty() {
+        // the code below reconstruct articulation tree in order to ensure proper initialization order,
+        // so that every child will be created after its parent
+        let mut bases = vec![];
+
+        for idx in 0..articulation_link_tree.len() {
+            let current = &articulation_link_tree[idx];
+
+            if let Some(ArticulationJoint { parent, .. }) = current.joint {
+                let Some(parent_id) = articulation_entity_mapping.get(parent).copied() else {
+                    bevy::log::warn!("Broken articulation hierarchy: cannot find parent {:?} for {:?}.", parent, current.entity);
+                    bevy::log::warn!("Note that all links in any one articulation must be added at the same time (in a single bevy tick).");
+                    continue;
+                };
+
+                articulation_link_tree[parent_id].children.push(idx);
+            } else {
+                // articulation root
+                bases.push(idx);
+            }
+        }
+
+        fn traverse_dfs(current: usize, articulations: &[ArticulationTreeNode], indexes: &mut Vec<usize>) {
+            indexes.push(current);
+            for i in articulations[current].children.iter().copied() {
+                traverse_dfs(i, articulations, indexes);
+            }
+        }
+
+        for base_idx in bases {
+            let mut indexes = vec![];
+            let base_entity = articulation_link_tree[base_idx].entity;
+
+            traverse_dfs(base_idx, &articulation_link_tree, &mut indexes);
+
+            let mut articulation: Owner<PxArticulationReducedCoordinate> =
+                physics.create_articulation_reduced_coordinate(base_entity).unwrap();
+
+            for i in indexes {
+                let parent = articulation_link_tree[i].joint.map(|joint| {
+                    let idx = articulation_entity_mapping.get(&joint.parent).unwrap();
+                    assert!(!articulation_link_tree[*idx].ptr.is_null());
+                    articulation_link_tree[*idx].ptr
+                });
+
+                let link_transform = articulation_link_tree[i].transform;
+                let link_entity = articulation_link_tree[i].entity;
+
+                articulation_link_tree[i].ptr = unsafe {
+                    PxArticulationReducedCoordinate_createLink_mut(
+                        articulation.as_mut_ptr(),
+                        parent.unwrap_or(null_mut()),
+                        link_transform.to_physx_sys().as_ptr(),
+                    )
+                };
+
+                let mut actor: Owner<crate::PxArticulationLink> = unsafe {
+                    ArticulationLink::from_raw(articulation_link_tree[i].ptr, link_entity)
+                }.unwrap();
+
+                find_and_attach_nested_shapes(
+                    &mut commands,
+                    link_entity,
+                    actor.as_mut(),
+                    physics.as_mut(),
+                    &mut geometries,
+                    &mut materials,
+                    &query,
+                    &link_transform,
+                    &default_material,
+                );
+
+                if let Some(joint_cfg) = articulation_link_tree[i].joint {
+                    let joint = unsafe { PxArticulationLink_getInboundJoint(articulation_link_tree[i].ptr) };
+                    assert!(!joint.is_null());
+
+                    // SAFETY: ArticulationJointReducedCoordinate is repr(transparent) wrapper
+                    let joint = unsafe { &mut *(joint as *mut ArticulationJointReducedCoordinate) };
+
+                    joint.set_joint_type(joint_cfg.joint_type);
+                    joint.set_motion(ArticulationAxis::Swing1, joint_cfg.motion_swing1);
+                    joint.set_motion(ArticulationAxis::Swing2, joint_cfg.motion_swing2);
+                    joint.set_motion(ArticulationAxis::Twist, joint_cfg.motion_twist);
+                    joint.set_motion(ArticulationAxis::X, joint_cfg.motion_x);
+                    joint.set_motion(ArticulationAxis::Y, joint_cfg.motion_y);
+                    joint.set_motion(ArticulationAxis::Z, joint_cfg.motion_z);
+
+                    unsafe {
+                        PxArticulationJointReducedCoordinate_setParentPose_mut(joint.as_mut_ptr(), joint_cfg.parent_pose.to_physx_sys().as_ptr());
+                        PxArticulationJointReducedCoordinate_setChildPose_mut(joint.as_mut_ptr(), joint_cfg.child_pose.to_physx_sys().as_ptr());
+                        PxArticulationJointReducedCoordinate_setMaxJointVelocity_mut(joint.as_mut_ptr(), joint_cfg.max_joint_velocity);
+                        PxArticulationJointReducedCoordinate_setFrictionCoefficient_mut(joint.as_mut_ptr(), joint_cfg.friction_coefficient);
+                    }
+                }
+
+                commands.entity(link_entity)
+                    .insert(ArticulationLinkHandle::new(actor, link_transform));
+            }
+
+            // unsafe raw function call is required to avoid consuming articulation
+            unsafe {
+                PxScene_addArticulation_mut(scene.get_mut().as_mut_ptr(), articulation.as_mut_ptr());
+            }
+
+            commands.entity(base_entity)
+                .insert(ArticulationRootHandle::new(articulation));
         }
     }
 }
@@ -181,6 +323,40 @@ pub fn sync_transform_dynamic(
     mut scene: ResMut<bpx::Scene>,
     global_transforms: Query<&GlobalTransform>,
     mut actors: Query<(&mut RigidDynamicHandle, &mut Transform, &GlobalTransform, Option<&Parent>)>,
+) {
+    // this function does two things: sets physx property (if changed) or writes it back (if not);
+    // we need it to happen inside a single system to avoid change detection loops, but
+    // user will experience 1-tick delay on any changes
+    for (mut actor, mut xform, gxform, parent) in actors.iter_mut() {
+        if *gxform != actor.predicted_gxform {
+            actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
+            actor.predicted_gxform = *gxform;
+        } else {
+            let actor_handle = actor.get(&scene);
+            let new_gxform = actor_handle.get_global_pose().to_bevy();
+            let mut new_xform = new_gxform;
+
+            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+                let (_scale, inv_rotation, inv_translation) =
+                    parent_transform.affine().inverse().to_scale_rotation_translation();
+
+                new_xform.rotation = inv_rotation * new_xform.rotation;
+                new_xform.translation = inv_rotation * new_xform.translation + inv_translation;
+            }
+
+            // avoid triggering bevy's change tracking if no change
+            if *xform != new_xform { *xform = new_xform; }
+
+            drop(actor_handle);
+            actor.predicted_gxform = new_gxform.into();
+        }
+    }
+}
+
+pub fn sync_transform_articulation_links(
+    mut scene: ResMut<bpx::Scene>,
+    global_transforms: Query<&GlobalTransform>,
+    mut actors: Query<(&mut ArticulationLinkHandle, &mut Transform, &GlobalTransform, Option<&Parent>)>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but
@@ -228,7 +404,7 @@ pub fn sync_transform_nested_shapes(
     mut scene: ResMut<bpx::Scene>,
     mut shapes: Query<
         (&mut ShapeHandle, &mut Transform),
-        (Without<RigidStaticHandle>, Without<RigidDynamicHandle>)
+        (Without<RigidStaticHandle>, Without<RigidDynamicHandle>, Without<ArticulationLinkHandle>)
     >,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);

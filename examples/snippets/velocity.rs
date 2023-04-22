@@ -17,8 +17,8 @@ pub fn update(
     query: Query<&Velocity>,
 ) {
     for velocity in query.iter() {
-        println!("linear  velocity: {:?}", velocity.linvel);
-        println!("angular velocity: {:?}", velocity.angvel);
+        println!("linear  velocity: {:?}", velocity.linear);
+        println!("angular velocity: {:?}", velocity.angular);
     }
 }
 

@@ -49,7 +49,7 @@ pub fn setup(
             material: px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.)),
             ..default()
         },
-        Damping { linear_damping: 0., angular_damping: 0. },
+        Damping { linear: 0., angular: 0. },
     ));
 
     // high damping
@@ -66,7 +66,7 @@ pub fn setup(
             material: px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.)),
             ..default()
         },
-        Damping { linear_damping: 1., angular_damping: 1. },
+        Damping { linear: 1., angular: 1. },
     ));
 
     // camera
