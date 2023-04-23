@@ -127,19 +127,19 @@ fn create_debug_meshes(
                     }
                 }
             },
-            GeometryInner::Plane { .. } => {
+            GeometryInner::Plane { normal, .. } => {
                 for x in 0..=0 {
                     indices.push(positions.len() as u32);
-                    positions.push(Vec3::new(0., x as f32, -1000000.));
+                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., x as f32, -1000000.));
                     indices.push(positions.len() as u32);
-                    positions.push(Vec3::new(0., x as f32, 1000000.));
+                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., x as f32, 1000000.));
                 }
 
                 for y in 0..=0 {
                     indices.push(positions.len() as u32);
-                    positions.push(Vec3::new(0., -1000000., y as f32));
+                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., -1000000., y as f32));
                     indices.push(positions.len() as u32);
-                    positions.push(Vec3::new(0., 1000000., y as f32));
+                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., 1000000., y as f32));
                 }
             },
             GeometryInner::Capsule(geom)  => {
