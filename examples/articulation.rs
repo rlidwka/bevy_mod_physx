@@ -55,14 +55,20 @@ fn spawn_light(mut commands: Commands) {
 }
 
 fn spawn_camera(mut commands: Commands) {
-    commands.spawn(FlyingCameraBundle {
-        flying_camera: FlyingCamera {
-            distance: 40.,
-            ..default()
-        },
-        ..default()
-    })
-    .insert(Name::new("Camera"));
+    commands
+        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(10., 17., 0.))))
+        .with_children(|builder| {
+            builder.spawn(FlyingCameraBundle {
+                flying_camera: FlyingCamera {
+                    distance: 40.,
+                    gimbal_x: 0.8,
+                    gimbal_y: -0.4,
+                    ..default()
+                },
+                ..default()
+            });
+        })
+        .insert(Name::new("Camera"));
 }
 
 fn spawn_long_chain(
@@ -75,13 +81,14 @@ fn spawn_long_chain(
     const RADIUS: f32 = 0.5 * SCALE;
     const HALF_HEIGHT: f32 = 1. * SCALE;
     const SEGMENTS: usize = 40;
+    const SEGMENT_MASS: f32 = 1.;
 
     // change this for another kind of rope
     const OVERLAPPING_LINKS: bool = true;
 
     let mut position = Vec3::new(0., 24., 0.);
     let mesh = meshes.add(Mesh::from(shape::Capsule { radius: RADIUS, depth: HALF_HEIGHT + RADIUS * 2., ..default() }));
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    let material = materials.add(Color::rgb(1., 0.7, 0.).into());
 
     let px_geometry = px_geometries.add(bpx::Geometry::capsule(HALF_HEIGHT, RADIUS));
     let mut parent_link = None;
@@ -103,7 +110,7 @@ fn spawn_long_chain(
                 geometry: px_geometry.clone(),
                 ..default()
             })
-            .insert(MassProperties::mass(1.))
+            .insert(MassProperties::mass(SEGMENT_MASS))
             .with_children(|builder| {
                 builder.spawn(PbrBundle {
                     mesh: mesh.clone(),
@@ -155,6 +162,58 @@ fn spawn_long_chain(
 
         parent_link = Some(id);
     }
+
+    // attach large heavy box at the end of the rope
+    const BOX_SIZE: f32 = 1.;
+    const BOX_MASS: f32 = 50.;
+
+    position.x -= (RADIUS + HALF_HEIGHT) * 2.;
+    position.x += (RADIUS + HALF_HEIGHT) + BOX_SIZE;
+
+    let box_mesh = meshes.add(Mesh::from(shape::Cube { size: BOX_SIZE * 2. }));
+    let box_material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    let box_geometry = px_geometries.add(bpx::Geometry::cuboid(BOX_SIZE, BOX_SIZE, BOX_SIZE));
+
+    commands.spawn_empty()
+        .insert(bpx::RigidBody::ArticulationLink)
+        .insert(PbrBundle {
+            mesh: box_mesh,
+            material: box_material,
+            transform: Transform::from_translation(position),
+            ..default()
+        })
+        .insert(Damping {
+            linear: 0.1,
+            angular: 0.1,
+        })
+        .insert(MaxVelocity {
+            linear: 100.,
+            angular: 30.,
+        })
+        .insert(bpx::Shape {
+            geometry: box_geometry,
+            ..default()
+        })
+        .insert(MassProperties::mass(BOX_MASS))
+        .insert(ArticulationJoint {
+            parent: parent_link.unwrap(),
+            parent_pose: Transform::from_translation(Vec3::new(RADIUS + HALF_HEIGHT, 0., 0.)),
+            child_pose: Transform::from_translation(Vec3::new(-BOX_SIZE, 0., 0.)),
+            joint_type: ArticulationJointType::Spherical,
+            motion_swing1: ArticulationMotion::Free,
+            motion_swing2: ArticulationMotion::Free,
+            motion_twist: ArticulationMotion::Free,
+            friction_coefficient: 1.,
+            ..default()
+        })
+        .with_children(|builder| {
+            builder.spawn(PbrBundle {
+                mesh: mesh.clone(),
+                material: material.clone(),
+                transform: Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
+                ..default()
+            });
+        });
 }
 
 fn spawn_obstacle(
@@ -172,7 +231,7 @@ fn spawn_obstacle(
     let mesh = meshes.add(Mesh::from(
         shape::Box { min_x: -HALF_X, max_x: HALF_X, min_y: -HALF_Y, max_y: HALF_Y, min_z: -HALF_Z, max_z: HALF_Z }
     ));
-    let material = materials.add(Color::rgb(0.8, 0.2, 0.3).into());
+    let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
 
     let px_geometry = px_geometries.add(bpx::Geometry::cuboid(HALF_X, HALF_Y, HALF_Z));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
