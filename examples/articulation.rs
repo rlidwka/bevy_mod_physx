@@ -90,9 +90,9 @@ fn spawn_long_chain(
                 parent_pose,
                 child_pose,
                 joint_type: ArticulationJointType::Spherical,
-                motion_swing1: ArticulationMotion::Free,
-                motion_swing2: ArticulationMotion::Free,
-                motion_twist: ArticulationMotion::Free,
+                motion_swing1: ArticulationJointMotion::Free,
+                motion_swing2: ArticulationJointMotion::Free,
+                motion_twist: ArticulationJointMotion::Free,
                 friction_coefficient: 1.,
                 ..default()
             });
@@ -152,9 +152,9 @@ fn spawn_long_chain(
             parent_pose: Transform::from_xyz(RADIUS + HALF_HEIGHT, 0., 0.),
             child_pose: Transform::from_xyz(-BOX_SIZE, 0., 0.),
             joint_type: ArticulationJointType::Spherical,
-            motion_swing1: ArticulationMotion::Free,
-            motion_swing2: ArticulationMotion::Free,
-            motion_twist: ArticulationMotion::Free,
+            motion_swing1: ArticulationJointMotion::Free,
+            motion_swing2: ArticulationJointMotion::Free,
+            motion_twist: ArticulationJointMotion::Free,
             friction_coefficient: 1.,
             ..default()
         })

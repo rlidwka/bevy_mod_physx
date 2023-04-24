@@ -25,16 +25,24 @@ pub enum RigidBody {
     ArticulationLink,
 }
 
+#[derive(Default, Clone, Copy)]
+pub enum ArticulationJointMotion {
+    #[default]
+    Locked,
+    Free,
+    Limited { min: f32, max: f32 },
+}
+
 #[derive(Component, Clone)]
 pub struct ArticulationJoint {
     pub parent: Entity,
     pub joint_type: ArticulationJointType,
-    pub motion_twist: ArticulationMotion,
-    pub motion_swing1: ArticulationMotion,
-    pub motion_swing2: ArticulationMotion,
-    pub motion_x: ArticulationMotion,
-    pub motion_y: ArticulationMotion,
-    pub motion_z: ArticulationMotion,
+    pub motion_twist: ArticulationJointMotion,
+    pub motion_swing1: ArticulationJointMotion,
+    pub motion_swing2: ArticulationJointMotion,
+    pub motion_x: ArticulationJointMotion,
+    pub motion_y: ArticulationJointMotion,
+    pub motion_z: ArticulationJointMotion,
     pub parent_pose: Transform,
     pub child_pose: Transform,
     pub max_joint_velocity: f32,
@@ -66,12 +74,12 @@ impl Default for ArticulationJoint {
             // (up to 3 degrees of freedom).
             //
             joint_type: ArticulationJointType::Fix,
-            motion_twist: ArticulationMotion::Locked,
-            motion_swing1: ArticulationMotion::Locked,
-            motion_swing2: ArticulationMotion::Locked,
-            motion_x: ArticulationMotion::Locked,
-            motion_y: ArticulationMotion::Locked,
-            motion_z: ArticulationMotion::Locked,
+            motion_twist: default(),
+            motion_swing1: default(),
+            motion_swing2: default(),
+            motion_x: default(),
+            motion_y: default(),
+            motion_z: default(),
 
             // Pose should always be set by user.
             // Parent and child pose can in theory be set at runtime, but it results

@@ -15,7 +15,7 @@ pub use super::{
 pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
-pub use super::components::{ArticulationJoint, RigidBody, Shape, ShapeHandle};
+pub use super::components::{ArticulationJoint, ArticulationJointMotion, RigidBody, Shape, ShapeHandle};
 
 #[doc(hidden)]
 pub use super::plugins::{ArticulationRoot, Damping, ExternalForce, MassProperties, MaxVelocity, Velocity};

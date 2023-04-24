@@ -289,12 +289,26 @@ pub fn create_rigid_actors(
                     let joint = unsafe { &mut *(joint as *mut ArticulationJointReducedCoordinate) };
 
                     joint.set_joint_type(joint_cfg.joint_type);
-                    joint.set_motion(ArticulationAxis::Swing1, joint_cfg.motion_swing1);
-                    joint.set_motion(ArticulationAxis::Swing2, joint_cfg.motion_swing2);
-                    joint.set_motion(ArticulationAxis::Twist, joint_cfg.motion_twist);
-                    joint.set_motion(ArticulationAxis::X, joint_cfg.motion_x);
-                    joint.set_motion(ArticulationAxis::Y, joint_cfg.motion_y);
-                    joint.set_motion(ArticulationAxis::Z, joint_cfg.motion_z);
+
+                    fn set_motion(joint: &mut ArticulationJointReducedCoordinate, axis: ArticulationAxis, value: ArticulationJointMotion) {
+                        match value {
+                            ArticulationJointMotion::Locked => { /* nothing to do, it's the default */ }
+                            ArticulationJointMotion::Free => {
+                                joint.set_motion(axis, ArticulationMotion::Free);
+                            }
+                            ArticulationJointMotion::Limited { min, max } => {
+                                joint.set_motion(axis, ArticulationMotion::Limited);
+                                joint.set_limit(axis, min, max);
+                            }
+                        }
+                    }
+
+                    set_motion(joint, ArticulationAxis::Twist, joint_cfg.motion_twist);
+                    set_motion(joint, ArticulationAxis::Swing1, joint_cfg.motion_swing1);
+                    set_motion(joint, ArticulationAxis::Swing2, joint_cfg.motion_swing2);
+                    set_motion(joint, ArticulationAxis::X, joint_cfg.motion_x);
+                    set_motion(joint, ArticulationAxis::Y, joint_cfg.motion_y);
+                    set_motion(joint, ArticulationAxis::Z, joint_cfg.motion_z);
 
                     unsafe {
                         PxArticulationJointReducedCoordinate_setParentPose_mut(joint.as_mut_ptr(), joint_cfg.parent_pose.to_physx_sys().as_ptr());
