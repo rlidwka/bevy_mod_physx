@@ -18,7 +18,10 @@ pub use super::assets::{Geometry, Material};
 pub use super::components::{ArticulationJoint, ArticulationJointMotion, RigidBody, Shape, ShapeHandle};
 
 #[doc(hidden)]
-pub use super::plugins::{ArticulationRoot, Damping, ExternalForce, MassProperties, MaxVelocity, Velocity};
+pub use super::plugins::{
+    ArticulationJointDrives, ArticulationJointDriveTargets,
+    ArticulationRoot, Damping, ExternalForce, MassProperties, MaxVelocity, Velocity
+};
 
 #[doc(hidden)]
 pub use super::raycast::{RaycastHit, SceneQueryExt};

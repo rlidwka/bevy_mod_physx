@@ -3,6 +3,7 @@ mod common;
 use bevy::prelude::*;
 use bevy_physx::prelude::{*, self as bpx};
 use physx::prelude::*;
+use physx_sys::PxArticulationDrive;
 
 fn main() {
     // ported from https://github.com/MasterOfMarkets/bevy_mod_physx
@@ -61,6 +62,7 @@ pub fn spawn_scene(
         MassProperties::density(10000.),
     )).id();
 
+    let drive_cfg = PxArticulationDrive { stiffness: 1000.0, damping: 100.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let part_1 = commands.spawn((
         PbrBundle {
             mesh: part_mesh.clone(),
@@ -84,8 +86,15 @@ pub fn spawn_scene(
             friction_coefficient: 1.,
             ..default()
         },
+        ArticulationJointDrives {
+            drive_twist: drive_cfg,
+            drive_swing1: drive_cfg,
+            drive_swing2: drive_cfg,
+            ..default()
+        },
     )).id();
 
+    let drive_cfg = PxArticulationDrive { stiffness: 100.0, damping: 10.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let _part_2_1 = commands.spawn((
         PbrBundle {
             mesh: part_mesh.clone(),
@@ -109,9 +118,17 @@ pub fn spawn_scene(
             friction_coefficient: 1.,
             ..default()
         },
+        ArticulationJointDrives {
+            drive_twist: drive_cfg,
+            drive_swing1: drive_cfg,
+            drive_swing2: drive_cfg,
+            ..default()
+        },
+        ArticulationJointDriveTargets::default(),
         MassProperties::density(1000.),
     )).id();
 
+    let drive_cfg = PxArticulationDrive { stiffness: 100.0, damping: 10.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let _part_2_2 = commands.spawn((
         PbrBundle {
             mesh: part_mesh.clone(),
@@ -135,13 +152,20 @@ pub fn spawn_scene(
             friction_coefficient: 1.,
             ..default()
         },
+        ArticulationJointDrives {
+            drive_twist: drive_cfg,
+            drive_swing1: drive_cfg,
+            drive_swing2: drive_cfg,
+            ..default()
+        },
+        ArticulationJointDriveTargets::default(),
         MassProperties::density(0.5),
     )).id();
 }
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 2.5, 0.)))
+        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
         .with_children(|builder| {
             builder.spawn(Camera3dBundle {
                 transform: Transform::from_xyz(0.0, 2.5, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
