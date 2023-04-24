@@ -77,11 +77,11 @@ fn spawn_long_chain(
             let child_pose;
 
             if OVERLAPPING_LINKS {
-                parent_pose = Transform::from_translation(Vec3::new(HALF_HEIGHT, 0., 0.));
-                child_pose = Transform::from_translation(Vec3::new(-HALF_HEIGHT, 0., 0.));
+                parent_pose = Transform::from_xyz(HALF_HEIGHT, 0., 0.);
+                child_pose = Transform::from_xyz(-HALF_HEIGHT, 0., 0.);
             } else {
-                parent_pose = Transform::from_translation(Vec3::new(RADIUS + HALF_HEIGHT, 0., 0.));
-                child_pose = Transform::from_translation(Vec3::new(-RADIUS - HALF_HEIGHT, 0., 0.));
+                parent_pose = Transform::from_xyz(RADIUS + HALF_HEIGHT, 0., 0.);
+                child_pose = Transform::from_xyz(-RADIUS - HALF_HEIGHT, 0., 0.);
             }
 
             // need to configure inbound joint
@@ -149,8 +149,8 @@ fn spawn_long_chain(
         .insert(MassProperties::mass(BOX_MASS))
         .insert(ArticulationJoint {
             parent: parent_link.unwrap(),
-            parent_pose: Transform::from_translation(Vec3::new(RADIUS + HALF_HEIGHT, 0., 0.)),
-            child_pose: Transform::from_translation(Vec3::new(-BOX_SIZE, 0., 0.)),
+            parent_pose: Transform::from_xyz(RADIUS + HALF_HEIGHT, 0., 0.),
+            child_pose: Transform::from_xyz(-BOX_SIZE, 0., 0.),
             joint_type: ArticulationJointType::Spherical,
             motion_swing1: ArticulationMotion::Free,
             motion_swing2: ArticulationMotion::Free,
@@ -187,7 +187,7 @@ fn spawn_obstacle(
 
     let px_geometry = px_geometries.add(bpx::Geometry::cuboid(HALF_X, HALF_Y, HALF_Z));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
-    let transform = Transform::from_translation(Vec3::new(10., 21., 0.));
+    let transform = Transform::from_xyz(10., 21., 0.);
 
     commands.spawn_empty()
         .insert(PbrBundle {
@@ -235,10 +235,10 @@ fn spawn_plane(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(10., 17., 0.))))
+        .spawn(SpatialBundle::from_transform(Transform::from_xyz(10., 17., 0.)))
         .with_children(|builder| {
             builder.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(24.5, 17.3, 26.4)).looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_xyz(24.5, 17.3, 26.4).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
             });
         })

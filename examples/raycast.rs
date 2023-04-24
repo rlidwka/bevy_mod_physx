@@ -160,10 +160,10 @@ fn hover_highlight(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(-29., 8.5, -17.2))))
+        .spawn(SpatialBundle::from_transform(Transform::from_xyz(-29., 8.5, -17.2)))
         .with_children(|builder| {
             builder.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(-61., 47., 82.)).looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_xyz(-61., 47., 82.).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
             });
         })

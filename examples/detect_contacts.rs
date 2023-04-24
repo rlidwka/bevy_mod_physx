@@ -221,7 +221,7 @@ fn spawn_dynamic(
     let px_geometry = px_geometries.add(bpx::Geometry::ball(RADIUS));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));
 
-    let transform = Transform::from_translation(Vec3::new(0., 5., 32.5));
+    let transform = Transform::from_xyz(0., 5., 32.5);
 
     commands.spawn_empty()
         .insert(PbrBundle {
@@ -243,7 +243,7 @@ fn spawn_dynamic(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(-21., 0., 0.))))
+        .spawn(SpatialBundle::from_transform(Transform::from_xyz(-21., 0., 0.)))
         .with_children(|builder| {
             builder.spawn(Camera3dBundle {
                 transform: Transform::from_translation(Vec3::new(-41.7, 33., 0.)).looking_at(Vec3::ZERO, Vec3::Y),

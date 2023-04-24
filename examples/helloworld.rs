@@ -62,11 +62,11 @@ fn spawn_stacks(
             .with_children(|builder| {
                 for i in 0..SIZE {
                     for j in 0..SIZE-i {
-                        let transform = Transform::from_translation(Vec3::new(
+                        let transform = Transform::from_xyz(
                             ((j * 2) as f32 - (SIZE - i) as f32) / 2. * WIDTH,
                             (i * 2 + 1) as f32 / 2. * WIDTH,
                             0.,
-                        ));
+                        );
 
                         builder.spawn_empty()
                             .insert(PbrBundle {
@@ -104,7 +104,7 @@ fn spawn_dynamic(
     let px_geometry = px_geometries.add(bpx::Geometry::ball(RADIUS));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
-    let transform = Transform::from_translation(Vec3::new(0., 5., 12.5));
+    let transform = Transform::from_xyz(0., 5., 12.5);
 
     commands.spawn_empty()
         .insert(PbrBundle {
@@ -126,10 +126,10 @@ fn spawn_dynamic(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::ZERO)))
+        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
         .with_children(|builder| {
             builder.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(-32.5, 13.6, 18.8)).looking_at(Vec3::ZERO, Vec3::Y),
+                transform: Transform::from_xyz(-32.5, 13.6, 18.8).looking_at(Vec3::ZERO, Vec3::Y),
                 ..default()
             });
         })
