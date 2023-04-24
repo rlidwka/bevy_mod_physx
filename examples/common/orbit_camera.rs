@@ -1,26 +1,30 @@
+// flying camera that you can control with mouse, I still didn't find a good crate for it
+// maybe switch to smooth-bevy-cameras, but still needs a custom controller
+
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
 use bevy::input::mouse::{MouseWheel, MouseMotion};
+use bevy_inspector_egui::bevy_egui::EguiContexts;
 
-pub struct FlyingCameraPlugin;
+pub struct OrbitCameraPlugin;
 
-impl Plugin for FlyingCameraPlugin {
+impl Plugin for OrbitCameraPlugin {
     fn build(&self, app: &mut App) {
-        app.register_type::<FlyingCamera>();
+        app.register_type::<OrbitCamera>();
         app.add_system(apply_camera_controls);
         app.add_system(update_camera.after(apply_camera_controls));
     }
 }
 
 #[derive(Bundle, Default)]
-pub struct FlyingCameraBundle {
-    pub flying_camera: FlyingCamera,
+pub struct OrbitCameraBundle {
+    pub orbit_camera: OrbitCamera,
     pub camera3d: Camera3dBundle,
 }
 
 #[derive(Debug, Component, Reflect)]
-pub struct FlyingCamera {
+pub struct OrbitCamera {
     pub zoom_sensitivity: f32,
     pub rotate_sensitivity: f32,
     pub gimbal_x: f32,
@@ -34,13 +38,13 @@ pub struct FlyingCamera {
     pub last_rotation: Quat,
 }
 
-impl Default for FlyingCamera {
+impl Default for OrbitCamera {
     fn default() -> Self {
         Self {
             zoom_sensitivity: 0.1,
             rotate_sensitivity: 0.003,
-            gimbal_x: -60f32.to_radians(),
-            gimbal_y: -20f32.to_radians(),
+            gimbal_x: 60f32.to_radians(),
+            gimbal_y: 20f32.to_radians(),
             distance: 3.,
             min_distance: 0.,
             max_distance: f32::INFINITY,
@@ -56,8 +60,12 @@ fn apply_camera_controls(
     mut scroll_events: EventReader<MouseWheel>,
     mut move_events: EventReader<MouseMotion>,
     buttons: Res<Input<MouseButton>>,
-    mut camera_query: Query<&mut FlyingCamera>,
+    mut egui_contexts: EguiContexts,
+    mut camera_query: Query<&mut OrbitCamera>,
 ) {
+    let egui_ctx = egui_contexts.ctx_mut();
+    if egui_ctx.wants_pointer_input() { return; }
+
     enum MyEvent {
         Zoom(f32),
         Rotate((f32, f32)),
@@ -89,9 +97,9 @@ fn apply_camera_controls(
                         .clamp(camera.min_distance, camera.max_distance);
                 }
                 MyEvent::Rotate((dx, dy)) => {
-                    camera.gimbal_x -= dx * camera.rotate_sensitivity;
-                    camera.gimbal_y = (camera.gimbal_y - dy * camera.rotate_sensitivity)
-                        .clamp(-camera.max_y_angle, -camera.min_y_angle);
+                    camera.gimbal_x += dx * camera.rotate_sensitivity;
+                    camera.gimbal_y = (camera.gimbal_y + dy * camera.rotate_sensitivity)
+                        .clamp(camera.min_y_angle, camera.max_y_angle);
                 }
             }
         }
@@ -104,7 +112,7 @@ fn apply_camera_controls(
 
 fn update_camera(
     mut commands: Commands,
-    mut camera_query: Query<(Entity, &mut FlyingCamera)>,
+    mut camera_query: Query<(Entity, &mut OrbitCamera)>,
     time: Res<Time>,
 ) {
     let delta = time.delta_seconds();
@@ -117,7 +125,7 @@ fn update_camera(
 
         camera.last_rotation = focus_rotation.slerp(camera.last_rotation, 1. - delta * 10.);
 
-        let quat = Quat::from_euler(EulerRot::YXZ, camera.gimbal_x, camera.gimbal_y, 0.);
+        let quat = Quat::from_euler(EulerRot::YXZ, -camera.gimbal_x, -camera.gimbal_y, 0.);
 
         let mut new_transform = Transform::from_translation(
             focus_position +

@@ -1,15 +1,12 @@
-mod flying_camera;
+mod common;
 
 use std::sync::Mutex;
 use std::sync::mpsc::{channel, Receiver};
 
-use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
+use bevy_physx::prelude::{*, self as bpx};
+use bevy_physx::callbacks::OnCollision;
 use bevy_physx::utils::{get_actor_entity_from_ptr, get_shape_entity_from_ptr};
-use flying_camera::*;
-
-use bevy_physx::{prelude::*, callbacks::OnCollision};
-use bevy_physx::prelude as bpx;
 use physx::scene::FilterShaderDescriptor;
 use physx_sys::{FilterShaderCallbackInfo, PxPairFlags, PxFilterFlags, PxContactPairFlags, PxContactPair_extractContacts};
 
@@ -52,17 +49,58 @@ pub struct CollisionEvent {
 fn main() {
     let (tx, rx) = channel();
 
+    let on_collision = OnCollision::new(move |header, pairs| {
+        assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor0));
+        let actor0 = unsafe { get_actor_entity_from_ptr(header.actors[0] as *const _) };
+
+        assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor1));
+        let actor1 = unsafe { get_actor_entity_from_ptr(header.actors[1] as *const _) };
+
+        for pair in pairs {
+            // this example shows how to extract contact details
+            assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
+            let shape0 = unsafe { get_shape_entity_from_ptr(pair.shapes[0] as *const _) };
+
+            assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
+            let shape1 = unsafe { get_shape_entity_from_ptr(pair.shapes[1] as *const _) };
+
+            let contacts = unsafe {
+                let mut buffer = Vec::with_capacity(pairs.len());
+                PxContactPair_extractContacts(pair, buffer.as_mut_ptr(), pairs.len() as u32);
+                buffer.set_len(pairs.len());
+                buffer
+            };
+
+            let mut status = "Contact";
+            if pair.flags.contains(PxContactPairFlags::ActorPairHasFirstTouch) {
+                status = "New contact";
+            }
+            if pair.flags.contains(PxContactPairFlags::ActorPairLostTouch) {
+                status = "Lost contact";
+            }
+
+            println!("{status} between {shape0:?} and {shape1:?}:");
+            for contact in contacts {
+                println!(
+                    "position: {:?}, separation: {:?}, normal: {:?}, impulse: {:?}",
+                    contact.position.to_bevy(),
+                    contact.separation,
+                    contact.normal.to_bevy(),
+                    contact.impulse.to_bevy(),
+                );
+            }
+            println!("----------");
+        }
+
+        // this callback must not do anything with the scene,
+        // we need to extract required data and send it through a channel into
+        // a system that handles things
+        tx.send(CollisionEvent { actor0, actor1 }).unwrap();
+    });
+
     App::new()
-        .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .insert_resource(AmbientLight {
-            color: Color::WHITE,
-            brightness: 1.0 / 5.0f32,
-        })
-        .insert_resource(Msaa::default())
-        .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin::default())
-        .add_system(bevy::window::close_on_esc)
+        .add_plugin(common::DemoUtils) // optional
         .insert_resource(CollisionStream { receiver: Mutex::new(rx) })
         .add_plugin(PhysXPlugin {
             scene: bpx::SceneDescriptor {
@@ -71,69 +109,19 @@ fn main() {
                 simulation_filter_shader: FilterShaderDescriptor::CallDefaultFirst(simulation_filter_shader),
 
                 // callback is a closure, where we pass Sender to
-                on_collision: Some(OnCollision::new(move |header, pairs| {
-                    assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor0));
-                    let actor0 = unsafe { get_actor_entity_from_ptr(header.actors[0] as *const _) };
-
-                    assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor1));
-                    let actor1 = unsafe { get_actor_entity_from_ptr(header.actors[1] as *const _) };
-
-                    for pair in pairs {
-                        // this example shows how to extract contact details
-                        assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
-                        let shape0 = unsafe { get_shape_entity_from_ptr(pair.shapes[0] as *const _) };
-
-                        assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
-                        let shape1 = unsafe { get_shape_entity_from_ptr(pair.shapes[1] as *const _) };
-
-                        let contacts = unsafe {
-                            let mut buffer = Vec::with_capacity(pairs.len());
-                            PxContactPair_extractContacts(pair, buffer.as_mut_ptr(), pairs.len() as u32);
-                            buffer.set_len(pairs.len());
-                            buffer
-                        };
-
-                        let mut status = "Contact";
-                        if pair.flags.contains(PxContactPairFlags::ActorPairHasFirstTouch) {
-                            status = "New contact";
-                        }
-                        if pair.flags.contains(PxContactPairFlags::ActorPairLostTouch) {
-                            status = "Lost contact";
-                        }
-
-                        println!("{status} between {shape0:?} and {shape1:?}:");
-                        for contact in contacts {
-                            println!(
-                                "position: {:?}, separation: {:?}, normal: {:?}, impulse: {:?}",
-                                contact.position.to_bevy(),
-                                contact.separation,
-                                contact.normal.to_bevy(),
-                                contact.impulse.to_bevy(),
-                            );
-                        }
-                        println!("----------");
-                    }
-
-                    // this callback must not do anything with the scene,
-                    // we need to extract required data and send it through a channel into
-                    // a system that handles things
-                    tx.send(CollisionEvent { actor0, actor1 }).unwrap();
-                })),
+                on_collision: Some(on_collision),
                 ..default()
             },
             ..default()
         })
-        .add_plugin(PhysXDebugRenderPlugin)
-        .add_plugin(FlyingCameraPlugin)
         .add_startup_systems((
             init_materials,
             apply_system_buffers,
-            spawn_light,
-            spawn_camera,
             spawn_plane,
             spawn_tiles,
             spawn_dynamic,
         ).chain())
+        .add_startup_system(spawn_camera_and_light)
         .add_system(highlight_on_hit)
         .run();
 }
@@ -146,33 +134,6 @@ fn init_materials(
         normal: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
         highlighted: materials.add(Color::rgb(0.3, 0.4, 0.9).into()),
     });
-}
-
-fn spawn_light(mut commands: Commands) {
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 15000.,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform {
-            rotation: Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.),
-            ..default()
-        },
-        ..default()
-    })
-    .insert(Name::new("Light"));
-}
-
-fn spawn_camera(mut commands: Commands) {
-    commands.spawn(FlyingCameraBundle {
-        flying_camera: FlyingCamera {
-            distance: 40.,
-            ..default()
-        },
-        ..default()
-    })
-    .insert(Name::new("Camera"));
 }
 
 fn spawn_plane(
@@ -278,6 +239,23 @@ fn spawn_dynamic(
         })
         .insert(Velocity::linear(Vec3::new(2.5, -5., -10.)))
         .insert(Name::new("Ball"));
+}
+
+fn spawn_camera_and_light(mut commands: Commands) {
+    commands
+        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(-21., 0., 0.))))
+        .with_children(|builder| {
+            builder.spawn(Camera3dBundle {
+                transform: Transform::from_translation(Vec3::new(-41.7, 33., 0.)).looking_at(Vec3::ZERO, Vec3::Y),
+                ..default()
+            });
+        })
+        .insert(Name::new("Camera"));
+
+    commands.spawn(DirectionalLightBundle {
+        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+        ..default()
+    }).insert(Name::new("Light"));
 }
 
 fn highlight_on_hit(

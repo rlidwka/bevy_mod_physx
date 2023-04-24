@@ -1,26 +1,14 @@
-mod flying_camera;
+mod common;
 
-use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
-use flying_camera::*;
-
-use bevy_physx::prelude::*;
-use bevy_physx::prelude as bpx;
+use bevy_physx::prelude::{*, self as bpx};
 use physx::prelude::*;
 use physx_sys::PxSolverType;
 
 fn main() {
     App::new()
-        .insert_resource(ClearColor(Color::rgb(0., 0., 0.)))
-        .insert_resource(AmbientLight {
-            color: Color::WHITE,
-            brightness: 1.0 / 5.0f32,
-        })
-        .insert_resource(Msaa::default())
-        .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_inspector_egui::quick::WorldInspectorPlugin::default())
-        .add_system(bevy::window::close_on_esc)
+        .add_plugin(common::DemoUtils) // optional
         .add_plugin(PhysXPlugin {
             scene: bpx::SceneDescriptor {
                 solver_type: PxSolverType::Tgs,
@@ -28,47 +16,11 @@ fn main() {
             },
             ..default()
         })
-        .add_plugin(PhysXDebugRenderPlugin)
-        .add_plugin(FlyingCameraPlugin)
-        .add_startup_system(spawn_light)
-        .add_startup_system(spawn_camera)
         .add_startup_system(spawn_long_chain)
         .add_startup_system(spawn_obstacle)
         .add_startup_system(spawn_plane)
+        .add_startup_system(spawn_camera_and_light)
         .run();
-}
-
-fn spawn_light(mut commands: Commands) {
-    commands.spawn(DirectionalLightBundle {
-        directional_light: DirectionalLight {
-            illuminance: 15000.,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform {
-            rotation: Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.),
-            ..default()
-        },
-        ..default()
-    })
-    .insert(Name::new("Light"));
-}
-
-fn spawn_camera(mut commands: Commands) {
-    commands
-        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(10., 17., 0.))))
-        .with_children(|builder| {
-            builder.spawn(FlyingCameraBundle {
-                flying_camera: FlyingCamera {
-                    distance: 40.,
-                    gimbal_x: 0.8,
-                    gimbal_y: -0.4,
-                    ..default()
-                },
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
 }
 
 fn spawn_long_chain(
@@ -279,4 +231,21 @@ fn spawn_plane(
             ..default()
         })
         .insert(Name::new("Plane"));
+}
+
+fn spawn_camera_and_light(mut commands: Commands) {
+    commands
+        .spawn(SpatialBundle::from_transform(Transform::from_translation(Vec3::new(10., 17., 0.))))
+        .with_children(|builder| {
+            builder.spawn(Camera3dBundle {
+                transform: Transform::from_translation(Vec3::new(24.5, 17.3, 26.4)).looking_at(Vec3::ZERO, Vec3::Y),
+                ..default()
+            });
+        })
+        .insert(Name::new("Camera"));
+
+    commands.spawn(DirectionalLightBundle {
+        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+        ..default()
+    }).insert(Name::new("Light"));
 }

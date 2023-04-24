@@ -20,4 +20,3 @@ physx-sys = { git = "https://github.com/rlidwka/physx-rs", branch = "mesh_method
 
 [dev-dependencies]
 bevy-inspector-egui = "0.18.1"
-bevy_infinite_grid = { git = "https://github.com/PikminGuts92/bevy_infinite_grid", rev = "ee7f83f" }
