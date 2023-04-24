@@ -170,6 +170,9 @@ impl Default for SceneDescriptor {
     }
 }
 
+// All systems related to physics simulation are added to a separate schedule.
+// This allows user the flexibility of running it whenever needed
+// (for example, on fixed schedule).
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PhysicsSchedule;
 

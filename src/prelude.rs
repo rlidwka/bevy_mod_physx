@@ -7,6 +7,7 @@ pub use super::{
     PhysicsSchedule,
     PhysicsSet,
     PhysicsTime,
+    TimestepMode,
     FoundationDescriptor,
     SceneDescriptor,
 };
