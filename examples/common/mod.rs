@@ -1,6 +1,6 @@
 // Set of tools to make demos more useful.
 //  - configure environment (ambient light, shadows, adjust light settings)
-//  - orbit camera controller (click+drag to rotate, scroll to zoom)
+//  - orbit camera controller (click+drag to rotate, right click+drag to pan, scroll to zoom)
 //  - bevy inspector (F12 to toggle)
 //  - debug lines (F11 to toggle)
 //  - press ESC to close demo

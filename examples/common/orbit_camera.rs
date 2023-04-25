@@ -27,6 +27,7 @@ pub struct OrbitCameraBundle {
 pub struct OrbitCamera {
     pub zoom_sensitivity: f32,
     pub rotate_sensitivity: f32,
+    pub pan_sensitivity: f32,
     pub gimbal_x: f32,
     pub gimbal_y: f32,
     pub distance: f32,
@@ -34,6 +35,7 @@ pub struct OrbitCamera {
     pub max_distance: f32,
     pub min_y_angle: f32,
     pub max_y_angle: f32,
+    pub target: Vec3,
     pub active: bool,
     pub last_rotation: Quat,
 }
@@ -43,6 +45,7 @@ impl Default for OrbitCamera {
         Self {
             zoom_sensitivity: 0.1,
             rotate_sensitivity: 0.003,
+            pan_sensitivity: 0.001,
             gimbal_x: 60f32.to_radians(),
             gimbal_y: 20f32.to_radians(),
             distance: 3.,
@@ -50,6 +53,7 @@ impl Default for OrbitCamera {
             max_distance: f32::INFINITY,
             min_y_angle: 0.02,
             max_y_angle: PI / 2.2,
+            target: Vec3::ZERO,
             active: true,
             last_rotation: Quat::IDENTITY,
         }
@@ -69,6 +73,7 @@ fn apply_camera_controls(
     enum MyEvent {
         Zoom(f32),
         Rotate((f32, f32)),
+        Pan((f32, f32)),
     }
 
     let mut events = vec![];
@@ -80,6 +85,10 @@ fn apply_camera_controls(
     if buttons.pressed(MouseButton::Left) {
         for ev in move_events.iter() {
             events.push(MyEvent::Rotate((ev.delta.x, ev.delta.y)));
+        }
+    } else if buttons.pressed(MouseButton::Right) {
+        for ev in move_events.iter() {
+            events.push(MyEvent::Pan((ev.delta.x, ev.delta.y)));
         }
     }
 
@@ -101,6 +110,11 @@ fn apply_camera_controls(
                     camera.gimbal_y = (camera.gimbal_y + dy * camera.rotate_sensitivity)
                         .clamp(camera.min_y_angle, camera.max_y_angle);
                 }
+                MyEvent::Pan((dx, dy)) => {
+                    let v = Vec2::new(*dx, *dy).rotate(-Vec2::from_angle(camera.gimbal_x));
+                    camera.target.x += v.x * camera.pan_sensitivity * camera.distance;
+                    camera.target.z += v.y * camera.pan_sensitivity * camera.distance;
+                }
             }
         }
     }
@@ -116,8 +130,6 @@ fn update_camera(
     time: Res<Time>,
 ) {
     let delta = time.delta_seconds();
-
-    let focus_position = Vec3::ZERO;
     let focus_rotation = Quat::IDENTITY;
 
     for (entity, mut camera) in camera_query.iter_mut() {
@@ -128,11 +140,11 @@ fn update_camera(
         let quat = Quat::from_euler(EulerRot::YXZ, -camera.gimbal_x, -camera.gimbal_y, 0.);
 
         let mut new_transform = Transform::from_translation(
-            focus_position +
+            camera.target +
             (camera.last_rotation * quat * Vec3::Z) * camera.distance
         );
 
-        new_transform.look_at(focus_position, camera.last_rotation * Vec3::Y);
+        new_transform.look_at(camera.target, camera.last_rotation * Vec3::Y);
 
         commands.entity(entity).insert(new_transform);
     }
