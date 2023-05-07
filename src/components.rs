@@ -1,5 +1,3 @@
-use std::ptr::drop_in_place;
-
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
@@ -11,6 +9,7 @@ use physx_sys::{
     PxPhysics_createShape_mut,
     PxShape_release_mut,
 };
+use std::ptr::drop_in_place;
 
 use crate::assets::GeometryInner;
 use crate::{prelude as bpx, PxArticulationLink, PxArticulationReducedCoordinate};

@@ -1,4 +1,4 @@
-use crate::components::{RigidDynamicHandle, ArticulationLinkHandle, ArticulationRootHandle};
+use crate::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle};
 use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;

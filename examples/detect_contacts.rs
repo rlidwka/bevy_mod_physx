@@ -1,14 +1,19 @@
 mod common;
 
-use std::sync::Mutex;
-use std::sync::mpsc::{channel, Receiver};
-
 use bevy::prelude::*;
-use bevy_physx::prelude::{*, self as bpx};
 use bevy_physx::callbacks::OnCollision;
+use bevy_physx::prelude::{self as bpx, *};
 use bevy_physx::utils::{get_actor_entity_from_ptr, get_shape_entity_from_ptr};
 use physx::scene::FilterShaderDescriptor;
-use physx_sys::{FilterShaderCallbackInfo, PxPairFlags, PxFilterFlags, PxContactPairFlags, PxContactPair_extractContacts};
+use physx_sys::{
+    FilterShaderCallbackInfo,
+    PxContactPairFlags,
+    PxContactPair_extractContacts,
+    PxFilterFlags,
+    PxPairFlags,
+};
+use std::sync::mpsc::{channel, Receiver};
+use std::sync::Mutex;
 
 #[derive(Resource)]
 struct DemoMaterials {

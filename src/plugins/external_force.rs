@@ -1,5 +1,5 @@
 // this covers ExternalForce and ExternalImpulse (see ForceMode attribute of the struct)
-use crate::components::{RigidDynamicHandle, ArticulationLinkHandle};
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
 use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;

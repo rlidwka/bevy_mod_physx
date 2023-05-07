@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-use std::ptr::{null, null_mut};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
@@ -17,6 +15,8 @@ use physx_sys::{
     PxShape_setQueryFilterData_mut,
     PxShape_setSimulationFilterData_mut,
 };
+use std::collections::HashMap;
+use std::ptr::{null, null_mut};
 
 use crate::components::ArticulationJoint;
 

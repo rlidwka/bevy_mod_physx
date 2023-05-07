@@ -2,7 +2,7 @@ mod common;
 
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
-use bevy_physx::prelude::{*, self as bpx};
+use bevy_physx::prelude::{self as bpx, *};
 
 #[derive(Resource)]
 struct DemoMaterials {

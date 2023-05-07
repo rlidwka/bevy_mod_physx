@@ -1,15 +1,27 @@
+use super::PxMaterial;
+use crate::prelude::{self as bpx, *};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use physx::convex_mesh::ConvexMesh;
-use physx::cooking::{TriangleMeshCookingResult, PxTriangleMeshDesc, ConvexMeshCookingResult, PxConvexMeshDesc, PxHeightFieldDesc, self};
+use physx::cooking::{
+    self,
+    ConvexMeshCookingResult,
+    PxConvexMeshDesc,
+    PxHeightFieldDesc,
+    PxTriangleMeshDesc,
+    TriangleMeshCookingResult,
+};
 use physx::prelude::*;
 use physx::triangle_mesh::TriangleMesh;
-use physx_sys::{PxConvexFlags, PxHeightFieldSample, PxHeightFieldFormat, PxConvexMeshGeometryFlags, PxMeshGeometryFlags};
+use physx_sys::{
+    PxConvexFlags,
+    PxConvexMeshGeometryFlags,
+    PxHeightFieldFormat,
+    PxHeightFieldSample,
+    PxMeshGeometryFlags,
+};
 use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
-use crate::prelude as bpx;
-use crate::prelude::*;
-use super::PxMaterial;
 
 #[derive(TypeUuid, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]

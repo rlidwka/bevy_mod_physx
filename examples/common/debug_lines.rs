@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_physx::render::{PhysXDebugRenderPlugin, DebugRenderSettings};
+use bevy_physx::render::{DebugRenderSettings, PhysXDebugRenderPlugin};
 
 pub struct DebugLinesPlugin;
 

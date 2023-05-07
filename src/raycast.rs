@@ -1,6 +1,3 @@
-use std::ffi::c_void;
-use std::ptr::drop_in_place;
-use std::{mem::MaybeUninit, ptr::null_mut};
 use bevy::prelude::*;
 use physx::rigid_actor::RigidActor;
 use physx::traits::Class;
@@ -16,6 +13,9 @@ use physx_sys::{
     create_raycast_filter_callback,
     create_raycast_filter_callback_func,
 };
+use std::ffi::c_void;
+use std::mem::MaybeUninit;
+use std::ptr::{drop_in_place, null_mut};
 
 use crate::prelude::{*, Scene};
 use crate::utils::{get_shape_entity_from_ptr, get_actor_entity_from_ptr};

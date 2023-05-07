@@ -1,7 +1,7 @@
 mod common;
 
 use bevy::prelude::*;
-use bevy_physx::prelude::{*, self as bpx};
+use bevy_physx::prelude::{self as bpx, *};
 
 fn main() {
     App::new()

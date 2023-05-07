@@ -1,11 +1,19 @@
+// useful asserts that's off by default
 #![warn(clippy::manual_assert)]
 #![warn(clippy::semicolon_if_nothing_returned)]
-#![allow(clippy::type_complexity)]
+//
+// these are often intentionally not collapsed for readability
+#![allow(clippy::collapsible_else_if)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::collapsible_match)]
+//
+// these are intentional in bevy systems: nobody is directly calling those,
+// so extra arguments don't decrease readability
 #![allow(clippy::too_many_arguments)]
+#![allow(clippy::type_complexity)]
 
-use std::time::Duration;
-
-use bevy::ecs::schedule::{SystemSetConfigs, ScheduleLabel};
+use crate::prelude as bpx;
+use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::scene::{
@@ -20,7 +28,7 @@ use physx::scene::{
     SolverType,
 };
 use physx_sys::PxTolerancesScale;
-use crate::prelude as bpx;
+use std::time::Duration;
 
 pub mod assets;
 pub mod callbacks;

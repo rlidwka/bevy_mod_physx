@@ -8,7 +8,9 @@
 // This module is intended to be optional, all the stuff should work without it.
 //
 
-use bevy::{prelude::*, pbr::DirectionalLightShadowMap, input::common_conditions::input_toggle_active};
+use bevy::input::common_conditions::input_toggle_active;
+use bevy::pbr::DirectionalLightShadowMap;
+use bevy::prelude::*;
 
 pub mod debug_lines;
 use debug_lines::DebugLinesPlugin;

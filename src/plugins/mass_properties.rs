@@ -1,8 +1,8 @@
-use crate::components::{RigidDynamicHandle, ArticulationLinkHandle};
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
 use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxRigidBodyExt_updateMassAndInertia_1, PxRigidBodyExt_setMassAndUpdateInertia_1};
+use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
 
 #[derive(Component, Debug, Reflect, Clone, Copy)]
 pub enum MassProperties {

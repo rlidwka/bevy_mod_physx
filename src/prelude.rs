@@ -3,25 +3,27 @@ pub use super::utils::type_bridge::*;
 
 #[doc(hidden)]
 pub use super::{
+    FoundationDescriptor,
     PhysXPlugin,
     PhysicsSchedule,
     PhysicsSet,
     PhysicsTime,
-    TimestepMode,
-    FoundationDescriptor,
     SceneDescriptor,
+    TimestepMode,
 };
 
 #[doc(hidden)]
 pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
-pub use super::components::{ArticulationJoint, ArticulationJointMotion, RigidBody, Shape, ShapeHandle};
+pub use super::components::{
+    ArticulationJoint, ArticulationJointMotion, RigidBody, Shape, ShapeHandle,
+};
 
 #[doc(hidden)]
 pub use super::plugins::{
-    ArticulationJointDrives, ArticulationJointDriveTargets,
-    ArticulationRoot, Damping, ExternalForce, MassProperties, MaxVelocity, Velocity
+    ArticulationJointDriveTargets, ArticulationJointDrives, ArticulationRoot, Damping,
+    ExternalForce, MassProperties, MaxVelocity, Velocity,
 };
 
 #[doc(hidden)]
