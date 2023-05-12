@@ -93,12 +93,31 @@ impl Default for ArticulationJoint {
     }
 }
 
-#[derive(Component, Clone, Default)]
+#[derive(Component, Clone)]
 pub struct Shape {
     pub geometry: Handle<bpx::Geometry>,
     pub material: Handle<bpx::Material>,
     pub query_filter_data: FilterData,
     pub simulation_filter_data: FilterData,
+    pub flags: ShapeFlags,
+    pub contact_offset: Option<f32>,
+    pub rest_offset: Option<f32>,
+}
+
+impl Default for Shape {
+    fn default() -> Self {
+        Self {
+            geometry: default(),
+            material: default(),
+            query_filter_data: default(),
+            simulation_filter_data: default(),
+            flags: ShapeFlags::SceneQueryShape
+                | ShapeFlags::SimulationShape
+                | ShapeFlags::Visualization,
+            contact_offset: None,
+            rest_offset: None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
@@ -129,7 +148,13 @@ impl ShapeHandle {
         Self { handle: Some(SceneRwLock::new(px_shape)), custom_xform }
     }
 
-    pub fn create_shape(physics: &mut bpx::Physics, geometry: &mut bpx::Geometry, material: &mut bpx::Material, user_data: Entity) -> Self {
+    pub fn create_shape(
+        physics: &mut bpx::Physics,
+        geometry: &mut bpx::Geometry,
+        material: &mut bpx::Material,
+        flags: ShapeFlags,
+        user_data: Entity,
+    ) -> Self {
         // we want to specify outward normal for PxPlane specifically, so need to return transform for this
         let mut transform = Transform::IDENTITY;
 
@@ -174,7 +199,7 @@ impl ShapeHandle {
                     geometry_ptr,
                     material.as_ptr(),
                     true,
-                    ShapeFlags::SceneQueryShape | ShapeFlags::SimulationShape | ShapeFlags::Visualization,
+                    flags,
                 ),
                 user_data
             ).unwrap()

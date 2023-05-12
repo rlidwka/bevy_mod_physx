@@ -13,7 +13,7 @@ use physx_sys::{
     PxScene_addArticulation_mut,
     PxShape_setLocalPose_mut,
     PxShape_setQueryFilterData_mut,
-    PxShape_setSimulationFilterData_mut,
+    PxShape_setSimulationFilterData_mut, PxShape_setContactOffset_mut, PxShape_setRestOffset_mut,
 };
 use std::collections::HashMap;
 use std::ptr::{null, null_mut};
@@ -68,7 +68,16 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
     }
 
     for (entity, shape_cfg, gtransform) in found_shapes {
-        let bpx::Shape { geometry, material, query_filter_data, simulation_filter_data } = shape_cfg;
+        let bpx::Shape {
+            geometry,
+            material,
+            query_filter_data,
+            simulation_filter_data,
+            flags,
+            contact_offset,
+            rest_offset,
+        } = shape_cfg;
+
         let geometry = geometries.get_mut(&geometry).expect("geometry not found");
         let mut material = materials.get_mut(&material);
 
@@ -82,7 +91,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         }
 
         let material = material.expect("default material not found");
-        let mut shape_component = ShapeHandle::create_shape(physics, geometry, material, entity);
+        let mut shape_component = ShapeHandle::create_shape(physics, geometry, material, flags, entity);
         let custom_transform = shape_component.custom_xform;
         // SAFETY: scene locking is done by the caller
         let shape_handle = unsafe { shape_component.get_mut_unsafe() };
@@ -101,6 +110,14 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
             if simulation_filter_data != default() {
                 let pxfilterdata : PxFilterData = simulation_filter_data.into();
                 PxShape_setSimulationFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
+            }
+
+            if let Some(contact_offset) = contact_offset {
+                PxShape_setContactOffset_mut(shape_handle.as_mut_ptr(), contact_offset);
+            }
+
+            if let Some(rest_offset) = rest_offset {
+                PxShape_setRestOffset_mut(shape_handle.as_mut_ptr(), rest_offset);
             }
         }
 
