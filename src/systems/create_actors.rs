@@ -13,7 +13,7 @@ use physx_sys::{
     PxScene_addArticulation_mut,
     PxShape_setLocalPose_mut,
     PxShape_setQueryFilterData_mut,
-    PxShape_setSimulationFilterData_mut, PxShape_setContactOffset_mut, PxShape_setRestOffset_mut,
+    PxShape_setSimulationFilterData_mut,
 };
 use std::collections::HashMap;
 use std::ptr::{null, null_mut};
@@ -74,8 +74,6 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
             query_filter_data,
             simulation_filter_data,
             flags,
-            contact_offset,
-            rest_offset,
         } = shape_cfg;
 
         let geometry = geometries.get_mut(&geometry).expect("geometry not found");
@@ -110,14 +108,6 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
             if simulation_filter_data != default() {
                 let pxfilterdata : PxFilterData = simulation_filter_data.into();
                 PxShape_setSimulationFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
-            }
-
-            if let Some(contact_offset) = contact_offset {
-                PxShape_setContactOffset_mut(shape_handle.as_mut_ptr(), contact_offset);
-            }
-
-            if let Some(rest_offset) = rest_offset {
-                PxShape_setRestOffset_mut(shape_handle.as_mut_ptr(), rest_offset);
             }
         }
 

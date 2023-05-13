@@ -100,8 +100,6 @@ pub struct Shape {
     pub query_filter_data: FilterData,
     pub simulation_filter_data: FilterData,
     pub flags: ShapeFlags,
-    pub contact_offset: Option<f32>,
-    pub rest_offset: Option<f32>,
 }
 
 impl Default for Shape {
@@ -114,8 +112,6 @@ impl Default for Shape {
             flags: ShapeFlags::SceneQueryShape
                 | ShapeFlags::SimulationShape
                 | ShapeFlags::Visualization,
-            contact_offset: None,
-            rest_offset: None,
         }
     }
 }
