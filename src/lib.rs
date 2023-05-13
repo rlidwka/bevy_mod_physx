@@ -33,6 +33,7 @@ use std::time::Duration;
 pub mod assets;
 pub mod callbacks;
 pub mod components;
+pub mod events;
 pub mod plugins;
 pub mod prelude;
 pub mod raycast;

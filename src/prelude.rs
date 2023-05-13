@@ -25,6 +25,9 @@ pub use super::components::{
 };
 
 #[doc(hidden)]
+pub use super::events::AppExtensions;
+
+#[doc(hidden)]
 pub use super::plugins::{
     ArticulationJointDriveTargets,
     ArticulationJointDrives,

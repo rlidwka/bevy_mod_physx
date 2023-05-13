@@ -1,5 +1,7 @@
 mod common;
 
+use std::sync::mpsc::channel;
+
 use bevy::prelude::*;
 use bevy_physx::callbacks::OnCollision;
 use bevy_physx::prelude::{self as bpx, *};
@@ -12,8 +14,6 @@ use physx_sys::{
     PxFilterFlags,
     PxPairFlags,
 };
-use std::sync::mpsc::{channel, Receiver};
-use std::sync::Mutex;
 
 #[derive(Resource)]
 struct DemoMaterials {
@@ -41,18 +41,13 @@ unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) 
     PxFilterFlags::empty()
 }
 
-#[derive(Resource)]
-pub struct CollisionStream {
-    receiver: Mutex<Receiver<CollisionEvent>>,
-}
-
 pub struct CollisionEvent {
     actor0: Entity,
     actor1: Entity,
 }
 
 fn main() {
-    let (tx, rx) = channel();
+    let (mpsc_sender, mpsc_receiver) = channel();
 
     let on_collision = OnCollision::new(move |header, pairs| {
         assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor0));
@@ -100,13 +95,12 @@ fn main() {
         // this callback must not do anything with the scene,
         // we need to extract required data and send it through a channel into
         // a system that handles things
-        tx.send(CollisionEvent { actor0, actor1 }).unwrap();
+        mpsc_sender.send(CollisionEvent { actor0, actor1 }).unwrap();
     });
 
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(common::DemoUtils) // optional
-        .insert_resource(CollisionStream { receiver: Mutex::new(rx) })
         .add_plugin(PhysXPlugin {
             scene: bpx::SceneDescriptor {
                 // simulation filter shader will filter details that we get in on_collision callback,
@@ -119,6 +113,7 @@ fn main() {
             },
             ..default()
         })
+        .add_physics_event_channel(mpsc_receiver)
         .add_startup_systems((
             init_materials,
             apply_system_buffers,
@@ -266,12 +261,10 @@ fn spawn_camera_and_light(mut commands: Commands) {
 fn highlight_on_hit(
     mut commands: Commands,
     materials: Res<DemoMaterials>,
-    events: Res<CollisionStream>,
+    mut events: EventReader<CollisionEvent>,
     highlighable: Query<(), With<Highlightable>>,
 ) {
-    let Ok(events) = events.receiver.try_lock() else { return; };
-
-    while let Ok(event) = events.try_recv() {
+    for event in events.iter() {
         for entity in [ event.actor0, event.actor1 ] {
             if highlighable.get(entity).is_ok() {
                 commands.entity(entity)
