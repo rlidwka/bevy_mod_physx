@@ -4,12 +4,11 @@ use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use physx::convex_mesh::ConvexMesh;
 use physx::cooking::{
-    self,
     ConvexMeshCookingResult,
     PxConvexMeshDesc,
     PxHeightFieldDesc,
     PxTriangleMeshDesc,
-    TriangleMeshCookingResult,
+    TriangleMeshCookingResult, PxCookingParams, PxCooking,
 };
 use physx::prelude::*;
 use physx::triangle_mesh::TriangleMesh;
@@ -18,7 +17,7 @@ use physx_sys::{
     PxConvexMeshGeometryFlags,
     PxHeightFieldFormat,
     PxHeightFieldSample,
-    PxMeshGeometryFlags,
+    PxMeshGeometryFlags, PxConvexFlag, PxBitAndByte, PxConvexMeshGeometryFlag, PxMeshGeometryFlag,
 };
 use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
@@ -113,7 +112,7 @@ impl From<Owner<ConvexMesh>> for Geometry {
             mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
             rotation: Quat::IDENTITY,
-            flags: ConvexMeshGeometryFlags::TightBounds,
+            flags: PxConvexMeshGeometryFlags { mBits: 0 },
         } }
     }
 }
@@ -124,7 +123,7 @@ impl From<Owner<TriangleMesh>> for Geometry {
             mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
             rotation: Quat::IDENTITY,
-            flags: MeshGeometryFlags::TightBounds,
+            flags: PxMeshGeometryFlags { mBits: 0 },
         } }
     }
 }
@@ -134,7 +133,7 @@ impl From<Owner<HeightField>> for Geometry {
         Self { obj: GeometryInner::HeightField {
             mesh: Arc::new(Mutex::new(value)),
             scale: Vec3::ONE,
-            flags: MeshGeometryFlags::TightBounds,
+            flags: PxMeshGeometryFlags { mBits: 0 },
         } }
     }
 }
@@ -169,10 +168,12 @@ impl Geometry {
         mesh_desc.obj.points.count = verts.len() as u32;
         mesh_desc.obj.points.stride = std::mem::size_of::<PxVec3>() as u32;
         mesh_desc.obj.points.data = verts.as_ptr() as *const c_void;
-        mesh_desc.obj.flags = PxConvexFlags::ComputeConvex;
+        mesh_desc.obj.flags = PxConvexFlags { mBits: PxConvexFlag::eCOMPUTE_CONVEX as u16 };
 
-        let params = cooking::PxCookingParams::new(physics.physics()).unwrap();
-        match cooking::create_convex_mesh(physics.physics_mut(), &params, &mesh_desc) {
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
+
+        match cooking.create_convex_mesh(physics.physics_mut(), &mesh_desc) {
             ConvexMeshCookingResult::Success(mesh) => Ok(mesh.into()),
             ConvexMeshCookingResult::Failure => Err(ConvexMeshCookingError::Failure),
             ConvexMeshCookingResult::InvalidDescriptor => Err(ConvexMeshCookingError::InvalidDescriptor),
@@ -197,8 +198,10 @@ impl Geometry {
         mesh_desc.obj.triangles.stride = std::mem::size_of::<[u32; 3]>() as u32;
         mesh_desc.obj.triangles.data = indices.as_ptr() as *const c_void;
 
-        let params = cooking::PxCookingParams::new(physics.physics()).unwrap();
-        match cooking::create_triangle_mesh(physics.physics_mut(), &params, &mesh_desc) {
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
+
+        match cooking.create_triangle_mesh(physics.physics_mut(), &mesh_desc) {
             TriangleMeshCookingResult::Success(mesh) => Ok(mesh.into()),
             TriangleMeshCookingResult::Failure => Err(TriangleMeshCookingError::Failure),
             TriangleMeshCookingResult::InvalidDescriptor => Err(TriangleMeshCookingError::InvalidDescriptor),
@@ -237,17 +240,24 @@ impl Geometry {
         let mut samples = Vec::with_capacity(num_rows * num_cols);
 
         for height in heights.iter().copied() {
-            samples.push(HeightFieldSample::new(height, default(), default(), false));
+            samples.push(PxHeightFieldSample {
+                height,
+                materialIndex0: PxBitAndByte { mData: 0 },
+                materialIndex1: PxBitAndByte { mData: 0 },
+            });
         }
 
         let mut hfield_desc = PxHeightFieldDesc::new();
-        hfield_desc.obj.format = PxHeightFieldFormat::S16Tm;
+        hfield_desc.obj.format = PxHeightFieldFormat::eS16_TM;
         hfield_desc.obj.nbColumns = num_cols as u32;
         hfield_desc.obj.nbRows = num_rows as u32;
         hfield_desc.obj.samples.stride = std::mem::size_of::<PxHeightFieldSample>() as u32;
         hfield_desc.obj.samples.data = samples.as_ptr() as *const c_void;
 
-        let mesh = cooking::create_height_field(physics.physics_mut(), &hfield_desc)
+        let params = &PxCookingParams::new(&**physics).expect("failed to create cooking params");
+        let cooking = PxCooking::new(physics.foundation_mut(), params).expect("failed to create cooking");
+
+        let mesh = cooking.create_height_field(physics.physics_mut(), &hfield_desc)
             .expect("create_height_field failure");
 
         mesh.into()
@@ -279,16 +289,14 @@ impl Geometry {
     pub fn with_tight_bounds(mut self, tight_bounds: bool) -> Self {
         match &mut self.obj {
             GeometryInner::ConvexMesh { ref mut flags, .. } => {
-                flags.set(ConvexMeshGeometryFlags::TightBounds, tight_bounds);
-            }
-            GeometryInner::TriangleMesh { ref mut flags, .. } => {
-                flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
-            }
-            GeometryInner::HeightField { ref mut flags, .. } => {
-                flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
+                *flags = if tight_bounds {
+                    PxConvexMeshGeometryFlags { mBits: PxConvexMeshGeometryFlag::eTIGHT_BOUNDS as _ }
+                } else {
+                    PxConvexMeshGeometryFlags { mBits: 0 }
+                }
             }
             _ => {
-                bevy::log::warn!("unable to set tight bounds, wrong geometry type (not ConvexMesh, TriangleMesh or HeightField)");
+                bevy::log::warn!("unable to set tight bounds, wrong geometry type (not ConvexMesh)");
             }
         };
         self
@@ -297,10 +305,18 @@ impl Geometry {
     pub fn with_double_sided(mut self, double_sided: bool) -> Self {
         match &mut self.obj {
             GeometryInner::TriangleMesh { ref mut flags, .. } => {
-                flags.set(MeshGeometryFlags::DoubleSided, double_sided);
+                *flags = if double_sided {
+                    PxMeshGeometryFlags { mBits: PxMeshGeometryFlag::eDOUBLE_SIDED as _ }
+                } else {
+                    PxMeshGeometryFlags { mBits: 0 }
+                }
             }
             GeometryInner::HeightField { ref mut flags, .. } => {
-                flags.set(MeshGeometryFlags::DoubleSided, double_sided);
+                *flags = if double_sided {
+                    PxMeshGeometryFlags { mBits: PxMeshGeometryFlag::eDOUBLE_SIDED as _ }
+                } else {
+                    PxMeshGeometryFlags { mBits: 0 }
+                }
             }
             _ => {
                 bevy::log::warn!("unable to set double sided, wrong geometry type (not TriangleMesh or HeightField)");

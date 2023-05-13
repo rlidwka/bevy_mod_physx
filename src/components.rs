@@ -3,6 +3,7 @@ use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
+    PxShapeFlags,
     PxMeshScale_new_3,
     PxPhysics_createShape_mut,
     PxShape_release_mut,
@@ -103,9 +104,9 @@ impl Default for Shape {
         Self {
             geometry: default(),
             material: default(),
-            flags: ShapeFlags::SceneQueryShape
-                | ShapeFlags::SimulationShape
-                | ShapeFlags::Visualization,
+            flags: ShapeFlag::SceneQueryShape
+                | ShapeFlag::SimulationShape
+                | ShapeFlag::Visualization,
         }
     }
 }
@@ -173,7 +174,7 @@ impl ShapeHandle {
                     geometry_ptr,
                     material.as_ptr(),
                     true,
-                    flags,
+                    PxShapeFlags { mBits: flags.bits() as u8 },
                 ),
                 user_data
             ).unwrap()

@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
     PxActor_setName_mut,
-    PxArticulationReducedCoordinate_setName_mut,
     PxShape_setName_mut,
 };
 use std::borrow::Cow;
@@ -77,13 +76,6 @@ fn name_sync(
             commands.entity(entity).insert(PxName(name));
             ptr
         });
-
-        if let Some(mut h) = hroot {
-            // this doesn't show up in physx debugger for unknown reasons
-            // (works if we set it straight away when articulation is created)
-            let mut h = h.get_mut(&mut scene);
-            unsafe { PxArticulationReducedCoordinate_setName_mut(h.as_mut_ptr(), name) };
-        }
 
         if let Some(mut h) = hlink {
             let mut h = h.get_mut(&mut scene);

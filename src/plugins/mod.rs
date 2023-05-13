@@ -4,14 +4,6 @@
 // their own similar plugins.
 //
 
-mod articulation;
-pub use articulation::{
-    ArticulationJointDriveTargets,
-    ArticulationJointDrives,
-    ArticulationPlugin,
-    ArticulationRoot,
-};
-
 mod damping;
 pub use damping::{Damping, DampingPlugin};
 

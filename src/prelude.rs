@@ -28,15 +28,13 @@ pub use super::events::AppExtensions;
 
 #[doc(hidden)]
 pub use super::plugins::{
-    ArticulationJointDriveTargets,
-    ArticulationJointDrives,
-    ArticulationRoot,
     Damping,
     ExternalForce,
     NameFormatter,
     MassProperties,
     MaxVelocity,
     ShapeFilterData,
+    ShapeOffsets,
     Velocity,
 };
 

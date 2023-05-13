@@ -15,6 +15,7 @@
 use crate::prelude as bpx;
 use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
 use bevy::prelude::*;
+use enumflags2::BitFlags;
 use physx::prelude::*;
 use physx::scene::{
     BroadPhaseType,
@@ -22,13 +23,14 @@ use physx::scene::{
     FrictionType,
     PairFilteringMode,
     PruningStructureType,
-    SceneFlags,
+    SceneFlag,
     SceneLimits,
     SceneQueryUpdateMode,
     SolverType,
 };
-use physx_sys::PxTolerancesScale;
 use std::time::Duration;
+use physx_sys::{PxTolerancesScale, PxTolerancesScale_new};
+use vehicles::{PhysXVehiclesPlugin, VehicleExtensionDescriptor};
 
 pub mod assets;
 pub mod callbacks;
@@ -41,6 +43,7 @@ pub mod render;
 pub mod resources;
 pub mod systems;
 pub mod utils;
+pub mod vehicles;
 
 // reexport physx to avoid version conflicts
 pub use physx;
@@ -53,6 +56,7 @@ type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
 type PxArticulationLink = physx::articulation_link::PxArticulationLink<Entity, PxShape>;
 type PxRigidStatic = physx::rigid_static::PxRigidStatic<Entity, PxShape>;
 type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<Entity, PxShape>;
+type PxArticulation = physx::articulation::PxArticulation<(), PxArticulationLink>;
 type PxArticulationReducedCoordinate =
     physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<Entity, PxArticulationLink>;
 
@@ -61,6 +65,7 @@ type PxScene = physx::scene::PxScene<
     PxArticulationLink,
     PxRigidStatic,
     PxRigidDynamic,
+    PxArticulation,
     PxArticulationReducedCoordinate,
     callbacks::OnCollision,
     callbacks::OnTrigger,
@@ -69,10 +74,40 @@ type PxScene = physx::scene::PxScene<
     callbacks::OnAdvance,
 >;
 
-#[derive(Clone)]
+#[derive(Debug, Clone, Copy)]
+pub struct TolerancesScale {
+    pub length: f32,
+    pub speed: f32,
+}
+
+impl From<PxTolerancesScale> for TolerancesScale {
+    fn from(value: PxTolerancesScale) -> Self {
+        Self {
+            length: value.length,
+            speed: value.speed,
+        }
+    }
+}
+
+impl From<TolerancesScale> for PxTolerancesScale {
+    fn from(value: TolerancesScale) -> Self {
+        let mut result = unsafe { PxTolerancesScale_new() };
+        result.length = value.length;
+        result.speed = value.speed;
+        result
+    }
+}
+
+impl Default for TolerancesScale {
+    fn default() -> Self {
+        unsafe { PxTolerancesScale_new() }.into()
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct FoundationDescriptor {
     pub extensions: bool,
-    pub tolerances: PxTolerancesScale,
+    pub tolerances: TolerancesScale,
     pub visual_debugger: bool,
     pub visual_debugger_port: i32,
     pub visual_debugger_remote: Option<String>,
@@ -82,7 +117,7 @@ impl Default for FoundationDescriptor {
     fn default() -> Self {
         Self {
             extensions: true,
-            tolerances: PxTolerancesScale { length: 1., speed: 10. },
+            tolerances: default(),
             visual_debugger: true,
             visual_debugger_port: 5425,
             visual_debugger_remote: None,
@@ -106,7 +141,8 @@ pub struct SceneDescriptor {
     pub bounce_threshold_velocity: f32,
     pub friction_offset_threshold: f32,
     pub ccd_max_separation: f32,
-    pub flags: SceneFlags,
+    pub solver_offset_slop: f32,
+    pub flags: BitFlags<SceneFlag>,
     pub static_structure: PruningStructureType,
     pub dynamic_structure: PruningStructureType,
     pub dynamic_tree_rebuild_rate_hint: u32,
@@ -133,7 +169,7 @@ impl Default for SceneDescriptor {
     fn default() -> Self {
         let d = physx::traits::descriptor::SceneDescriptor::<
             (), PxArticulationLink, PxRigidStatic, PxRigidDynamic,
-            PxArticulationReducedCoordinate,
+            PxArticulation, PxArticulationReducedCoordinate,
             callbacks::OnCollision, callbacks::OnTrigger, callbacks::OnConstraintBreak,
             callbacks::OnWakeSleep, callbacks::OnAdvance
         >::new(());
@@ -156,6 +192,7 @@ impl Default for SceneDescriptor {
             bounce_threshold_velocity: d.bounce_threshold_velocity,
             friction_offset_threshold: d.friction_offset_threshold,
             ccd_max_separation: d.ccd_max_separation,
+            solver_offset_slop: d.solver_offset_slop,
             flags: d.flags,
             static_structure: d.static_structure,
             dynamic_structure: d.dynamic_structure,
@@ -220,6 +257,7 @@ impl PhysicsSet {
 pub struct PhysXPlugin {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
+    pub vehicles: VehicleExtensionDescriptor,
     pub timestep: TimestepMode,
 }
 
@@ -228,6 +266,7 @@ impl Default for PhysXPlugin {
         Self {
             foundation: default(),
             scene: default(),
+            vehicles: default(),
             timestep: default(),
         }
     }
@@ -259,6 +298,10 @@ impl Plugin for PhysXPlugin {
         app.insert_resource(PhysicsTime::new(self.timestep));
         app.init_resource::<BevyTimeDelta>();
 
+        if self.vehicles.enabled {
+            app.add_plugin(PhysXVehiclesPlugin(self.vehicles.clone()));
+        }
+
         // physics must be last (so it will be dropped last)
         app.insert_resource(physics);
 
@@ -267,7 +310,6 @@ impl Plugin for PhysXPlugin {
             schedule.configure_sets(PhysicsSet::sets());
         });
 
-        app.add_plugin(crate::plugins::ArticulationPlugin);
         app.add_plugin(crate::plugins::DampingPlugin);
         app.add_plugin(crate::plugins::ExternalForcePlugin);
         app.add_plugin(crate::plugins::MassPropertiesPlugin);
