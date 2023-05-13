@@ -266,6 +266,7 @@ impl Plugin for PhysXPlugin {
         app.add_plugin(crate::plugins::ExternalForcePlugin);
         app.add_plugin(crate::plugins::MassPropertiesPlugin);
         app.add_plugin(crate::plugins::MaxVelocityPlugin);
+        app.add_plugin(crate::plugins::ShapeFilterDataPlugin);
         app.add_plugin(crate::plugins::ShapeOffsetsPlugin);
         app.add_plugin(crate::plugins::VelocityPlugin);
 

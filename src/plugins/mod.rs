@@ -19,6 +19,9 @@ pub use mass_properties::*;
 mod max_velocity;
 pub use max_velocity::*;
 
+mod shape_filter_data;
+pub use shape_filter_data::*;
+
 mod shape_offsets;
 pub use shape_offsets::*;
 

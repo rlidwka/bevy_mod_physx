@@ -3,8 +3,6 @@ use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
-    PxFilterData,
-    PxFilterData_new_2,
     PxMeshScale_new_3,
     PxPhysics_createShape_mut,
     PxShape_release_mut,
@@ -97,8 +95,6 @@ impl Default for ArticulationJoint {
 pub struct Shape {
     pub geometry: Handle<bpx::Geometry>,
     pub material: Handle<bpx::Material>,
-    pub query_filter_data: FilterData,
-    pub simulation_filter_data: FilterData,
     pub flags: ShapeFlags,
 }
 
@@ -107,28 +103,10 @@ impl Default for Shape {
         Self {
             geometry: default(),
             material: default(),
-            query_filter_data: default(),
-            simulation_filter_data: default(),
             flags: ShapeFlags::SceneQueryShape
                 | ShapeFlags::SimulationShape
                 | ShapeFlags::Visualization,
         }
-    }
-}
-
-#[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub struct FilterData([ u32; 4 ]);
-
-impl FilterData {
-    pub fn new(word0: u32, word1: u32, word2: u32, word3: u32) -> Self {
-        Self([ word0, word1, word2, word3 ])
-    }
-}
-
-impl From<FilterData> for PxFilterData {
-    fn from(value: FilterData) -> Self {
-        let [ word0, word1, word2, word3 ] = value.0;
-        unsafe { PxFilterData_new_2(word0, word1, word2, word3) }
     }
 }
 

@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
-    PxFilterData,
     PxArticulationJointReducedCoordinate_setChildPose_mut,
     PxArticulationJointReducedCoordinate_setFrictionCoefficient_mut,
     PxArticulationJointReducedCoordinate_setMaxJointVelocity_mut,
@@ -12,8 +11,6 @@ use physx_sys::{
     PxScene_addActor_mut,
     PxScene_addArticulation_mut,
     PxShape_setLocalPose_mut,
-    PxShape_setQueryFilterData_mut,
-    PxShape_setSimulationFilterData_mut,
 };
 use std::collections::HashMap;
 use std::ptr::{null, null_mut};
@@ -71,8 +68,6 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
         let bpx::Shape {
             geometry,
             material,
-            query_filter_data,
-            simulation_filter_data,
             flags,
         } = shape_cfg;
 
@@ -99,16 +94,6 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
                 shape_handle.as_mut_ptr(),
                 (relative_transform * custom_transform).to_physx().as_ptr(),
             );
-
-            if query_filter_data != default() {
-                let pxfilterdata : PxFilterData = query_filter_data.into();
-                PxShape_setQueryFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
-            }
-
-            if simulation_filter_data != default() {
-                let pxfilterdata : PxFilterData = simulation_filter_data.into();
-                PxShape_setSimulationFilterData_mut(shape_handle.as_mut_ptr(), &pxfilterdata as *const _);
-            }
         }
 
         actor.attach_shape(shape_handle);
