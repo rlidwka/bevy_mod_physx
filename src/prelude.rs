@@ -17,13 +17,24 @@ pub use super::assets::{Geometry, Material};
 
 #[doc(hidden)]
 pub use super::components::{
-    ArticulationJoint, ArticulationJointMotion, RigidBody, Shape, ShapeHandle,
+    ArticulationJoint,
+    ArticulationJointMotion,
+    RigidBody,
+    Shape,
+    ShapeHandle,
 };
 
 #[doc(hidden)]
 pub use super::plugins::{
-    ArticulationJointDriveTargets, ArticulationJointDrives, ArticulationRoot, Damping,
-    ExternalForce, MassProperties, MaxVelocity, Velocity,
+    ArticulationJointDriveTargets,
+    ArticulationJointDrives,
+    ArticulationRoot,
+    Damping,
+    ExternalForce,
+    MassProperties,
+    MaxVelocity,
+    ShapeFilterData,
+    Velocity,
 };
 
 #[doc(hidden)]
