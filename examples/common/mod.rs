@@ -11,6 +11,7 @@
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
+use std::ffi::CString;
 
 pub mod debug_lines;
 use debug_lines::DebugLinesPlugin;
@@ -23,6 +24,18 @@ pub struct DemoUtils;
 
 impl Plugin for DemoUtils {
     fn build(&self, app: &mut App) {
+        app.insert_resource(bevy_physx::plugins::NameFormatter(|entity, name| {
+            // set custom name in PVD
+            let str = if let Some(name) = name {
+                format!("{name} ({entity:?})")
+            } else {
+                format!("({entity:?})")
+            };
+
+            std::borrow::Cow::Owned(CString::new(str).unwrap())
+        }));
+        app.add_plugin(DebugLinesPlugin);
+
         app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
         app.insert_resource(AmbientLight {
             color: Color::WHITE,
@@ -32,7 +45,6 @@ impl Plugin for DemoUtils {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
 
         app.add_plugin(OrbitCameraPlugin);
-        app.add_plugin(DebugLinesPlugin);
         app.add_plugin(
             bevy_inspector_egui::quick::WorldInspectorPlugin::default()
                 .run_if(input_toggle_active(true, KeyCode::F12))

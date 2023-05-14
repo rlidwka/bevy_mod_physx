@@ -21,7 +21,6 @@ pub use super::components::{
     ArticulationJointMotion,
     RigidBody,
     Shape,
-    ShapeHandle,
 };
 
 #[doc(hidden)]
@@ -34,6 +33,7 @@ pub use super::plugins::{
     ArticulationRoot,
     Damping,
     ExternalForce,
+    NameFormatter,
     MassProperties,
     MaxVelocity,
     ShapeFilterData,

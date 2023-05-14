@@ -7,7 +7,7 @@ use physx_sys::{
 };
 
 use crate::prelude::{*, self as bpx};
-use crate::components::{ArticulationLinkHandle, RigidDynamicHandle, RigidStaticHandle};
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle, RigidStaticHandle, ShapeHandle};
 
 pub fn sync_transform_dynamic(
     mut scene: ResMut<bpx::Scene>,

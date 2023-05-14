@@ -15,7 +15,7 @@ use physx_sys::{
 use std::collections::HashMap;
 use std::ptr::{null, null_mut};
 
-use crate::components::ArticulationJoint;
+use crate::components::{ArticulationJoint, ShapeHandle};
 
 use crate::prelude as bpx;
 use crate::{prelude::*, PxArticulationReducedCoordinate, PxRigidDynamic, PxRigidStatic};
