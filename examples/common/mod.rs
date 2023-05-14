@@ -7,11 +7,15 @@
 //
 // This module is intended to be optional, all the stuff should work without it.
 //
+const SIMULATION_STARTS_PAUSED: bool = false;
+const INSPECTOR_STARTS_HIDDEN: bool = false;
 
+use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use std::ffi::CString;
+use std::time::Duration;
 
 pub mod debug_lines;
 use debug_lines::DebugLinesPlugin;
@@ -44,13 +48,27 @@ impl Plugin for DemoUtils {
         app.insert_resource(Msaa::default());
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
 
+        // log fps to console
+        app.add_plugin(FrameTimeDiagnosticsPlugin::default());
+        app.add_plugin(LogDiagnosticsPlugin {
+            wait_duration: Duration::from_millis(1000),
+            filter: Some(vec![FrameTimeDiagnosticsPlugin::FPS]),
+            ..default()
+        });
+
         app.add_plugin(OrbitCameraPlugin);
         app.add_plugin(
             bevy_inspector_egui::quick::WorldInspectorPlugin::default()
-                .run_if(input_toggle_active(true, KeyCode::F12))
+                .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),
         );
         app.add_system(adjust_light_settings);
         app.add_system(adjust_camera_settings);
+        app.add_system(spacebar_pauses_simulation);
+
+        if SIMULATION_STARTS_PAUSED {
+            app.add_startup_system(|mut time: ResMut<Time>| time.pause());
+        }
+
         app.add_system(bevy::window::close_on_esc);
     }
 }
@@ -88,5 +106,18 @@ fn adjust_camera_settings(
                 distance: transform.translation.length(),
                 ..default()
             });
+    }
+}
+
+fn spacebar_pauses_simulation(
+    keys: Res<Input<KeyCode>>,
+    mut time: ResMut<Time>,
+) {
+    if keys.just_pressed(KeyCode::Space) {
+        if time.is_paused() {
+            time.unpause();
+        } else {
+            time.pause();
+        }
     }
 }
