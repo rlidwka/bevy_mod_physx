@@ -191,6 +191,9 @@ pub enum PhysicsSet {
     // everything related to simulation itself
     // (scene simulation + vehicle simulation)
     Simulate,
+    // apply system buffers, need to ensure that everything
+    // is applied before Create set run
+    SimulateFlush,
     // - propagate transforms
     // - create new actors, and everything else that uses
     //   commands to insert new components
@@ -198,17 +201,19 @@ pub enum PhysicsSet {
     // maybe it should be split to more stages, but I don't expect
     // this to have too many systems
     Create,
+    // apply system buffers from functions in Create set
+    CreateFlush,
     // two-way sync of physx state with existing bevy components
     Sync,
 }
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::Simulate, Self::Create, Self::Sync].into_iter()
+        [Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync].into_iter()
     }
 
     pub fn sets() -> SystemSetConfigs {
-        (Self::Simulate, Self::Create, Self::Sync).chain()
+        (Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync).chain()
     }
 }
 
@@ -278,11 +283,18 @@ impl Plugin for PhysXPlugin {
         ).in_base_set(PhysicsSet::Simulate).in_schedule(PhysicsSchedule));
 
         app.add_systems((
-            bevy::transform::systems::propagate_transforms.before(systems::create_rigid_actors),
-            bevy::transform::systems::sync_simple_transforms.before(systems::create_rigid_actors),
-            systems::create_rigid_actors.before(apply_system_buffers),
             apply_system_buffers,
+        ).in_base_set(PhysicsSet::SimulateFlush).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            bevy::transform::systems::propagate_transforms,
+            bevy::transform::systems::sync_simple_transforms,
+            systems::create_rigid_actors,
         ).in_base_set(PhysicsSet::Create).in_schedule(PhysicsSchedule));
+
+        app.add_systems((
+            apply_system_buffers,
+        ).in_base_set(PhysicsSet::CreateFlush).in_schedule(PhysicsSchedule));
 
         app.add_systems((
             systems::sync_transform_static,
