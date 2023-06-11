@@ -4,7 +4,9 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxShape_setContactOffset_mut, PxShape_setRestOffset_mut};
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct ShapeOffsets {
     pub contact_offset: f32,
     pub rest_offset: f32,

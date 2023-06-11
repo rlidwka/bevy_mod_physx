@@ -4,7 +4,9 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
 
-#[derive(Component, Debug, Reflect, Clone, Copy)]
+#[derive(Component, Debug, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub enum MassProperties {
     Density {
         density: f32,
@@ -14,6 +16,12 @@ pub enum MassProperties {
         mass: f32,
         center: Vec3,
     },
+}
+
+impl Default for MassProperties {
+    fn default() -> Self {
+        Self::Density { density: 1., center: Vec3::ZERO }
+    }
 }
 
 impl MassProperties {

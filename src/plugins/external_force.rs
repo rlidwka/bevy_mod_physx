@@ -4,13 +4,46 @@ use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
 
-#[derive(Component, Debug, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Hash, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
+pub enum ExternalForceMode {
+    Acceleration,
+    Impulse,
+    VelocityChange,
+    #[default]
+    Force,
+}
+
+impl From<ForceMode> for ExternalForceMode {
+    fn from(value: ForceMode) -> Self {
+        match value {
+            ForceMode::Acceleration => Self::Acceleration,
+            ForceMode::Impulse => Self::Impulse,
+            ForceMode::VelocityChange => Self::VelocityChange,
+            ForceMode::Force => Self::Force,
+        }
+    }
+}
+
+impl From<ExternalForceMode> for ForceMode {
+    fn from(value: ExternalForceMode) -> Self {
+        match value {
+            ExternalForceMode::Acceleration => Self::Acceleration,
+            ExternalForceMode::Impulse => Self::Impulse,
+            ExternalForceMode::VelocityChange => Self::VelocityChange,
+            ExternalForceMode::Force => Self::Force,
+        }
+    }
+}
+
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct ExternalForce {
     pub force: Vec3,
     pub torque: Vec3,
-    #[reflect(ignore)]
-    // TODO: https://github.com/bevyengine/bevy/pull/6042
-    pub mode: ForceMode,
+    pub mode: ExternalForceMode,
 }
 
 impl ExternalForce {
@@ -20,12 +53,6 @@ impl ExternalForce {
             torque: (point - center_of_mass).cross(force),
             ..default()
         }
-    }
-}
-
-impl Default for ExternalForce {
-    fn default() -> Self {
-        Self { force: default(), torque: default(), mode: ForceMode::Force }
     }
 }
 
@@ -48,10 +75,10 @@ pub fn external_force_sync(
         if extforce.force != Vec3::ZERO || extforce.torque != Vec3::ZERO {
             if let Some(mut actor) = dynamic {
                 let mut actor_handle = actor.get_mut(&mut scene);
-                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode);
+                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode.into());
             } else if let Some(mut actor) = articulation {
                 let mut actor_handle = actor.get_mut(&mut scene);
-                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode);
+                actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode.into());
             } else {
                 bevy::log::warn!("ExternalForce component exists, but it's neither a rigid dynamic nor articulation link");
             };

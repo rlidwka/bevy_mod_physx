@@ -9,7 +9,9 @@ use physx_sys::{
     PxShape_setSimulationFilterData_mut,
 };
 
-#[derive(Component, Debug, Default, PartialEq, Eq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct ShapeFilterData {
     pub query_filter_data: [ u32; 4 ],
     pub simulation_filter_data: [ u32; 4 ],

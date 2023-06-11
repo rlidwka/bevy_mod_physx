@@ -312,7 +312,8 @@ impl Plugin for PhysXPlugin {
     }
 }
 
-#[derive(Debug, Reflect, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[reflect(Default)]
 pub enum TimestepMode {
     /// Physics simulation will be advanced by dt at each Bevy tick.
     /// Real time does not make any difference for this timestep mode.
@@ -352,7 +353,7 @@ impl Default for TimestepMode {
 }
 
 #[derive(Resource, Default, Debug, Reflect)]
-#[reflect(Resource)]
+#[reflect(Resource, Default)]
 pub struct PhysicsTime {
     timestep: TimestepMode,
     delta: Duration,

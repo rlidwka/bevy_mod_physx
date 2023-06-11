@@ -10,7 +10,9 @@ use physx_sys::{
     PxArticulationReducedCoordinate_setRootLinearVelocity_mut,
 };
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct Velocity {
     pub linear: Vec3,
     pub angular: Vec3,

@@ -3,7 +3,9 @@ use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct Damping {
     pub linear: f32,
     pub angular: f32,

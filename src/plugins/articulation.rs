@@ -5,7 +5,9 @@ use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxArticulationDrive, PxArticulationLink_getInboundJoint};
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct ArticulationRoot {
     pub fix_base: bool,
     pub drive_limits_are_forces: bool,
@@ -37,7 +39,9 @@ impl Default for ArticulationJointDrives {
     }
 }
 
-#[derive(Component, Debug, Default, PartialEq, Reflect, Clone, Copy)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
 pub struct ArticulationJointDriveTargets {
     pub drive_twist: f32,
     pub drive_swing1: f32,

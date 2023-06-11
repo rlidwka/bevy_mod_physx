@@ -11,7 +11,7 @@ const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_U
 const DEFAULT_COLOR: Color = Color::rgba(0.5, 0.7, 0.8, 1.);
 pub struct PhysXDebugRenderPlugin;
 
-#[derive(Resource, Reflect, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Reflect, FromReflect)]
 #[reflect(Resource)]
 pub struct DebugRenderSettings {
     pub visibility: Visibility,
