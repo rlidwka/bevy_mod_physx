@@ -1,6 +1,7 @@
 // flying camera that you can control with mouse, I still didn't find a good crate for it
 // maybe switch to smooth-bevy-cameras, but still needs a custom controller
 
+use bevy::input::gamepad::GamepadEvent;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
@@ -59,9 +60,27 @@ impl Default for OrbitCamera {
     }
 }
 
+#[derive(Default)]
+// We want to allow the camera to be controlled from all gamepads,
+// so we can't use Res<Axis<GamepadAxis>> specific to a gamepad.
+// This state is derived from latest event of each gamepad, and is
+// zeroed out when any gamepad disconnects.
+struct GamepadState {
+    left_stick_x: f32,
+    right_stick_x: f32,
+    left_stick_y: f32,
+    right_stick_y: f32,
+    left_trigger: f32,
+    right_trigger: f32,
+}
+
+#[allow(clippy::too_many_arguments)]
 fn apply_camera_controls(
     mut scroll_events: EventReader<MouseWheel>,
     mut move_events: EventReader<MouseMotion>,
+    mut gamepad_events: EventReader<GamepadEvent>,
+    mut gamepad_state: Local<GamepadState>,
+    time: Res<Time>,
     buttons: Res<Input<MouseButton>>,
     mut egui_contexts: EguiContexts,
     mut camera_query: Query<&mut OrbitCamera>,
@@ -89,6 +108,61 @@ fn apply_camera_controls(
         for ev in move_events.iter() {
             events.push(MyEvent::Pan((ev.delta.x, ev.delta.y)));
         }
+    }
+
+    for ev in gamepad_events.iter() {
+        match ev {
+            GamepadEvent::Axis(ev) => {
+                match ev.axis_type {
+                    GamepadAxisType::LeftStickX => gamepad_state.left_stick_x = ev.value,
+                    GamepadAxisType::LeftStickY => gamepad_state.left_stick_y = ev.value,
+                    GamepadAxisType::RightStickX => gamepad_state.right_stick_x = ev.value,
+                    GamepadAxisType::RightStickY => gamepad_state.right_stick_y = ev.value,
+                    _ => {}
+                }
+            }
+
+            GamepadEvent::Button(ev) => {
+                match ev.button_type {
+                    GamepadButtonType::LeftTrigger | GamepadButtonType::LeftTrigger2 =>
+                        gamepad_state.left_trigger = ev.value,
+                    GamepadButtonType::RightTrigger | GamepadButtonType::RightTrigger2 =>
+                        gamepad_state.right_trigger = ev.value,
+                    _ => {}
+                }
+            }
+
+            GamepadEvent::Connection(ev) => {
+                if ev.disconnected() {
+                    // avoid rotating forever if gamepad disconnects
+                    *gamepad_state = default();
+                }
+            }
+        }
+    }
+
+    let gamepad_axis_multiplier = time.delta_seconds() * 1000.;
+    let gamepad_zoom_multiplier = time.delta_seconds() * 40.;
+
+    if gamepad_state.right_stick_x != 0. || gamepad_state.right_stick_y != 0. {
+        events.push(MyEvent::Rotate((
+            -gamepad_state.right_stick_x.powi(3) * gamepad_axis_multiplier,
+            gamepad_state.right_stick_y.powi(3) * gamepad_axis_multiplier,
+        )));
+    }
+
+    if gamepad_state.left_stick_x != 0. || gamepad_state.left_stick_y != 0. {
+        events.push(MyEvent::Pan((
+            -gamepad_state.left_stick_x.powi(3) * gamepad_axis_multiplier,
+            gamepad_state.left_stick_y.powi(3) * gamepad_axis_multiplier,
+        )));
+    }
+
+    if gamepad_state.right_trigger - gamepad_state.left_trigger != 0. {
+        events.push(MyEvent::Zoom(
+            (gamepad_state.right_trigger.powi(3) - gamepad_state.left_trigger.powi(3))
+                * gamepad_zoom_multiplier,
+        ));
     }
 
     if events.is_empty() { return; }
