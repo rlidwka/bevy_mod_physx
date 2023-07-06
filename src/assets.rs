@@ -1,4 +1,5 @@
 use super::PxMaterial;
+use crate::physx_extras::HeightFieldSample;
 use crate::prelude::{self as bpx, *};
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;

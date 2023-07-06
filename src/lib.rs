@@ -45,6 +45,7 @@ pub mod utils;
 // reexport physx to avoid version conflicts
 pub use physx;
 pub use physx_sys;
+pub mod physx_extras;
 
 use resources::DefaultMaterial;
 

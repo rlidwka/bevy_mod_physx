@@ -1,11 +1,12 @@
-use crate::assets::GeometryInner;
-use crate::prelude::*;
 use bevy::prelude::*;
 use bevy::reflect::TypeUuid;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef};
-use physx::triangle_mesh::TriangleMeshIndices;
 use std::collections::HashSet;
+
+use crate::assets::GeometryInner;
+use crate::prelude::*;
+use crate::physx_extras::*;
 
 const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 9326911668127598676);
 const DEFAULT_COLOR: Color = Color::rgba(0.5, 0.7, 0.8, 1.);
