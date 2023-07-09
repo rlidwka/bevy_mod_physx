@@ -6,12 +6,14 @@ use bevy_physx::prelude::{self as bpx, *};
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(common::DemoUtils) // optional
-        .add_plugin(PhysXPlugin::default())
-        .add_startup_system(spawn_plane)
-        .add_startup_system(spawn_stacks)
-        .add_startup_system(spawn_dynamic)
-        .add_startup_system(spawn_camera_and_light)
+        .add_plugins(common::DemoUtils) // optional
+        .add_plugins(PhysXPlugin::default())
+        .add_systems(Startup, (
+            spawn_plane,
+            spawn_stacks,
+            spawn_dynamic,
+            spawn_camera_and_light,
+        ))
         .run();
 }
 

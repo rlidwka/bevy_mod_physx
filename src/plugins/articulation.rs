@@ -5,7 +5,7 @@ use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxArticulationDrive, PxArticulationLink_getInboundJoint};
 
-#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct ArticulationRoot {
@@ -39,7 +39,7 @@ impl Default for ArticulationJointDrives {
     }
 }
 
-#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct ArticulationJointDriveTargets {
@@ -57,9 +57,12 @@ impl Plugin for ArticulationPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ArticulationRoot>();
         app.register_type::<ArticulationJointDriveTargets>();
-        app.add_system(articulation_root_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
-        app.add_system(articulation_drives_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
-        app.add_system(articulation_drive_targets_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+
+        app.add_systems(PhysicsSchedule, (
+            articulation_root_sync,
+            articulation_drives_sync,
+            articulation_drive_targets_sync,
+        ).in_set(PhysicsSet::Sync));
     }
 }
 

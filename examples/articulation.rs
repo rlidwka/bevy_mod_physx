@@ -8,18 +8,20 @@ use physx_sys::PxSolverType;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(common::DemoUtils) // optional
-        .add_plugin(PhysXPlugin {
+        .add_plugins(common::DemoUtils) // optional
+        .add_plugins(PhysXPlugin {
             scene: bpx::SceneDescriptor {
                 solver_type: PxSolverType::Tgs,
                 ..default()
             },
             ..default()
         })
-        .add_startup_system(spawn_long_chain)
-        .add_startup_system(spawn_obstacle)
-        .add_startup_system(spawn_plane)
-        .add_startup_system(spawn_camera_and_light)
+        .add_systems(Startup, (
+            spawn_long_chain,
+            spawn_obstacle,
+            spawn_plane,
+            spawn_camera_and_light,
+        ))
         .run();
 }
 

@@ -41,6 +41,7 @@ unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) 
     PxFilterFlags::empty()
 }
 
+#[derive(Event)]
 pub struct CollisionEvent {
     actor0: Entity,
     actor1: Entity,
@@ -100,8 +101,8 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(common::DemoUtils) // optional
-        .add_plugin(PhysXPlugin {
+        .add_plugins(common::DemoUtils) // optional
+        .add_plugins(PhysXPlugin {
             scene: bpx::SceneDescriptor {
                 // simulation filter shader will filter details that we get in on_collision callback,
                 // by default on_collision callback doesn't do anything
@@ -114,15 +115,17 @@ fn main() {
             ..default()
         })
         .add_physics_event_channel(mpsc_receiver)
-        .add_startup_systems((
+        .add_systems(Startup, (
             init_materials,
-            apply_system_buffers,
-            spawn_plane,
-            spawn_tiles,
-            spawn_dynamic,
+            apply_deferred,
+            (
+                spawn_plane,
+                spawn_tiles,
+                spawn_dynamic,
+                spawn_camera_and_light,
+            ),
         ).chain())
-        .add_startup_system(spawn_camera_and_light)
-        .add_system(highlight_on_hit)
+        .add_systems(Update, highlight_on_hit)
         .run();
 }
 

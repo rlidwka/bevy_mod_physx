@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxShape_setContactOffset_mut, PxShape_setRestOffset_mut};
 
-#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct ShapeOffsets {
@@ -17,7 +17,7 @@ pub struct ShapeOffsetsPlugin;
 impl Plugin for ShapeOffsetsPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ShapeOffsets>();
-        app.add_system(shape_offsets_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, shape_offsets_sync.in_set(PhysicsSet::Sync));
     }
 }
 

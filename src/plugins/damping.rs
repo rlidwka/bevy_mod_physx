@@ -3,7 +3,7 @@ use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
 
-#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct Damping {
@@ -30,7 +30,7 @@ pub struct DampingPlugin;
 impl Plugin for DampingPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Damping>();
-        app.add_system(damping_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, damping_sync.in_set(PhysicsSet::Sync));
     }
 }
 

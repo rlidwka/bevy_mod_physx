@@ -9,7 +9,7 @@ use physx_sys::{
     PxShape_setSimulationFilterData_mut,
 };
 
-#[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct ShapeFilterData {
@@ -22,11 +22,11 @@ pub struct ShapeFilterDataPlugin;
 impl Plugin for ShapeFilterDataPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<ShapeFilterData>();
-        app.add_system(shape_offsets_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, shape_filter_data.in_set(PhysicsSet::Sync));
     }
 }
 
-pub fn shape_offsets_sync(
+pub fn shape_filter_data(
     mut scene: ResMut<Scene>,
     mut actors: Query<(Option<&mut ShapeHandle>, &ShapeFilterData), Changed<ShapeFilterData>>
 ) {

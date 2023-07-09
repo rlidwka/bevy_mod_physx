@@ -9,14 +9,16 @@ fn main() {
     App::new()
         .insert_resource(FixedTime::new_from_secs(0.05))
         .add_plugins(DefaultPlugins)
-        .add_plugin(common::DemoUtils) // optional
-        .add_plugin(PhysXPlugin {
+        .add_plugins(common::DemoUtils) // optional
+        .add_plugins(PhysXPlugin {
             timestep: TimestepMode::Custom,
             ..default()
         })
-        .add_startup_system(spawn_scene)
-        .add_startup_system(spawn_camera_and_light)
-        .add_system(run_physics_schedule.in_schedule(CoreSchedule::FixedUpdate))
+        .add_systems(Startup, (
+            spawn_scene,
+            spawn_camera_and_light,
+        ))
+        .add_systems(FixedUpdate, run_physics_schedule)
         .run();
 }
 

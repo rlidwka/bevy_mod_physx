@@ -6,9 +6,9 @@ pub struct DebugLinesPlugin;
 impl Plugin for DebugLinesPlugin {
     fn build(&self, app: &mut App) {
         if !app.is_plugin_added::<PhysXDebugRenderPlugin>() {
-            app.add_plugin(PhysXDebugRenderPlugin);
+            app.add_plugins(PhysXDebugRenderPlugin);
         }
-        app.add_system(debug_lines_toggle);
+        app.add_systems(Update, debug_lines_toggle);
     }
 }
 

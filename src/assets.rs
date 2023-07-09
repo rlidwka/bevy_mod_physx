@@ -2,7 +2,7 @@ use super::PxMaterial;
 use crate::physx_extras::HeightFieldSample;
 use crate::prelude::{self as bpx, *};
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 use physx::convex_mesh::ConvexMesh;
 use physx::cooking::{
     self,
@@ -24,7 +24,7 @@ use physx_sys::{
 use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 
-#[derive(TypeUuid, Deref, DerefMut)]
+#[derive(TypeUuid, TypePath, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
 pub struct Material(Owner<PxMaterial>);
 
@@ -40,7 +40,7 @@ impl From<Owner<PxMaterial>> for Material {
     }
 }
 
-#[derive(TypeUuid, Clone, Deref, DerefMut)]
+#[derive(TypeUuid, TypePath, Clone, Deref, DerefMut)]
 #[uuid = "db246120-e6af-4ebf-a95a-a6efe1c54d9f"]
 pub struct Geometry {
     pub obj: GeometryInner,

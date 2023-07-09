@@ -187,7 +187,6 @@ impl Default for SceneDescriptor {
 pub struct PhysicsSchedule;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
-#[system_set(base)]
 pub enum PhysicsSet {
     // everything related to simulation itself
     // (scene simulation + vehicle simulation)
@@ -242,7 +241,7 @@ impl Plugin for PhysXPlugin {
         app.init_schedule(PhysicsSchedule);
 
         if !app.is_plugin_added::<AssetPlugin>() {
-            app.add_plugin(AssetPlugin::default());
+            app.add_plugins(AssetPlugin::default());
         }
 
         app.add_asset::<bpx::Geometry>();
@@ -268,52 +267,48 @@ impl Plugin for PhysXPlugin {
             schedule.configure_sets(PhysicsSet::sets());
         });
 
-        app.add_plugin(crate::plugins::ArticulationPlugin);
-        app.add_plugin(crate::plugins::DampingPlugin);
-        app.add_plugin(crate::plugins::ExternalForcePlugin);
-        app.add_plugin(crate::plugins::MassPropertiesPlugin);
-        app.add_plugin(crate::plugins::MaxVelocityPlugin);
-        app.add_plugin(crate::plugins::NamePlugin);
-        app.add_plugin(crate::plugins::ShapeFilterDataPlugin);
-        app.add_plugin(crate::plugins::ShapeOffsetsPlugin);
-        app.add_plugin(crate::plugins::VelocityPlugin);
+        app.add_plugins(crate::plugins::ArticulationPlugin);
+        app.add_plugins(crate::plugins::DampingPlugin);
+        app.add_plugins(crate::plugins::ExternalForcePlugin);
+        app.add_plugins(crate::plugins::MassPropertiesPlugin);
+        app.add_plugins(crate::plugins::MaxVelocityPlugin);
+        app.add_plugins(crate::plugins::NamePlugin);
+        app.add_plugins(crate::plugins::ShapeFilterDataPlugin);
+        app.add_plugins(crate::plugins::ShapeOffsetsPlugin);
+        app.add_plugins(crate::plugins::VelocityPlugin);
 
         // add all systems to the set
-        app.add_systems((
+        app.add_systems(PhysicsSchedule, (
             systems::scene_simulate,
-        ).in_base_set(PhysicsSet::Simulate).in_schedule(PhysicsSchedule));
+        ).in_set(PhysicsSet::Simulate));
 
-        app.add_systems((
-            apply_system_buffers,
-        ).in_base_set(PhysicsSet::SimulateFlush).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, (
+            apply_deferred,
+        ).in_set(PhysicsSet::SimulateFlush));
 
-        app.add_systems((
+        app.add_systems(PhysicsSchedule, (
             bevy::transform::systems::propagate_transforms,
             bevy::transform::systems::sync_simple_transforms,
             systems::create_rigid_actors,
-        ).in_base_set(PhysicsSet::Create).in_schedule(PhysicsSchedule));
+        ).in_set(PhysicsSet::Create));
 
-        app.add_systems((
-            apply_system_buffers,
-        ).in_base_set(PhysicsSet::CreateFlush).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, (
+            apply_deferred,
+        ).in_set(PhysicsSet::CreateFlush));
 
-        app.add_systems((
+        app.add_systems(PhysicsSchedule, (
             systems::sync_transform_static,
             systems::sync_transform_dynamic,
             systems::sync_transform_articulation_links,
             systems::sync_transform_nested_shapes,
-        ).in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        ).in_set(PhysicsSet::Sync));
 
         // add scheduler
-        app.add_system(
-            run_physics_schedule
-                .in_base_set(CoreSet::FixedUpdate)
-                .before(bevy::time::fixed_timestep::run_fixed_update_schedule)
-        );
+        app.add_systems(PreUpdate, run_physics_schedule);
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Debug, PartialEq, Clone, Copy, Reflect)]
 #[reflect(Default)]
 pub enum TimestepMode {
     /// Physics simulation will be advanced by dt at each Bevy tick.

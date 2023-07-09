@@ -8,7 +8,7 @@ use bevy::prelude::*;
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
 
-use crate::PhysicsSchedule;
+use crate::{PhysicsSchedule, PhysicsSet};
 
 #[derive(Resource, Deref, DerefMut)]
 struct ChannelReceiver<T>(Mutex<Receiver<T>>);
@@ -30,12 +30,10 @@ pub trait AppExtensions {
 impl AppExtensions for App {
     fn add_physics_event<T: Event>(&mut self) -> &mut Self {
         if !self.world.contains_resource::<Events<T>>() {
-            self.init_resource::<Events<T>>().add_system(
-                Events::<T>::update_system
-                    .in_base_set(CoreSet::First)
-                    // in_schedule is the only difference with bevy's add_event
-                    .in_schedule(PhysicsSchedule),
-            );
+            self.init_resource::<Events<T>>();
+            self.add_systems(PhysicsSchedule, (
+                Events::<T>::update_system,
+            ).before(PhysicsSet::Create));
         }
         self
     }
@@ -47,11 +45,10 @@ impl AppExtensions for App {
         );
 
         self.add_event::<T>();
-        self.add_system(
-            channel_to_event::<T>
-                .after(Events::<T>::update_system)
-                .in_base_set(CoreSet::First),
-        );
+        self.add_systems(PhysicsSchedule, (
+            channel_to_event::<T>,
+        ).after(Events::<T>::update_system).before(PhysicsSet::Create));
+
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self
     }
@@ -63,18 +60,16 @@ impl AppExtensions for App {
         );
 
         self.add_physics_event::<T>();
-        self.add_system(
-            channel_to_event::<T>
-                .after(Events::<T>::update_system)
-                .in_base_set(CoreSet::First)
-                .in_schedule(PhysicsSchedule),
-        );
+        self.add_systems(PhysicsSchedule, (
+            channel_to_event::<T>,
+        ).after(Events::<T>::update_system).before(PhysicsSet::Create));
+
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self
     }
 }
 
-fn channel_to_event<T: 'static + Send + Sync>(
+fn channel_to_event<T: Event>(
     receiver: Res<ChannelReceiver<T>>,
     mut writer: EventWriter<T>,
 ) {

@@ -27,12 +27,12 @@ pub struct NamePlugin;
 
 impl Plugin for NamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_system(
+        app.add_systems(
+            PhysicsSchedule,
             name_sync
-            .after(crate::systems::scene_simulate)
+                .after(crate::systems::scene_simulate)
                 .run_if(resource_exists::<NameFormatter>())
-                .in_base_set(PhysicsSet::Simulate)
-                .in_schedule(PhysicsSchedule),
+                .in_set(PhysicsSet::Simulate),
         );
     }
 }

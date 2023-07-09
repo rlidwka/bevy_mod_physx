@@ -10,7 +10,7 @@ use physx_sys::{
     PxArticulationReducedCoordinate_setRootLinearVelocity_mut,
 };
 
-#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub struct Velocity {
@@ -41,7 +41,7 @@ pub struct VelocityPlugin;
 impl Plugin for VelocityPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Velocity>();
-        app.add_system(velocity_sync.in_base_set(PhysicsSet::Sync).in_schedule(PhysicsSchedule));
+        app.add_systems(PhysicsSchedule, velocity_sync.in_set(PhysicsSet::Sync));
     }
 }
 

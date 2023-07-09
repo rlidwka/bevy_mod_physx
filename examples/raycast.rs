@@ -21,16 +21,18 @@ fn main() {
     // ported from ray_casting3 example from bevy_rapier3d
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugin(common::DemoUtils) // optional
-        .add_plugin(PhysXPlugin::default())
-        .add_startup_systems((
+        .add_plugins(common::DemoUtils) // optional
+        .add_plugins(PhysXPlugin::default())
+        .add_systems(Startup, (
             init_materials,
-            apply_system_buffers,
-            spawn_plane,
-            spawn_cubes,
+            apply_deferred,
+            (
+                spawn_plane,
+                spawn_cubes,
+                spawn_camera_and_light,
+            ),
         ).chain())
-        .add_startup_system(spawn_camera_and_light)
-        .add_systems((
+        .add_systems(Update, (
             hover_reset,
             hover_highlight,
         ).chain())

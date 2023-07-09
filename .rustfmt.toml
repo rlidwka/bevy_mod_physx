@@ -1,0 +1,3 @@
+# rustfmt is only used here to format imports
+imports_granularity = "Module"
+imports_layout = "HorizontalVertical"

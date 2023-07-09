@@ -4,7 +4,7 @@
 use bevy::input::gamepad::GamepadEvent;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
-use bevy_inspector_egui::bevy_egui::EguiContexts;
+//use bevy_inspector_egui::bevy_egui::EguiContexts;
 use std::f32::consts::PI;
 
 pub struct OrbitCameraPlugin;
@@ -12,8 +12,8 @@ pub struct OrbitCameraPlugin;
 impl Plugin for OrbitCameraPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<OrbitCamera>();
-        app.add_system(apply_camera_controls);
-        app.add_system(update_camera.after(apply_camera_controls));
+        app.add_systems(Update, apply_camera_controls);
+        app.add_systems(Update, update_camera.after(apply_camera_controls));
     }
 }
 
@@ -82,11 +82,11 @@ fn apply_camera_controls(
     mut gamepad_state: Local<GamepadState>,
     time: Res<Time>,
     buttons: Res<Input<MouseButton>>,
-    mut egui_contexts: EguiContexts,
+    //mut egui_contexts: EguiContexts,
     mut camera_query: Query<&mut OrbitCamera>,
 ) {
-    let egui_ctx = egui_contexts.ctx_mut();
-    if egui_ctx.wants_pointer_input() { return; }
+    //let egui_ctx = egui_contexts.ctx_mut();
+    //if egui_ctx.wants_pointer_input() { return; }
 
     enum MyEvent {
         Zoom(f32),

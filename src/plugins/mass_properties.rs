@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
 
-#[derive(Component, Debug, PartialEq, Clone, Copy, Reflect, FromReflect)]
+#[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
 pub enum MassProperties {
@@ -47,10 +47,10 @@ pub struct MassPropertiesPlugin;
 impl Plugin for MassPropertiesPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<MassProperties>();
-        app.add_system(
+        app.add_systems(
+            PhysicsSchedule,
             mass_properties_sync
-                .in_base_set(PhysicsSet::Sync)
-                .in_schedule(PhysicsSchedule)
+                .in_set(PhysicsSet::Sync)
                 .after(crate::systems::sync_transform_static)
                 .after(crate::systems::sync_transform_dynamic)
                 .after(crate::systems::sync_transform_nested_shapes),

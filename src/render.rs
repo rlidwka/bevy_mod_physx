@@ -1,18 +1,18 @@
 use bevy::prelude::*;
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef};
 use std::collections::HashSet;
 
 use crate::assets::GeometryInner;
-use crate::prelude::*;
 use crate::physx_extras::*;
+use crate::prelude::*;
 
 const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 9326911668127598676);
 const DEFAULT_COLOR: Color = Color::rgba(0.5, 0.7, 0.8, 1.);
 pub struct PhysXDebugRenderPlugin;
 
-#[derive(Resource, Debug, Clone, Copy, Reflect, FromReflect)]
+#[derive(Resource, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
 pub struct DebugRenderSettings {
     pub visibility: Visibility,
@@ -62,11 +62,11 @@ impl Plugin for PhysXDebugRenderPlugin {
                 out.color = material.color;
                 return out;
             }
-        "));
+        ", file!()));
 
         app.register_type::<DebugRenderSettings>();
         app.init_resource::<DebugRenderSettings>();
-        app.add_plugin(MaterialPlugin::<DebugRenderMaterial>::default());
+        app.add_plugins(MaterialPlugin::<DebugRenderMaterial>::default());
 
         let material = app.world.resource_mut::<Assets<DebugRenderMaterial>>().add(
             DebugRenderMaterial { color: DEFAULT_COLOR }
@@ -75,15 +75,15 @@ impl Plugin for PhysXDebugRenderPlugin {
             base: material,
         });
 
-        app.add_system(create_debug_meshes);
-        app.add_system(toggle_debug_meshes_visibility);
+        app.add_systems(Update, create_debug_meshes);
+        app.add_systems(Update, toggle_debug_meshes_visibility);
     }
 }
 
 #[derive(Component)]
 pub struct DebugRenderMesh;
 
-#[derive(AsBindGroup, TypeUuid, Debug, Clone)]
+#[derive(AsBindGroup, TypeUuid, TypePath, Debug, Clone)]
 #[uuid = "e87d45f2-b145-49c2-b457-1298556004e5"]
 pub struct DebugRenderMaterial {
     #[uniform(0)]

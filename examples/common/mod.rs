@@ -8,10 +8,10 @@
 // This module is intended to be optional, all the stuff should work without it.
 //
 const SIMULATION_STARTS_PAUSED: bool = false;
-const INSPECTOR_STARTS_HIDDEN: bool = false;
+//const INSPECTOR_STARTS_HIDDEN: bool = false;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-use bevy::input::common_conditions::input_toggle_active;
+//use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use std::ffi::CString;
@@ -38,7 +38,7 @@ impl Plugin for DemoUtils {
 
             std::borrow::Cow::Owned(CString::new(str).unwrap())
         }));
-        app.add_plugin(DebugLinesPlugin);
+        app.add_plugins(DebugLinesPlugin);
 
         app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
         app.insert_resource(AmbientLight {
@@ -49,27 +49,27 @@ impl Plugin for DemoUtils {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
 
         // log fps to console
-        app.add_plugin(FrameTimeDiagnosticsPlugin::default());
-        app.add_plugin(LogDiagnosticsPlugin {
+        app.add_plugins(FrameTimeDiagnosticsPlugin);
+        app.add_plugins(LogDiagnosticsPlugin {
             wait_duration: Duration::from_millis(1000),
             filter: Some(vec![FrameTimeDiagnosticsPlugin::FPS]),
             ..default()
         });
 
-        app.add_plugin(OrbitCameraPlugin);
-        app.add_plugin(
-            bevy_inspector_egui::quick::WorldInspectorPlugin::default()
-                .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),
-        );
-        app.add_system(adjust_light_settings);
-        app.add_system(adjust_camera_settings);
-        app.add_system(spacebar_pauses_simulation);
+        app.add_plugins(OrbitCameraPlugin);
+        //app.add_plugin(
+        //    bevy_inspector_egui::quick::WorldInspectorPlugin::default()
+        //        .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),
+        //);
+        app.add_systems(Update, adjust_light_settings);
+        app.add_systems(Update, adjust_camera_settings);
+        app.add_systems(Update, spacebar_pauses_simulation);
 
         if SIMULATION_STARTS_PAUSED {
-            app.add_startup_system(|mut time: ResMut<Time>| time.pause());
+            app.add_systems(Startup, |mut time: ResMut<Time>| time.pause());
         }
 
-        app.add_system(bevy::window::close_on_esc);
+        app.add_systems(Update, bevy::window::close_on_esc);
     }
 }
 
