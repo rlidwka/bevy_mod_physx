@@ -8,10 +8,10 @@
 // This module is intended to be optional, all the stuff should work without it.
 //
 const SIMULATION_STARTS_PAUSED: bool = false;
-//const INSPECTOR_STARTS_HIDDEN: bool = false;
+const INSPECTOR_STARTS_HIDDEN: bool = false;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
-//use bevy::input::common_conditions::input_toggle_active;
+use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use std::ffi::CString;
@@ -57,10 +57,10 @@ impl Plugin for DemoUtils {
         });
 
         app.add_plugins(OrbitCameraPlugin);
-        //app.add_plugin(
-        //    bevy_inspector_egui::quick::WorldInspectorPlugin::default()
-        //        .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),
-        //);
+        app.add_plugins(
+            bevy_inspector_egui::quick::WorldInspectorPlugin::default()
+                .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),
+        );
         app.add_systems(Update, adjust_light_settings);
         app.add_systems(Update, adjust_camera_settings);
         app.add_systems(Update, spacebar_pauses_simulation);
