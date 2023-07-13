@@ -1,298 +1,159 @@
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
-use bevy::render::mesh::Indices;
-use bevy::render::render_resource::{AsBindGroup, PrimitiveTopology, ShaderRef};
-use std::collections::HashSet;
+use physx::traits::Class;
+use physx_sys::{
+    PxRenderBuffer_getLines,
+    PxRenderBuffer_getNbLines,
+    PxScene_getRenderBuffer_mut,
+    PxScene_getVisualizationParameter,
+    PxScene_setVisualizationParameter_mut,
+    PxVisualizationParameter,
+};
 
-use crate::assets::GeometryInner;
-use crate::physx_extras::*;
-use crate::prelude::*;
+use crate::prelude::{self as bpx, *};
 
-const SHADER_HANDLE: HandleUntyped = HandleUntyped::weak_from_u64(Shader::TYPE_UUID, 9326911668127598676);
-const DEFAULT_COLOR: Color = Color::rgba(0.5, 0.7, 0.8, 1.);
 pub struct PhysXDebugRenderPlugin;
 
-#[derive(Resource, Debug, Clone, Copy, Reflect)]
+#[derive(Resource, Default, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
 pub struct DebugRenderSettings {
-    pub visibility: Visibility,
-    pub color: Color,
-}
-
-impl Default for DebugRenderSettings {
-    fn default() -> Self {
-        Self {
-            visibility: Visibility::Hidden,
-            color: DEFAULT_COLOR,
-        }
-    }
-}
-
-#[derive(Resource)]
-pub struct DebugRenderMaterials {
-    base: Handle<DebugRenderMaterial>,
+    pub scale: f32,
+    pub world_axes: f32,
+    pub body_axes: f32,
+    pub body_mass_axes: f32,
+    pub body_lin_velocity: f32,
+    pub body_ang_velocity: f32,
+    pub contact_point: f32,
+    pub contact_normal: f32,
+    pub contact_error: f32,
+    pub contact_force: f32,
+    pub actor_axes: f32,
+    pub collision_aabbs: f32,
+    pub collision_shapes: f32,
+    pub collision_axes: f32,
+    pub collision_compounds: f32,
+    pub collision_fnormals: f32,
+    pub collision_edges: f32,
+    pub collision_static: f32,
+    pub collision_dynamic: f32,
+    pub joint_local_frames: f32,
+    pub joint_limits: f32,
+    pub cull_box: f32,
+    pub mbp_regions: f32,
+    pub simulation_mesh: f32,
+    pub sdf: f32,
 }
 
 impl Plugin for PhysXDebugRenderPlugin {
     fn build(&self, app: &mut App) {
-        let mut shaders = app.world.get_resource_mut::<Assets<Shader>>().unwrap();
-        shaders.set_untracked(SHADER_HANDLE, Shader::from_wgsl("
-            #import bevy_pbr::mesh_view_bindings
-
-            struct DebugRenderMaterial {
-                color: vec4<f32>,
-            };
-
-            @group(1) @binding(0)
-            var<uniform> material: DebugRenderMaterial;
-
-            struct FragmentInput {
-                #import bevy_pbr::mesh_vertex_output
-            };
-
-            struct FragmentOutput {
-                @builtin(frag_depth) depth: f32,
-                @location(0) color: vec4<f32>,
-            };
-
-            @fragment
-            fn fragment(in: FragmentInput) -> FragmentOutput {
-                var out: FragmentOutput;
-                out.depth = 1.0;
-                out.color = material.color;
-                return out;
-            }
-        ", file!()));
-
         app.register_type::<DebugRenderSettings>();
-        app.init_resource::<DebugRenderSettings>();
-        app.add_plugins(MaterialPlugin::<DebugRenderMaterial>::default());
-
-        let material = app.world.resource_mut::<Assets<DebugRenderMaterial>>().add(
-            DebugRenderMaterial { color: DEFAULT_COLOR }
+        app.add_systems(
+            Update,
+            (set_visualization_params, debug_visualization)
+                .run_if(resource_exists::<DebugRenderSettings>()),
         );
-        app.insert_resource(DebugRenderMaterials {
-            base: material,
-        });
-
-        app.add_systems(Update, create_debug_meshes);
-        app.add_systems(Update, toggle_debug_meshes_visibility);
     }
 }
 
-#[derive(Component)]
-pub struct DebugRenderMesh;
+fn set_visualization_params(
+    mut scene: ResMut<bpx::Scene>,
+    mut vis_params: ResMut<DebugRenderSettings>,
+) {
+    if !vis_params.is_changed() { return; };
 
-#[derive(AsBindGroup, TypeUuid, TypePath, Debug, Clone)]
-#[uuid = "e87d45f2-b145-49c2-b457-1298556004e5"]
-pub struct DebugRenderMaterial {
-    #[uniform(0)]
-    color: Color,
+    let mut scene = scene.get_mut();
+
+    macro_rules! set {
+        ($key: ident, $param: ident) => {
+            unsafe {
+                if vis_params.$key >= 0. {
+                    PxScene_setVisualizationParameter_mut(
+                        scene.as_mut_ptr(),
+                        PxVisualizationParameter::$param,
+                        vis_params.$key,
+                    );
+                }
+
+                vis_params.$key = PxScene_getVisualizationParameter(
+                    scene.as_mut_ptr(),
+                    PxVisualizationParameter::$param,
+                );
+            }
+        };
+    }
+
+    set!(scale, Scale);
+    set!(world_axes, WorldAxes);
+    set!(body_axes, BodyAxes);
+    set!(body_mass_axes, BodyMassAxes);
+    set!(body_lin_velocity, BodyLinVelocity);
+    set!(body_ang_velocity, BodyAngVelocity);
+    set!(contact_point, ContactPoint);
+    set!(contact_normal, ContactNormal);
+    set!(contact_error, ContactError);
+    set!(contact_force, ContactForce);
+    set!(actor_axes, ActorAxes);
+    set!(collision_aabbs, CollisionAabbs);
+    set!(collision_shapes, CollisionShapes);
+    set!(collision_axes, CollisionAxes);
+    set!(collision_compounds, CollisionCompounds);
+    set!(collision_fnormals, CollisionFnormals);
+    set!(collision_edges, CollisionEdges);
+    set!(collision_static, CollisionStatic);
+    set!(collision_dynamic, CollisionDynamic);
+    set!(joint_local_frames, JointLocalFrames);
+    set!(joint_limits, JointLimits);
+    set!(cull_box, CullBox);
+    set!(mbp_regions, MbpRegions);
+    set!(simulation_mesh, SimulationMesh);
+    set!(sdf, Sdf);
 }
 
-impl bevy::pbr::Material for DebugRenderMaterial {
-    /*fn vertex_shader() -> ShaderRef {
-        ShaderRef::Handle(SHADER_HANDLE.typed())
+fn debug_visualization(
+    mut gizmos: Gizmos,
+    mut scene: ResMut<bpx::Scene>,
+) {
+    let mut scene = scene.get_mut();
+    let buffer = unsafe { PxScene_getRenderBuffer_mut(scene.as_mut_ptr()) };
+
+    // display points
+    /*let points = unsafe {
+        std::slice::from_raw_parts(
+            PxRenderBuffer_getPoints(buffer),
+            PxRenderBuffer_getNbPoints(buffer) as usize,
+        )
+    };
+
+    for point in points {
+        dbg!(point.pos.to_bevy());
     }*/
 
-    fn fragment_shader() -> ShaderRef {
-        ShaderRef::Handle(SHADER_HANDLE.typed())
-    }
-}
+    // display lines
+    let lines = unsafe {
+        std::slice::from_raw_parts(
+            PxRenderBuffer_getLines(buffer),
+            PxRenderBuffer_getNbLines(buffer) as usize,
+        )
+    };
 
-fn create_debug_meshes(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    materials: Res<DebugRenderMaterials>,
-    settings: Res<DebugRenderSettings>,
-    mut geometries: ResMut<Assets<Geometry>>,
-    query: Query<(Entity, &Shape), Added<Shape>>,
-) {
-    for (entity, shape) in query.iter() {
-        let Some(geometry) = geometries.get_mut(&shape.geometry) else { continue; };
-        let mut positions = vec![];
-        let mut indices = vec![];
-        const SPHERE_SEGMENTS: u32 = 24;
-
-        match &geometry.obj {
-            GeometryInner::Sphere(geom)  => {
-                for i in 0..SPHERE_SEGMENTS {
-                    let arclen = std::f32::consts::TAU / SPHERE_SEGMENTS as f32 * i as f32;
-                    let (sin, cos) = arclen.sin_cos();
-                    positions.push(Vec3::new(sin * geom.radius, cos * geom.radius, 0.));
-                    positions.push(Vec3::new(sin * geom.radius, 0., cos * geom.radius));
-                    positions.push(Vec3::new(0., sin * geom.radius, cos * geom.radius));
-
-                    for j in 0..3 {
-                        indices.push(i * 3 + j);
-                        indices.push(((i + 1) % SPHERE_SEGMENTS) * 3 + j);
-                    }
-                }
-            },
-            GeometryInner::Plane { normal, .. } => {
-                for x in 0..=0 {
-                    indices.push(positions.len() as u32);
-                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., x as f32, -1000000.));
-                    indices.push(positions.len() as u32);
-                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., x as f32, 1000000.));
-                }
-
-                for y in 0..=0 {
-                    indices.push(positions.len() as u32);
-                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., -1000000., y as f32));
-                    indices.push(positions.len() as u32);
-                    positions.push(Quat::from_rotation_arc(Vec3::X, *normal) * Vec3::new(0., 1000000., y as f32));
-                }
-            },
-            GeometryInner::Capsule(geom)  => {
-                for i in 0..SPHERE_SEGMENTS+2 {
-                    let (arclen, offset) = if i <= SPHERE_SEGMENTS / 2 {
-                        (std::f32::consts::TAU / SPHERE_SEGMENTS as f32 * i as f32, geom.halfHeight)
-                    } else {
-                        (std::f32::consts::TAU / SPHERE_SEGMENTS as f32 * (i - 1) as f32, -geom.halfHeight)
-                    };
-                    let (sin, cos) = arclen.sin_cos();
-                    positions.push(Vec3::new(sin * geom.radius + offset, cos * geom.radius, 0.));
-                    positions.push(Vec3::new(sin * geom.radius + offset, 0., cos * geom.radius));
-
-                    for j in 0..2 {
-                        indices.push(i * 2 + j);
-                        indices.push(((i + 1) % (SPHERE_SEGMENTS + 2)) * 2 + j);
-                    }
-                }
-
-                let pos_offset = positions.len() as u32;
-                for i in 0..SPHERE_SEGMENTS {
-                    let arclen = std::f32::consts::TAU / SPHERE_SEGMENTS as f32 * i as f32;
-                    let (sin, cos) = arclen.sin_cos();
-                    positions.push(Vec3::new(-geom.halfHeight, sin * geom.radius, cos * geom.radius));
-                    positions.push(Vec3::new(geom.halfHeight, sin * geom.radius, cos * geom.radius));
-
-                    for j in 0..2 {
-                        indices.push(i * 2 + j + pos_offset);
-                        indices.push(((i + 1) % SPHERE_SEGMENTS) * 2 + j + pos_offset);
-                    }
-                }
-            },
-            GeometryInner::Box(geom) => {
-                let ext = geom.halfExtents;
-                positions.push(Vec3::new(-ext.x, -ext.y, -ext.z));
-                positions.push(Vec3::new(-ext.x, -ext.y, ext.z));
-                positions.push(Vec3::new(-ext.x, ext.y, -ext.z));
-                positions.push(Vec3::new(-ext.x, ext.y, ext.z));
-                positions.push(Vec3::new(ext.x, -ext.y, -ext.z));
-                positions.push(Vec3::new(ext.x, -ext.y, ext.z));
-                positions.push(Vec3::new(ext.x, ext.y, -ext.z));
-                positions.push(Vec3::new(ext.x, ext.y, ext.z));
-                for idx in [0, 1, 0, 2, 1, 3, 2, 3, 4, 5, 4, 6, 5, 7, 6, 7, 0, 4, 1, 5, 2, 6, 3, 7] {
-                    indices.push(idx);
-                }
-            },
-            GeometryInner::ConvexMesh { mesh, scale, rotation, .. } => {
-                let mesh = mesh.lock().unwrap();
-                for vertex in mesh.get_vertices() {
-                    positions.push(*rotation * vertex.to_bevy() * *scale);
-                }
-
-                let index_buffer = mesh.get_index_buffer();
-                let mut dedup = HashSet::new();
-
-                for idx in 0..mesh.get_nb_polygons() {
-                    let polygon = mesh.get_polygon_data(idx).unwrap();
-                    for i in polygon.index_base..polygon.index_base+polygon.nb_verts {
-                        let next = if i + 1 == polygon.index_base+polygon.nb_verts { polygon.index_base } else { i + 1 };
-                        let p1 = index_buffer[i as usize] as u32;
-                        let p2 = index_buffer[next as usize] as u32;
-
-                        if dedup.insert((p1.min(p2), p1.max(p2))) {
-                            indices.push(p1);
-                            indices.push(p2);
-                        }
-                    }
-                }
-            },
-            GeometryInner::TriangleMesh { mesh, scale, rotation, .. } => {
-                let mesh = mesh.lock().unwrap();
-                for vertex in mesh.get_vertices() {
-                    positions.push(*rotation * vertex.to_bevy() * *scale);
-                }
-
-                let index_buffer = mesh.get_triangles();
-                let length = mesh.get_nb_triangles() * 3;
-                let mut dedup = HashSet::new();
-
-                for idx in (0..).step_by(3) {
-                    if idx + 2 >= length { break; }
-
-                    let idx = idx as usize;
-                    let (point1, point2, point3) = match index_buffer {
-                        TriangleMeshIndices::U16(vec) => (vec[idx] as u32, vec[idx+1] as u32, vec[idx+2] as u32),
-                        TriangleMeshIndices::U32(vec) => (vec[idx], vec[idx+1], vec[idx+2]),
-                    };
-
-                    for (p1, p2) in [(point1, point2), (point2, point3), (point3, point1)] {
-                        if dedup.insert((p1.min(p2), p1.max(p2))) {
-                            indices.push(p1);
-                            indices.push(p2);
-                        }
-                    }
-                }
-            },
-            GeometryInner::HeightField { mesh, scale, .. } => {
-                let mesh = mesh.lock().unwrap();
-                let rows = mesh.get_nb_rows();
-                let columns = mesh.get_nb_columns();
-                let samples = mesh.save_cells();
-
-                for row in 0..rows {
-                    for column in 0..columns {
-                        let sample = samples[(row * columns + column) as usize];
-                        positions.push(*scale * Vec3::new(row as f32, sample.height() as f32, column as f32));
-
-                        if column != 0 {
-                            indices.push(row * columns + column - 1);
-                            indices.push(row * columns + column);
-                        }
-
-                        if row != 0 {
-                            indices.push((row - 1) * columns + column);
-                            indices.push(row * columns + column);
-                        }
-                    }
-                }
-            },
-        }
-
-        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.set_indices(Some(Indices::U32(indices)));
-
-        let mesh_entity = commands.spawn(DebugRenderMesh)
-            .insert(MaterialMeshBundle {
-                mesh: meshes.add(mesh),
-                material: materials.base.clone(),
-                visibility: settings.visibility,
-                ..default()
-            })
-            .id();
-
-        commands.entity(entity).add_child(mesh_entity);
-    }
-}
-
-fn toggle_debug_meshes_visibility(
-    mut query: Query<&mut Visibility, With<DebugRenderMesh>>,
-    settings: Res<DebugRenderSettings>,
-    handles: Res<DebugRenderMaterials>,
-    mut materials: ResMut<Assets<DebugRenderMaterial>>,
-) {
-    if !settings.is_changed() { return; }
-
-    if let Some(base) = materials.get_mut(&handles.base) {
-        base.color = settings.color;
+    for line in lines {
+        assert_eq!(line.color0, line.color1);
+        let color: [u8; 4] = line.color0.to_ne_bytes();
+        gizmos.line(
+            line.pos0.to_bevy(),
+            line.pos1.to_bevy(),
+            Color::rgba_u8(color[0], color[1], color[2], color[3]),
+        );
     }
 
-    for mut visibility in query.iter_mut() {
-        *visibility = settings.visibility;
-    }
+    // display triangles
+    /*let triangles = unsafe {
+        std::slice::from_raw_parts(
+            PxRenderBuffer_getTriangles(buffer),
+            PxRenderBuffer_getNbTriangles(buffer) as usize,
+        )
+    };
+
+    for triangle in triangles {
+        dbg!(triangle.pos0.to_bevy());
+    }*/
 }

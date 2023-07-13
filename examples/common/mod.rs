@@ -17,8 +17,8 @@ use bevy::prelude::*;
 use std::ffi::CString;
 use std::time::Duration;
 
-pub mod debug_lines;
-use debug_lines::DebugLinesPlugin;
+pub mod debug_render;
+use debug_render::DebugRenderPlugin;
 
 pub mod orbit_camera;
 use orbit_camera::{OrbitCamera, OrbitCameraPlugin};
@@ -38,7 +38,7 @@ impl Plugin for DemoUtils {
 
             std::borrow::Cow::Owned(CString::new(str).unwrap())
         }));
-        app.add_plugins(DebugLinesPlugin);
+        app.add_plugins(DebugRenderPlugin);
 
         app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
         app.insert_resource(AmbientLight {

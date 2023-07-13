@@ -47,4 +47,4 @@ pub use super::raycast::{RaycastHit, SceneQueryExt};
 pub use super::resources::{Physics, Scene};
 
 #[doc(hidden)]
-pub use super::render::PhysXDebugRenderPlugin;
+pub use super::render::DebugRenderSettings;

@@ -209,11 +209,13 @@ pub enum PhysicsSet {
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync].into_iter()
+        [Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush].into_iter()
     }
 
     pub fn sets() -> SystemSetConfigs {
-        (Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync).chain()
+        // sync is placed first to match debug visualization,
+        // some users may want to place sync last to get transform data faster
+        (Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush).chain()
     }
 }
 
@@ -276,8 +278,16 @@ impl Plugin for PhysXPlugin {
         app.add_plugins(crate::plugins::ShapeFilterDataPlugin);
         app.add_plugins(crate::plugins::ShapeOffsetsPlugin);
         app.add_plugins(crate::plugins::VelocityPlugin);
+        app.add_plugins(crate::render::PhysXDebugRenderPlugin);
 
         // add all systems to the set
+        app.add_systems(PhysicsSchedule, (
+            systems::sync_transform_static,
+            systems::sync_transform_dynamic,
+            systems::sync_transform_articulation_links,
+            systems::sync_transform_nested_shapes,
+        ).in_set(PhysicsSet::Sync));
+
         app.add_systems(PhysicsSchedule, (
             systems::scene_simulate,
         ).in_set(PhysicsSet::Simulate));
@@ -295,13 +305,6 @@ impl Plugin for PhysXPlugin {
         app.add_systems(PhysicsSchedule, (
             apply_deferred,
         ).in_set(PhysicsSet::CreateFlush));
-
-        app.add_systems(PhysicsSchedule, (
-            systems::sync_transform_static,
-            systems::sync_transform_dynamic,
-            systems::sync_transform_articulation_links,
-            systems::sync_transform_nested_shapes,
-        ).in_set(PhysicsSet::Sync));
 
         // add scheduler
         app.add_systems(PreUpdate, run_physics_schedule);
