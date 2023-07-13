@@ -47,14 +47,19 @@ impl Plugin for VelocityPlugin {
 
 pub fn velocity_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&ArticulationLinkHandle>, Option<&mut ArticulationRootHandle>, &mut Velocity)>
+    mut actors: Query<(
+        Option<&mut RigidDynamicHandle>,
+        Option<&ArticulationLinkHandle>,
+        Option<&mut ArticulationRootHandle>,
+        &mut Velocity,
+    )>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but
     // user will experience 1-tick delay on any changes
     for (dynamic, articulation, articulation_base, mut velocity) in actors.iter_mut() {
         if let Some(mut actor) = dynamic {
-            if velocity.is_changed() {
+            if velocity.is_changed() || actor.is_added() {
                 let mut actor_handle = actor.get_mut(&mut scene);
 
                 actor_handle.set_linear_velocity(&velocity.linear.to_physx(), true);
@@ -71,7 +76,7 @@ pub fn velocity_sync(
                 if *velocity != newvel { *velocity = newvel; }
             }
         } else if let Some(mut root) = articulation_base {
-            if velocity.is_changed() {
+            if velocity.is_changed() || root.is_added() {
                 let ptr = root.get_mut(&mut scene).as_mut_ptr();
 
                 unsafe {
@@ -101,7 +106,7 @@ pub fn velocity_sync(
 
             // extra check so we don't mutate on every frame without changes
             if *velocity != newvel { *velocity = newvel; }
-        } else {
+        } else if !velocity.is_added() {
             bevy::log::warn!("Velocity component exists, but it's neither a rigid dynamic nor articulation link");
         }
     }

@@ -23,7 +23,10 @@ impl Plugin for ShapeOffsetsPlugin {
 
 pub fn shape_offsets_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut ShapeHandle>, &ShapeOffsets), Changed<ShapeOffsets>>
+    mut actors: Query<
+        (Option<&mut ShapeHandle>, Ref<ShapeOffsets>),
+        Or<(Added<ShapeHandle>, Changed<ShapeOffsets>)>,
+    >,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -35,7 +38,7 @@ pub fn shape_offsets_sync(
                 PxShape_setContactOffset_mut(handle.as_mut_ptr(), offsets.contact_offset);
                 PxShape_setRestOffset_mut(handle.as_mut_ptr(), offsets.rest_offset);
             };
-        } else {
+        } else if !offsets.is_added() {
             bevy::log::warn!("ShapeOffsets component exists, but it's not a shape");
         };
     }

@@ -60,7 +60,18 @@ impl Plugin for MassPropertiesPlugin {
 
 pub fn mass_properties_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &MassProperties), Changed<MassProperties>>
+    mut actors: Query<
+        (
+            Option<&mut RigidDynamicHandle>,
+            Option<&mut ArticulationLinkHandle>,
+            Ref<MassProperties>,
+        ),
+        Or<(
+            Added<RigidDynamicHandle>,
+            Added<ArticulationLinkHandle>,
+            Changed<MassProperties>,
+        )>,
+    >,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -70,15 +81,17 @@ pub fn mass_properties_sync(
         } else if let Some(mut actor) = articulation {
             actor.get_mut(&mut scene).as_mut_ptr()
         } else {
-            bevy::log::warn!("MassProperties component exists, but it's neither a rigid dynamic nor articulation link");
+            if !mass_props.is_added() {
+                bevy::log::warn!("MassProperties component exists, but it's neither a rigid dynamic nor articulation link");
+            }
             continue;
         };
 
-        match mass_props {
+        match *mass_props {
             MassProperties::Density { density, center } => unsafe {
                 PxRigidBodyExt_updateMassAndInertia_1(
                     actor_handle,
-                    *density,
+                    density,
                     center.to_physx_sys().as_ptr(),
                     false
                 );
@@ -87,7 +100,7 @@ pub fn mass_properties_sync(
             MassProperties::Mass { mass, center } => unsafe {
                 PxRigidBodyExt_setMassAndUpdateInertia_1(
                     actor_handle,
-                    *mass,
+                    mass,
                     center.to_physx_sys().as_ptr(),
                     false
                 );

@@ -36,7 +36,18 @@ impl Plugin for MaxVelocityPlugin {
 
 pub fn max_velocity_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &MaxVelocity), Changed<MaxVelocity>>
+    mut actors: Query<
+        (
+            Option<&mut RigidDynamicHandle>,
+            Option<&mut ArticulationLinkHandle>,
+            Ref<MaxVelocity>,
+        ),
+        Or<(
+            Added<RigidDynamicHandle>,
+            Added<ArticulationLinkHandle>,
+            Changed<MaxVelocity>,
+        )>,
+    >,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -49,8 +60,8 @@ pub fn max_velocity_sync(
             let mut actor_handle = actor.get_mut(&mut scene);
             actor_handle.set_max_linear_velocity(max_velocity.linear);
             actor_handle.set_max_angular_velocity(max_velocity.angular);
-        } else {
-            bevy::log::warn!("Damping component exists, but it's neither a rigid dynamic nor articulation link");
+        } else if !max_velocity.is_added() {
+            bevy::log::warn!("MaxVelocity component exists, but it's neither a rigid dynamic nor articulation link");
         };
     }
 }

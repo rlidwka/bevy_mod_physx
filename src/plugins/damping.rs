@@ -36,7 +36,18 @@ impl Plugin for DampingPlugin {
 
 pub fn damping_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &Damping), Changed<Damping>>
+    mut actors: Query<
+        (
+            Option<&mut RigidDynamicHandle>,
+            Option<&mut ArticulationLinkHandle>,
+            Ref<Damping>,
+        ),
+        Or<(
+            Added<RigidDynamicHandle>,
+            Added<ArticulationLinkHandle>,
+            Changed<Damping>,
+        )>,
+    >,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -49,7 +60,7 @@ pub fn damping_sync(
             let mut actor_handle = actor.get_mut(&mut scene);
             actor_handle.set_linear_damping(damping.linear);
             actor_handle.set_angular_damping(damping.angular);
-        } else {
+        } else if !damping.is_added() {
             bevy::log::warn!("Damping component exists, but it's neither a rigid dynamic nor articulation link");
         };
     }

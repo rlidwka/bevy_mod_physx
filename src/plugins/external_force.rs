@@ -67,7 +67,11 @@ impl Plugin for ExternalForcePlugin {
 
 pub fn external_force_sync(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut RigidDynamicHandle>, Option<&mut ArticulationLinkHandle>, &ExternalForce)>
+    mut actors: Query<(
+        Option<&mut RigidDynamicHandle>,
+        Option<&mut ArticulationLinkHandle>,
+        Ref<ExternalForce>,
+    )>,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -79,7 +83,7 @@ pub fn external_force_sync(
             } else if let Some(mut actor) = articulation {
                 let mut actor_handle = actor.get_mut(&mut scene);
                 actor_handle.set_force_and_torque(&extforce.force.to_physx(), &extforce.torque.to_physx(), extforce.mode.into());
-            } else {
+            } else if !extforce.is_added() {
                 bevy::log::warn!("ExternalForce component exists, but it's neither a rigid dynamic nor articulation link");
             };
         }

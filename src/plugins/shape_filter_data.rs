@@ -28,7 +28,10 @@ impl Plugin for ShapeFilterDataPlugin {
 
 pub fn shape_filter_data(
     mut scene: ResMut<Scene>,
-    mut actors: Query<(Option<&mut ShapeHandle>, &ShapeFilterData), Changed<ShapeFilterData>>
+    mut actors: Query<
+        (Option<&mut ShapeHandle>, Ref<ShapeFilterData>),
+        Or<(Added<ShapeHandle>, Changed<ShapeFilterData>)>,
+    >,
 ) {
     // this function only applies user defined properties,
     // there's nothing to get back from physx engine
@@ -45,7 +48,7 @@ pub fn shape_filter_data(
                 let pxfilterdata : PxFilterData = PxFilterData_new_2(word0, word1, word2, word3);
                 PxShape_setSimulationFilterData_mut(handle.as_mut_ptr(), &pxfilterdata as *const _);
             };
-        } else {
+        } else if !filters.is_added() {
             bevy::log::warn!("ShapeFilterData component exists, but it's not a shape");
         };
     }
