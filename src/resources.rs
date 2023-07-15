@@ -13,6 +13,7 @@ use physx_sys::{
 };
 use std::ptr::null;
 
+use crate::callbacks::OnWakeSleep;
 use crate::{FoundationDescriptor, SceneDescriptor};
 
 use super::prelude::*;
@@ -61,10 +62,11 @@ impl Physics {
 pub struct Scene {
     scene: SceneRwLock<Owner<PxScene>>,
     use_physx_lock: bool,
+    pub(crate) send_sleep_notifies: bool,
 }
 
 impl Scene {
-    pub fn new(physics: &mut Physics, d: &SceneDescriptor) -> Self {
+    pub fn new(physics: &mut Physics, d: &SceneDescriptor, on_wake_sleep: Option<OnWakeSleep>) -> Self {
         use physx::physics::Physics; // physx trait clashes with our wrapper
 
         // PxBounds3 doesn't have Clone/Copy, even though it should
@@ -80,12 +82,14 @@ impl Scene {
             FilterShaderDescriptor::CallDefaultFirst(f) => FilterShaderDescriptor::CallDefaultFirst(f),
         };
 
+        let send_sleep_notifies = on_wake_sleep.is_some();
+
         let scene = physics
             .create(physx::traits::descriptor::SceneDescriptor {
                 on_collide: d.on_collision.as_ref().map(|x| x.initialize()),
                 on_trigger: d.on_trigger.as_ref().map(|x| x.initialize()),
                 on_constraint_break: d.on_constraint_break.as_ref().map(|x| x.initialize()),
-                on_wake_sleep: d.on_wake_sleep.as_ref().map(|x| x.initialize()),
+                on_wake_sleep: on_wake_sleep.as_ref().map(|x| x.initialize()),
                 on_advance: d.on_advance.as_ref().map(|x| x.initialize()),
                 gravity: d.gravity.to_physx(),
                 kine_kine_filtering_mode: d.kine_kine_filtering_mode,
@@ -123,6 +127,7 @@ impl Scene {
         Self {
             scene: SceneRwLock::new(scene),
             use_physx_lock: d.flags.contains(SceneFlags::RequireRwLock),
+            send_sleep_notifies,
         }
     }
 

@@ -39,6 +39,7 @@ pub mod prelude;
 pub mod raycast;
 pub mod render;
 pub mod resources;
+pub mod sleep;
 pub mod systems;
 pub mod utils;
 
@@ -95,7 +96,7 @@ pub struct SceneDescriptor {
     pub on_collision: Option<callbacks::OnCollision>,
     pub on_trigger: Option<callbacks::OnTrigger>,
     pub on_constraint_break: Option<callbacks::OnConstraintBreak>,
-    pub on_wake_sleep: Option<callbacks::OnWakeSleep>,
+    //pub on_wake_sleep: Option<callbacks::OnWakeSleep>, // built-in callback
     pub on_advance: Option<callbacks::OnAdvance>,
     pub gravity: Vec3,
     pub kine_kine_filtering_mode: PairFilteringMode,
@@ -143,8 +144,8 @@ impl Default for SceneDescriptor {
             on_collision: None,
             on_trigger: None,
             on_constraint_break: None,
-            on_wake_sleep: None,
             on_advance: None,
+            //on_wake_sleep: None, // built-in callback
             // override default gravity, as we know bevy's coordinate system,
             // and default zero gravity doesn't work with vehicles and such
             gravity: Vec3::new(0.0, -9.81, 0.0),
@@ -238,9 +239,12 @@ impl Default for PhysXPlugin {
 impl Plugin for PhysXPlugin {
     fn build(&self, app: &mut App) {
         let mut physics = bpx::Physics::new(&self.foundation);
-        let scene = bpx::Scene::new(&mut physics, &self.scene);
 
         app.init_schedule(PhysicsSchedule);
+        app.add_plugins(sleep::SleepPlugin);
+
+        let wake_sleep_callback = app.world.remove_resource::<sleep::WakeSleepCallback>();
+        let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
 
         if !app.is_plugin_added::<AssetPlugin>() {
             app.add_plugins(AssetPlugin::default());

@@ -125,6 +125,7 @@ pub fn create_rigid_actors(
     let mut articulation_entity_mapping = HashMap::new();
 
     for (entity, actor_cfg, actor_transform, inbound_joint) in new_actors.iter() {
+        let send_sleep_notifies = scene.send_sleep_notifies;
         let mut scene = scene.get_mut();
 
         match actor_cfg {
@@ -142,6 +143,10 @@ pub fn create_rigid_actors(
                     actor_transform,
                     &default_material,
                 );
+
+                if send_sleep_notifies {
+                    actor.set_actor_flag(ActorFlag::SendSleepNotifies, true);
+                }
 
                 // unsafe raw function call is required to avoid consuming actor
                 unsafe {
