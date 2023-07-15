@@ -1,3 +1,5 @@
+use std::ptr::null;
+
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
@@ -11,14 +13,11 @@ use physx_sys::{
     PxScene_unlockRead_mut,
     PxScene_unlockWrite_mut,
 };
-use std::ptr::null;
-
-use crate::callbacks::OnWakeSleep;
-use crate::{FoundationDescriptor, SceneDescriptor};
 
 use super::prelude::*;
-use super::prelude as bpx;
-use super::{PxShape, PxScene};
+use super::{prelude as bpx, PxScene, PxShape};
+use crate::callbacks::OnWakeSleep;
+use crate::{FoundationDescriptor, SceneDescriptor};
 
 struct ErrorCallback;
 

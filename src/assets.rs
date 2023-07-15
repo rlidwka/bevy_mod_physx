@@ -1,6 +1,6 @@
-use super::PxMaterial;
-use crate::physx_extras::HeightFieldSample;
-use crate::prelude::{self as bpx, *};
+use std::ffi::c_void;
+use std::sync::{Arc, Mutex};
+
 use bevy::prelude::*;
 use bevy::reflect::{TypePath, TypeUuid};
 use physx::convex_mesh::ConvexMesh;
@@ -21,8 +21,10 @@ use physx_sys::{
     PxHeightFieldSample,
     PxMeshGeometryFlags,
 };
-use std::ffi::c_void;
-use std::sync::{Arc, Mutex};
+
+use super::PxMaterial;
+use crate::physx_extras::HeightFieldSample;
+use crate::prelude::{self as bpx, *};
 
 #[derive(TypeUuid, TypePath, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]

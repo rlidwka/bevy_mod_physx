@@ -1,8 +1,9 @@
-use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
+
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

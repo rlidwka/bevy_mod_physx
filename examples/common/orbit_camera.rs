@@ -1,11 +1,12 @@
 // flying camera that you can control with mouse, I still didn't find a good crate for it
 // maybe switch to smooth-bevy-cameras, but still needs a custom controller
 
+use std::f32::consts::PI;
+
 use bevy::input::gamepad::GamepadEvent;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
-use std::f32::consts::PI;
 
 pub struct OrbitCameraPlugin;
 

@@ -1,3 +1,6 @@
+use std::collections::HashMap;
+use std::ptr::{null, null_mut};
+
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
@@ -12,15 +15,18 @@ use physx_sys::{
     PxScene_addArticulation_mut,
     PxShape_setLocalPose_mut,
 };
-use std::collections::HashMap;
-use std::ptr::{null, null_mut};
 
-use crate::components::{ArticulationJoint, ShapeHandle};
-
-use crate::prelude as bpx;
-use crate::{prelude::*, PxArticulationReducedCoordinate, PxRigidDynamic, PxRigidStatic};
-use crate::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle, RigidStaticHandle};
+use crate::components::{
+    ArticulationJoint,
+    ArticulationLinkHandle,
+    ArticulationRootHandle,
+    RigidDynamicHandle,
+    RigidStaticHandle,
+    ShapeHandle,
+};
+use crate::prelude::*;
 use crate::resources::DefaultMaterial;
+use crate::{prelude as bpx, PxArticulationReducedCoordinate, PxRigidDynamic, PxRigidStatic};
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a ArticulationJoint>),

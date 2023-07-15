@@ -1,3 +1,6 @@
+use std::borrow::Cow;
+use std::ffi::CString;
+
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
@@ -5,8 +8,6 @@ use physx_sys::{
     PxArticulationReducedCoordinate_setName_mut,
     PxShape_setName_mut,
 };
-use std::borrow::Cow;
-use std::ffi::CString;
 
 use crate::components::{
     ArticulationLinkHandle,

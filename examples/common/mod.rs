@@ -10,12 +10,13 @@
 const SIMULATION_STARTS_PAUSED: bool = false;
 const INSPECTOR_STARTS_HIDDEN: bool = false;
 
+use std::ffi::CString;
+use std::time::Duration;
+
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
-use std::ffi::CString;
-use std::time::Duration;
 
 pub mod debug_render;
 use debug_render::DebugRenderPlugin;

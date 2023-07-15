@@ -1,19 +1,16 @@
+use std::ptr::drop_in_place;
+
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{
-    PxMeshScale_new_3,
-    PxPhysics_createShape_mut,
-    PxShape_release_mut,
-};
-use std::ptr::drop_in_place;
+use physx_sys::{PxMeshScale_new_3, PxPhysics_createShape_mut, PxShape_release_mut};
 
+use super::{PxRigidDynamic, PxRigidStatic, PxShape};
 use crate::assets::GeometryInner;
-use crate::{prelude as bpx, PxArticulationLink, PxArticulationReducedCoordinate};
-use crate::prelude::{IntoPxVec3, IntoPxQuat};
+use crate::prelude::{self as bpx, IntoPxQuat, IntoPxVec3};
 use crate::resources::SceneRwLock;
-use super::{PxRigidStatic, PxRigidDynamic, PxShape};
+use crate::{PxArticulationLink, PxArticulationReducedCoordinate};
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RigidBody {

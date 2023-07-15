@@ -1,13 +1,15 @@
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{
-    PxShape_getLocalPose,
-    PxShape_setLocalPose_mut,
-};
+use physx_sys::{PxShape_getLocalPose, PxShape_setLocalPose_mut};
 
-use crate::prelude::{*, self as bpx};
-use crate::components::{ArticulationLinkHandle, RigidDynamicHandle, RigidStaticHandle, ShapeHandle};
+use crate::components::{
+    ArticulationLinkHandle,
+    RigidDynamicHandle,
+    RigidStaticHandle,
+    ShapeHandle,
+};
+use crate::prelude::{self as bpx, *};
 
 pub fn sync_transform_dynamic(
     mut scene: ResMut<bpx::Scene>,

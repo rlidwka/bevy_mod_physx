@@ -1,7 +1,8 @@
-use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
+
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

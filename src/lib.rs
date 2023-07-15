@@ -12,7 +12,8 @@
 #![allow(clippy::too_many_arguments)]
 #![allow(clippy::type_complexity)]
 
-use crate::prelude as bpx;
+use std::time::Duration;
+
 use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
 use bevy::prelude::*;
 use physx::prelude::*;
@@ -28,7 +29,8 @@ use physx::scene::{
     SolverType,
 };
 use physx_sys::PxTolerancesScale;
-use std::time::Duration;
+
+use crate::prelude as bpx;
 
 pub mod assets;
 pub mod callbacks;

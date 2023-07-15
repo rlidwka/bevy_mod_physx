@@ -1,5 +1,3 @@
-use crate::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle};
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
@@ -9,6 +7,9 @@ use physx_sys::{
     PxArticulationReducedCoordinate_setRootAngularVelocity_mut,
     PxArticulationReducedCoordinate_setRootLinearVelocity_mut,
 };
+
+use crate::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle};
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

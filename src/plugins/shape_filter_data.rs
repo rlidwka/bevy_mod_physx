@@ -1,5 +1,3 @@
-use crate::components::ShapeHandle;
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
@@ -8,6 +6,9 @@ use physx_sys::{
     PxShape_setQueryFilterData_mut,
     PxShape_setSimulationFilterData_mut,
 };
+
+use crate::components::ShapeHandle;
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

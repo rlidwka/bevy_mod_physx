@@ -4,10 +4,9 @@
 // side is bevy's EventReader<T>, and it automatically bridges between the two.
 // This feature is needed to get information from physx callbacks to bevy world.
 
-use bevy::prelude::*;
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
-
+use bevy::prelude::*;
 use crate::{PhysicsSchedule, PhysicsSet};
 
 #[derive(Resource, Deref, DerefMut)]

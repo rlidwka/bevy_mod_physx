@@ -1,8 +1,9 @@
 // this covers ExternalForce and ExternalImpulse (see ForceMode attribute of the struct)
-use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
+
+use crate::components::{ArticulationLinkHandle, RigidDynamicHandle};
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Hash, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

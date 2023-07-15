@@ -1,24 +1,25 @@
-use bevy::prelude::*;
-use physx::rigid_actor::RigidActor;
-use physx::traits::Class;
-use physx_sys::{
-    PxHitFlags,
-    PxQueryFilterCallback,
-    PxQueryFilterData,
-    PxQueryFlags,
-    RaycastHitCallback,
-    PxQueryFilterCallback_delete,
-    PxQueryFilterData_new,
-    PxSceneQueryExt_raycastSingle,
-    create_raycast_filter_callback,
-    create_raycast_filter_callback_func,
-};
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 use std::ptr::{drop_in_place, null_mut};
 
-use crate::prelude::{*, Scene};
-use crate::utils::{get_shape_entity_from_ptr, get_actor_entity_from_ptr};
+use bevy::prelude::*;
+use physx::rigid_actor::RigidActor;
+use physx::traits::Class;
+use physx_sys::{
+    create_raycast_filter_callback,
+    create_raycast_filter_callback_func,
+    PxHitFlags,
+    PxQueryFilterCallback,
+    PxQueryFilterCallback_delete,
+    PxQueryFilterData,
+    PxQueryFilterData_new,
+    PxQueryFlags,
+    PxSceneQueryExt_raycastSingle,
+    RaycastHitCallback,
+};
+
+use crate::prelude::{Scene, *};
+use crate::utils::{get_actor_entity_from_ptr, get_shape_entity_from_ptr};
 
 #[derive(Debug)]
 pub struct RaycastHit {

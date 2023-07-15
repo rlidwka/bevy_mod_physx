@@ -1,9 +1,10 @@
-use crate::components::{ArticulationLinkHandle, ArticulationRootHandle};
-use crate::prelude::{Scene, *};
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxArticulationDrive, PxArticulationLink_getInboundJoint};
+
+use crate::components::{ArticulationLinkHandle, ArticulationRootHandle};
+use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]

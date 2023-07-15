@@ -1,3 +1,30 @@
-# rustfmt is only used here to format imports
+# rustfmt is only used here to format imports.
+#
+# In my opinion, rustfmt is not good for general use, because it makes the code less readable.
+#
+# As an example, this:
+#     if is_true { return; }
+# will be formatted into 3 separate lines.
+#
+# And this:
+#     struct A {
+#         a:   u32,
+#         bcd: u32,
+#         ef:  u32,
+#     }
+# will lose carefully crafted indentation.
+#
+# But it is in my opinion very good idea to automatically format imports,
+# because those change very frequently, and it's tedious to maintain
+# alphabetic order for imports manually.
+#
+# If you want to only format imports, you have to enable range formatting.
+# In VSCode settings:
+#     Rust-analyzer > Rustfmt > Range formatting: Enable
+# then manually select code block, press hotkey (or right click, "Format Selection").
+# As of time of this writing, it is only available on nightly rust.
+#
 imports_granularity = "Module"
 imports_layout = "HorizontalVertical"
+group_imports = "StdExternalCrate"
+reorder_modules = true
