@@ -12,8 +12,7 @@ impl Plugin for DebugRenderPlugin {
 
         app.insert_resource(DebugRenderSettings {
             scale: 0., // global toggle for everything
-            collision_shapes: 1.,
-            ..default()
+            ..DebugRenderSettings::enable()
         });
     }
 }

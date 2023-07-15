@@ -43,6 +43,16 @@ pub struct DebugRenderSettings {
     pub sdf: f32,
 }
 
+impl DebugRenderSettings {
+    pub fn enable() -> Self {
+        Self {
+            scale: 1.,
+            collision_shapes: 1.,
+            ..default()
+        }
+    }
+}
+
 impl Plugin for DebugRenderPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<DebugRenderSettings>();

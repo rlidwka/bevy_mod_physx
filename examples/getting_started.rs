@@ -1,10 +1,3 @@
-<img src="https://raw.githubusercontent.com/rlidwka/bevy_physx/master/examples/helloworld.webp" width="100%" />
-
-### Getting started
-
-Here is a snippet, which creates a ball bouncing on a fixed ground.
-
-```rust
 // this is similar to basic simulation example in rapier3d
 use bevy::prelude::*;
 use bevy_physx::prelude::*;
@@ -56,4 +49,3 @@ fn setup_physics(
         SpatialBundle::from_transform(Transform::from_xyz(0.0, 4.0, 0.0)),
     ));
 }
-```
