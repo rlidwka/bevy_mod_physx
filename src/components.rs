@@ -81,7 +81,7 @@ impl Default for ArticulationJoint {
             parent_pose: default(),
             child_pose: default(),
 
-            // Physx default values.
+            // PhysX default values.
             max_joint_velocity: 100.,
             friction_coefficient: 0.5,
         }

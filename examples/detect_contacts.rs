@@ -101,8 +101,7 @@ fn main() {
 
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(common::DemoUtils) // optional
-        .add_plugins(PhysXPlugin {
+        .add_plugins(PhysicsPlugins.set(PhysicsCore {
             scene: bpx::SceneDescriptor {
                 // simulation filter shader will filter details that we get in on_collision callback,
                 // by default on_collision callback doesn't do anything
@@ -113,7 +112,8 @@ fn main() {
                 ..default()
             },
             ..default()
-        })
+        }))
+        .add_plugins(common::DemoUtils) // optional
         .add_physics_event_channel(mpsc_receiver)
         .add_systems(Startup, (
             init_materials,

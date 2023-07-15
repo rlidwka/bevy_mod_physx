@@ -7,8 +7,8 @@ fn main() {
     // ported from https://github.com/MasterOfMarkets/bevy_mod_physx
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PhysicsPlugins)
         .add_plugins(common::DemoUtils) // optional
-        .add_plugins(PhysXPlugin::default())
         .add_systems(Startup, (
             spawn_scene,
             spawn_camera_and_light,

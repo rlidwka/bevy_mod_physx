@@ -8,14 +8,14 @@ use physx_sys::PxSolverType;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(common::DemoUtils) // optional
-        .add_plugins(PhysXPlugin {
+        .add_plugins(PhysicsPlugins.set(PhysicsCore {
             scene: bpx::SceneDescriptor {
                 solver_type: PxSolverType::Tgs,
                 ..default()
             },
             ..default()
-        })
+        }))
+        .add_plugins(common::DemoUtils) // optional
         .add_systems(Startup, (
             spawn_long_chain,
             spawn_obstacle,

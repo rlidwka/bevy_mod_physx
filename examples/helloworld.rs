@@ -6,8 +6,8 @@ use bevy_physx::prelude::{self as bpx, *};
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PhysicsPlugins)
         .add_plugins(common::DemoUtils) // optional
-        .add_plugins(PhysXPlugin::default())
         .add_systems(Startup, (
             spawn_plane,
             spawn_stacks,

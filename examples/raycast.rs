@@ -21,8 +21,8 @@ fn main() {
     // ported from ray_casting3 example from bevy_rapier3d
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugins(PhysicsPlugins)
         .add_plugins(common::DemoUtils) // optional
-        .add_plugins(PhysXPlugin::default())
         .add_systems(Startup, (
             init_materials,
             apply_deferred,

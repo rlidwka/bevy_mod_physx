@@ -14,6 +14,7 @@
 
 use std::time::Duration;
 
+use bevy::app::PluginGroupBuilder;
 use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
 use bevy::prelude::*;
 use physx::prelude::*;
@@ -222,13 +223,33 @@ impl PhysicsSet {
     }
 }
 
-pub struct PhysXPlugin {
+pub struct PhysicsPlugins;
+
+impl PluginGroup for PhysicsPlugins {
+    fn build(self) -> PluginGroupBuilder {
+        PluginGroupBuilder::start::<Self>()
+            .add(PhysicsCore::default())
+            .add(crate::sleep::SleepPlugin)
+            .add(crate::render::DebugRenderPlugin)
+            .add(crate::plugins::ArticulationPlugin)
+            .add(crate::plugins::DampingPlugin)
+            .add(crate::plugins::ExternalForcePlugin)
+            .add(crate::plugins::MassPropertiesPlugin)
+            .add(crate::plugins::MaxVelocityPlugin)
+            .add(crate::plugins::NamePlugin)
+            .add(crate::plugins::ShapeFilterDataPlugin)
+            .add(crate::plugins::ShapeOffsetsPlugin)
+            .add(crate::plugins::VelocityPlugin)
+    }
+}
+
+pub struct PhysicsCore {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
     pub timestep: TimestepMode,
 }
 
-impl Default for PhysXPlugin {
+impl Default for PhysicsCore {
     fn default() -> Self {
         Self {
             foundation: default(),
@@ -238,53 +259,27 @@ impl Default for PhysXPlugin {
     }
 }
 
-impl Plugin for PhysXPlugin {
+impl Plugin for PhysicsCore {
     fn build(&self, app: &mut App) {
-        let mut physics = bpx::Physics::new(&self.foundation);
-
         app.init_schedule(PhysicsSchedule);
-        app.add_plugins(sleep::SleepPlugin);
-
-        let wake_sleep_callback = app.world.remove_resource::<sleep::WakeSleepCallback>();
-        let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
 
         if !app.is_plugin_added::<AssetPlugin>() {
+            // this is required for Geometry and Material,
+            // which are stored internally as custom assets
             app.add_plugins(AssetPlugin::default());
         }
 
         app.add_asset::<bpx::Geometry>();
         app.add_asset::<bpx::Material>();
 
-        app.insert_resource(scene);
-
-        let default_material = DefaultMaterial(
-            app.world.resource_mut::<Assets<bpx::Material>>()
-                .add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into())
-        );
-        app.insert_resource(default_material);
-
         app.register_type::<PhysicsTime>();
         app.insert_resource(PhysicsTime::new(self.timestep));
         app.init_resource::<BevyTimeDelta>();
-
-        // physics must be last (so it will be dropped last)
-        app.insert_resource(physics);
 
         // it's important here to configure set order
         app.edit_schedule(PhysicsSchedule, |schedule| {
             schedule.configure_sets(PhysicsSet::sets());
         });
-
-        app.add_plugins(crate::plugins::ArticulationPlugin);
-        app.add_plugins(crate::plugins::DampingPlugin);
-        app.add_plugins(crate::plugins::ExternalForcePlugin);
-        app.add_plugins(crate::plugins::MassPropertiesPlugin);
-        app.add_plugins(crate::plugins::MaxVelocityPlugin);
-        app.add_plugins(crate::plugins::NamePlugin);
-        app.add_plugins(crate::plugins::ShapeFilterDataPlugin);
-        app.add_plugins(crate::plugins::ShapeOffsetsPlugin);
-        app.add_plugins(crate::plugins::VelocityPlugin);
-        app.add_plugins(crate::render::PhysXDebugRenderPlugin);
 
         // add all systems to the set
         app.add_systems(PhysicsSchedule, (
@@ -314,6 +309,24 @@ impl Plugin for PhysXPlugin {
 
         // add scheduler
         app.add_systems(PreUpdate, run_physics_schedule);
+    }
+
+    fn finish(&self, app: &mut App) {
+        let mut physics = bpx::Physics::new(&self.foundation);
+
+        let wake_sleep_callback = app.world.remove_resource::<sleep::WakeSleepCallback>();
+        let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
+
+        app.insert_resource(scene);
+
+        let default_material = DefaultMaterial(
+            app.world.resource_mut::<Assets<bpx::Material>>()
+                .add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into())
+        );
+        app.insert_resource(default_material);
+
+        // physics must be last (so it will be dropped last)
+        app.insert_resource(physics);
     }
 }
 

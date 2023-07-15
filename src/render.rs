@@ -11,7 +11,7 @@ use physx_sys::{
 
 use crate::prelude::{self as bpx, *};
 
-pub struct PhysXDebugRenderPlugin;
+pub struct DebugRenderPlugin;
 
 #[derive(Resource, Default, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
@@ -43,7 +43,7 @@ pub struct DebugRenderSettings {
     pub sdf: f32,
 }
 
-impl Plugin for PhysXDebugRenderPlugin {
+impl Plugin for DebugRenderPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<DebugRenderSettings>();
         app.add_systems(

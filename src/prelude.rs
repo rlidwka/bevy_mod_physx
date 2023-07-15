@@ -4,7 +4,8 @@ pub use super::utils::type_bridge::*;
 #[doc(hidden)]
 pub use super::{
     FoundationDescriptor,
-    PhysXPlugin,
+    PhysicsCore,
+    PhysicsPlugins,
     PhysicsSchedule,
     PhysicsSet,
     PhysicsTime,
