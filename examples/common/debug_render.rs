@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy_inspector_egui::bevy_egui::EguiContexts;
 use bevy_inspector_egui::egui::{self, Align2, Window};
-use bevy_physx::render::DebugRenderSettings;
+use bevy_physx::prelude::*;
 
 pub struct DebugRenderPlugin;
 

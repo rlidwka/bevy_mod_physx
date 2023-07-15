@@ -22,9 +22,9 @@ pub struct WakeSleepEvent {
     pub is_waking: bool,
 }
 
-pub struct SleepPlugin;
+pub struct SleepMarkerPlugin;
 
-impl Plugin for SleepPlugin {
+impl Plugin for SleepMarkerPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Sleeping>();
 

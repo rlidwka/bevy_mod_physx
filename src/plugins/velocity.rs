@@ -53,7 +53,7 @@ pub fn velocity_sync(
         Option<&ArticulationLinkHandle>,
         Option<&mut ArticulationRootHandle>,
         &mut Velocity,
-    )>,
+    ), Or<(Changed<Velocity>, Without<Sleeping>)>>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but

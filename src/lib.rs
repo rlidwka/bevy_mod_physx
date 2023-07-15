@@ -40,9 +40,7 @@ pub mod events;
 pub mod plugins;
 pub mod prelude;
 pub mod raycast;
-pub mod render;
 pub mod resources;
-pub mod sleep;
 pub mod systems;
 pub mod utils;
 
@@ -229,16 +227,17 @@ impl PluginGroup for PhysicsPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(PhysicsCore::default())
-            .add(crate::sleep::SleepPlugin)
-            .add(crate::render::DebugRenderPlugin)
             .add(crate::plugins::ArticulationPlugin)
             .add(crate::plugins::DampingPlugin)
+            .add(crate::plugins::DebugRenderPlugin)
             .add(crate::plugins::ExternalForcePlugin)
             .add(crate::plugins::MassPropertiesPlugin)
             .add(crate::plugins::MaxVelocityPlugin)
             .add(crate::plugins::NamePlugin)
             .add(crate::plugins::ShapeFilterDataPlugin)
             .add(crate::plugins::ShapeOffsetsPlugin)
+            .add(crate::plugins::SleepControlPlugin)
+            .add(crate::plugins::SleepMarkerPlugin)
             .add(crate::plugins::VelocityPlugin)
     }
 }
@@ -314,7 +313,7 @@ impl Plugin for PhysicsCore {
     fn finish(&self, app: &mut App) {
         let mut physics = bpx::Physics::new(&self.foundation);
 
-        let wake_sleep_callback = app.world.remove_resource::<sleep::WakeSleepCallback>();
+        let wake_sleep_callback = app.world.remove_resource::<crate::plugins::WakeSleepCallback>();
         let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
 
         app.insert_resource(scene);

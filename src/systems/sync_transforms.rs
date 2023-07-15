@@ -14,7 +14,14 @@ use crate::prelude::{self as bpx, *};
 pub fn sync_transform_dynamic(
     mut scene: ResMut<bpx::Scene>,
     global_transforms: Query<&GlobalTransform>,
-    mut actors: Query<(&mut RigidDynamicHandle, &mut Transform, &GlobalTransform, Option<&Parent>)>,
+    mut actors: Query<(
+        &mut RigidDynamicHandle,
+        &mut Transform,
+        &GlobalTransform,
+        Option<&Parent>,
+    )>,
+    // TODO:
+    // Or<(Changed<Transform>, Without<Sleeping>)>>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but

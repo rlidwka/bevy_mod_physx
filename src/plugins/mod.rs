@@ -15,6 +15,9 @@ pub use articulation::{
 mod damping;
 pub use damping::{Damping, DampingPlugin};
 
+mod debug_render;
+pub use debug_render::{DebugRenderPlugin, DebugRenderSettings};
+
 mod external_force;
 pub use external_force::{ExternalForce, ExternalForcePlugin};
 
@@ -32,6 +35,13 @@ pub use shape_filter_data::{ShapeFilterData, ShapeFilterDataPlugin};
 
 mod shape_offsets;
 pub use shape_offsets::{ShapeOffsets, ShapeOffsetsPlugin};
+
+mod sleep_control;
+pub use sleep_control::{SleepControl, SleepControlPlugin};
+
+mod sleep_marker;
+pub use sleep_marker::{SleepMarkerPlugin, Sleeping};
+pub(crate) use sleep_marker::WakeSleepCallback;
 
 mod velocity;
 pub use velocity::{Velocity, VelocityPlugin};

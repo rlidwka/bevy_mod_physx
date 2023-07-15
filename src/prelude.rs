@@ -33,11 +33,14 @@ pub use super::plugins::{
     ArticulationJointDrives,
     ArticulationRoot,
     Damping,
+    DebugRenderSettings,
     ExternalForce,
     NameFormatter,
     MassProperties,
     MaxVelocity,
     ShapeFilterData,
+    SleepControl,
+    Sleeping,
     Velocity,
 };
 
@@ -46,6 +49,3 @@ pub use super::raycast::{RaycastHit, SceneQueryExt};
 
 #[doc(hidden)]
 pub use super::resources::{Physics, Scene};
-
-#[doc(hidden)]
-pub use super::render::DebugRenderSettings;
