@@ -1,4 +1,8 @@
-<img src="https://raw.githubusercontent.com/rlidwka/bevy_physx/master/examples/helloworld.webp" width="100%" />
+<p align="center">
+  <img src="https://user-images.githubusercontent.com/999113/253824185-ade6f3c1-0ce7-4e95-833a-daa619acbcb6.png" width="48%">
+&nbsp;
+  <img src="https://user-images.githubusercontent.com/999113/253824183-11d21bb3-700d-4a0b-aab4-60b48af49c23.png" width="48%">
+</p>
 
 ### Getting started
 
