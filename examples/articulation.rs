@@ -159,14 +159,6 @@ fn spawn_long_chain(
             motion_twist: ArticulationJointMotion::Free,
             friction_coefficient: 1.,
             ..default()
-        })
-        .with_children(|builder| {
-            builder.spawn(PbrBundle {
-                mesh: mesh.clone(),
-                material: material.clone(),
-                transform: Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
-                ..default()
-            });
         });
 }
 
