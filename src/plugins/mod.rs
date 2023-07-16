@@ -21,6 +21,9 @@ pub use debug_render::{DebugRenderPlugin, DebugRenderSettings};
 mod external_force;
 pub use external_force::{ExternalForce, ExternalForcePlugin};
 
+mod kinematic;
+pub use kinematic::{Kinematic, KinematicPlugin};
+
 mod mass_properties;
 pub use mass_properties::{MassProperties, MassPropertiesPlugin};
 

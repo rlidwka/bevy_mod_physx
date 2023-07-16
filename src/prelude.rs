@@ -35,6 +35,7 @@ pub use super::plugins::{
     Damping,
     DebugRenderSettings,
     ExternalForce,
+    Kinematic,
     NameFormatter,
     MassProperties,
     MaxVelocity,

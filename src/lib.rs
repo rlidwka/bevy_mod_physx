@@ -231,6 +231,7 @@ impl PluginGroup for PhysicsPlugins {
             .add(crate::plugins::DampingPlugin)
             .add(crate::plugins::DebugRenderPlugin)
             .add(crate::plugins::ExternalForcePlugin)
+            .add(crate::plugins::KinematicPlugin)
             .add(crate::plugins::MassPropertiesPlugin)
             .add(crate::plugins::MaxVelocityPlugin)
             .add(crate::plugins::NamePlugin)
