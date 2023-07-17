@@ -91,31 +91,31 @@ fn set_visualization_params(
         };
     }
 
-    set!(scale, Scale);
-    set!(world_axes, WorldAxes);
-    set!(body_axes, BodyAxes);
-    set!(body_mass_axes, BodyMassAxes);
-    set!(body_lin_velocity, BodyLinVelocity);
-    set!(body_ang_velocity, BodyAngVelocity);
-    set!(contact_point, ContactPoint);
-    set!(contact_normal, ContactNormal);
-    set!(contact_error, ContactError);
-    set!(contact_force, ContactForce);
-    set!(actor_axes, ActorAxes);
-    set!(collision_aabbs, CollisionAabbs);
-    set!(collision_shapes, CollisionShapes);
-    set!(collision_axes, CollisionAxes);
-    set!(collision_compounds, CollisionCompounds);
-    set!(collision_fnormals, CollisionFnormals);
-    set!(collision_edges, CollisionEdges);
-    set!(collision_static, CollisionStatic);
-    set!(collision_dynamic, CollisionDynamic);
-    set!(joint_local_frames, JointLocalFrames);
-    set!(joint_limits, JointLimits);
-    set!(cull_box, CullBox);
-    set!(mbp_regions, MbpRegions);
-    set!(simulation_mesh, SimulationMesh);
-    set!(sdf, Sdf);
+    set!(scale, eSCALE);
+    set!(world_axes, eWORLD_AXES);
+    set!(body_axes, eBODY_AXES);
+    set!(body_mass_axes, eBODY_MASS_AXES);
+    set!(body_lin_velocity, eBODY_LIN_VELOCITY);
+    set!(body_ang_velocity, eBODY_ANG_VELOCITY);
+    set!(contact_point, eCONTACT_POINT);
+    set!(contact_normal, eCONTACT_NORMAL);
+    set!(contact_error, eCONTACT_ERROR);
+    set!(contact_force, eCONTACT_FORCE);
+    set!(actor_axes, eACTOR_AXES);
+    set!(collision_aabbs, eCOLLISION_AABBS);
+    set!(collision_shapes, eCOLLISION_SHAPES);
+    set!(collision_axes, eCOLLISION_AXES);
+    set!(collision_compounds, eCOLLISION_COMPOUNDS);
+    set!(collision_fnormals, eCOLLISION_FNORMALS);
+    set!(collision_edges, eCOLLISION_EDGES);
+    set!(collision_static, eCOLLISION_STATIC);
+    set!(collision_dynamic, eCOLLISION_DYNAMIC);
+    set!(joint_local_frames, eJOINT_LOCAL_FRAMES);
+    set!(joint_limits, eJOINT_LIMITS);
+    set!(cull_box, eCULL_BOX);
+    set!(mbp_regions, eMBP_REGIONS);
+    //set!(simulation_mesh, SimulationMesh);
+    //set!(sdf, Sdf);
 }
 
 fn debug_visualization(

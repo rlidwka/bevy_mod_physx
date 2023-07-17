@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxRigidBody_setRigidBodyFlag_mut, PxRigidDynamic_setKinematicTarget_mut};
+use physx_sys::{PxRigidBody_setRigidBodyFlag_mut, PxRigidDynamic_setKinematicTarget_mut, PxRigidBodyFlag};
 
 use crate::components::RigidDynamicHandle;
 use crate::prelude::{Scene, *};
@@ -46,7 +46,7 @@ pub fn kinematic_enable(
         let mut handle = actor.get_mut(&mut scene);
 
         handle.set_global_pose(&kinematic.target.to_physx(), false);
-        unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, true); }
+        unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), PxRigidBodyFlag::eKINEMATIC, true); }
     }
 }
 
@@ -59,7 +59,7 @@ pub fn kinematic_disable(
         if let Ok(mut actor) = handles.get_mut(entity) {
             let mut handle = actor.get_mut(&mut scene);
 
-            unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, false); }
+            unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), PxRigidBodyFlag::eKINEMATIC, false); }
         };
     }
 }

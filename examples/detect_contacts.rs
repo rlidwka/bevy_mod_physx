@@ -9,9 +9,10 @@ use bevy_physx::utils::{get_actor_entity_from_ptr, get_shape_entity_from_ptr};
 use physx::scene::FilterShaderDescriptor;
 use physx_sys::{
     FilterShaderCallbackInfo,
-    PxContactPairFlags,
+    PxContactPairFlag,
     PxContactPair_extractContacts,
-    PxFilterFlags,
+    PxFilterFlag,
+    PxPairFlag,
     PxPairFlags,
 };
 
@@ -28,17 +29,17 @@ struct Highlightable;
 #[component(storage = "SparseSet")]
 struct Highlighted;
 
-unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) -> PxFilterFlags {
+unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) -> u16 {
     let s = &mut *s as &mut FilterShaderCallbackInfo;
     let pair_flags = &mut *(s.pairFlags) as &mut PxPairFlags;
 
-    *pair_flags = PxPairFlags::SolveContact |
-        PxPairFlags::DetectDiscreteContact |
-        PxPairFlags::NotifyTouchFound |
-        PxPairFlags::NotifyTouchLost |
-        PxPairFlags::NotifyContactPoints;
+    pair_flags.mBits = (PxPairFlag::eSOLVE_CONTACT |
+        PxPairFlag::eDETECT_DISCRETE_CONTACT |
+        PxPairFlag::eNOTIFY_TOUCH_FOUND |
+        PxPairFlag::eNOTIFY_TOUCH_LOST |
+        PxPairFlag::eNOTIFY_CONTACT_POINTS) as u16;
 
-    PxFilterFlags::empty()
+    PxFilterFlag::eDEFAULT as u16
 }
 
 #[derive(Event)]
@@ -51,18 +52,12 @@ fn main() {
     let (mpsc_sender, mpsc_receiver) = channel();
 
     let on_collision = OnCollision::new(move |header, pairs| {
-        assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor0));
         let actor0 = unsafe { get_actor_entity_from_ptr(header.actors[0] as *const _) };
-
-        assert!(!header.flags.contains(physx_sys::PxContactPairHeaderFlags::RemovedActor1));
         let actor1 = unsafe { get_actor_entity_from_ptr(header.actors[1] as *const _) };
 
         for pair in pairs {
             // this example shows how to extract contact details
-            assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
             let shape0 = unsafe { get_shape_entity_from_ptr(pair.shapes[0] as *const _) };
-
-            assert!(!pair.flags.contains(PxContactPairFlags::RemovedShape0));
             let shape1 = unsafe { get_shape_entity_from_ptr(pair.shapes[1] as *const _) };
 
             let contacts = unsafe {
@@ -73,10 +68,10 @@ fn main() {
             };
 
             let mut status = "Contact";
-            if pair.flags.contains(PxContactPairFlags::ActorPairHasFirstTouch) {
+            if (pair.flags.mBits & PxContactPairFlag::eACTOR_PAIR_HAS_FIRST_TOUCH as u16) != 0 {
                 status = "New contact";
             }
-            if pair.flags.contains(PxContactPairFlags::ActorPairLostTouch) {
+            if (pair.flags.mBits & PxContactPairFlag::eACTOR_PAIR_LOST_TOUCH as u16) != 0 {
                 status = "Lost contact";
             }
 

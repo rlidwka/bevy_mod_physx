@@ -43,7 +43,7 @@ pub trait HeightFieldExtras {
     ) -> bool;
     fn get_nb_rows(&self) -> u32;
     fn get_nb_columns(&self) -> u32;
-    fn get_format(&self) -> HeightFieldFormat;
+    //fn get_format(&self) -> HeightFieldFormat;
     fn get_sample_stride(&self) -> u32;
     fn get_convex_edge_threshold(&self) -> f32;
     fn get_flags(&self) -> HeightFieldFlags;
@@ -109,9 +109,9 @@ impl HeightFieldExtras for physx::height_field::HeightField {
     }
 
     /// Retrieves the format of the sample data.
-    fn get_format(&self) -> HeightFieldFormat {
+    /*fn get_format(&self) -> HeightFieldFormat {
         unsafe { PxHeightField_getFormat(self.as_ptr()) }
-    }
+    }*/
 
     /// Retrieves the offset in bytes between consecutive samples in the array.
     fn get_sample_stride(&self) -> u32 {
@@ -239,7 +239,7 @@ impl HeightFieldSample {
         self.obj.height = height;
     }
 
-    pub fn tess_flag(&self) -> bool {
+    /*pub fn tess_flag(&self) -> bool {
         // same as PxHeightFieldSample_tessFlag
         self.obj.materialIndex0.structgen_pad0[0] & Self::BIT_MASK != 0
     }
@@ -274,5 +274,5 @@ impl HeightFieldSample {
     pub fn set_material1(&mut self, material: HeightFieldMaterial) {
         self.obj.materialIndex1.structgen_pad0[0] =
             material.get() as u8 | self.obj.materialIndex1.structgen_pad0[0] & Self::BIT_MASK;
-    }
+    }*/
 }

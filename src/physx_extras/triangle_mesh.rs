@@ -14,7 +14,7 @@ use physx_sys::{
     //PxTriangleMesh_getSDFDimensions,
     //PxTriangleMesh_setPreferSDFProjection_mut,
     //PxTriangleMesh_getPreferSDFProjection,
-    PxTriangleMesh_getMassInformation,
+    //PxTriangleMesh_getMassInformation,
     PxTriangleMesh_getNbTriangles,
     PxTriangleMesh_getNbVertices,
     PxTriangleMesh_getTriangleMaterialIndex,
@@ -127,7 +127,7 @@ impl TriangleMeshExtras for physx::triangle_mesh::TriangleMesh {
     }
 
     /// Returns the mass properties of the mesh assuming unit density.
-    fn get_mass_information(&self) -> PxMassProperties {
+    /*fn get_mass_information(&self) -> PxMassProperties {
         let mut mass = MaybeUninit::uninit();
         let mut local_inertia = MaybeUninit::uninit();
         let mut local_center_of_mass = MaybeUninit::uninit();
@@ -146,7 +146,7 @@ impl TriangleMeshExtras for physx::triangle_mesh::TriangleMesh {
                 mass: mass.assume_init(),
             }
         }
-    }
+    }*/
 
     /// Returns the local-space (vertex space) AABB from the triangle mesh.
     fn get_local_bounds(&self) -> PxBounds3 {
