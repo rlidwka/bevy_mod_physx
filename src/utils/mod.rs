@@ -1,10 +1,9 @@
 pub mod type_bridge;
 
 use bevy::prelude::*;
-use physx::actor::ActorMap;
 use physx::prelude::*;
+use physx_sys::PxBase_getConcreteType;
 
-use crate::physx_extras::ActorMapExtras;
 use crate::types::*;
 
 /// # Safety
@@ -14,13 +13,37 @@ use crate::types::*;
 /// When resolving collisions, you should check PxContactPairFlags::RemovedActorX
 /// before executing this function.
 pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -> Entity {
-    let actor_map = &*(actor as *const ActorMap<PxArticulationLink, PxRigidStatic, PxRigidDynamic>);
-
-    actor_map.cast_map_ref(
-        |articulation| *articulation.get_user_data(),
-        |rstatic| *rstatic.get_user_data(),
-        |rdynamic| *rdynamic.get_user_data(),
-    )
+    // SAFETY: PxRigidActor is subclass of PxBase
+    let actor_type = ConcreteType::from(unsafe { PxBase_getConcreteType(actor as *const _) });
+    // NOTE: we don't use PxActor_getType here (and physx-rs ActorMap) because
+    // PxBase_getConcreteType is more robust. For example, if user tries to get
+    // entity for just removed actor (which he shouldn't), PxActor_getType
+    // will crash, but PxBase_getConcreteType will still work probably.
+    match actor_type {
+        ConcreteType::RigidDynamic => {
+            // SAFETY: assume that every shape in physx scene is created by us,
+            // with our prototype and userdata; and that physx returns proper concrete type
+            let actor: &PxRigidDynamic = unsafe { &*(actor as *const _) };
+            let entity = *actor.get_user_data();
+            entity
+        }
+        ConcreteType::RigidStatic => {
+            // SAFETY: assume that every shape in physx scene is created by us,
+            // with our prototype and userdata; and that physx returns proper concrete type
+            let actor: &PxRigidStatic = unsafe { &*(actor as *const _) };
+            let entity = *actor.get_user_data();
+            entity
+        }
+        ConcreteType::ArticulationLink => {
+            // SAFETY: assume that every shape in physx scene is created by us,
+            // with our prototype and userdata; and that physx returns proper concrete type
+            let actor: &PxArticulationLink = unsafe { &*(actor as *const _) };
+            let entity = *actor.get_user_data();
+            entity
+        }
+        // SAFETY: actor must be either dynamic, static, or articulation
+        _ => unreachable!()
+    }
 }
 
 /// # Safety
