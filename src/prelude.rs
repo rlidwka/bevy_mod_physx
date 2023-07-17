@@ -39,6 +39,7 @@ pub use super::plugins::{
     NameFormatter,
     MassProperties,
     MaxVelocity,
+    ShapeOffsets,
     ShapeFilterData,
     SleepControl,
     Sleeping,
