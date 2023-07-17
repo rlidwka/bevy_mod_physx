@@ -14,9 +14,9 @@ use physx_sys::{
     PxScene_unlockWrite_mut,
 };
 
-use super::prelude::*;
-use super::{prelude as bpx, PxScene, PxShape};
+use super::prelude::{self as bpx, *};
 use crate::callbacks::OnWakeSleep;
+use crate::types::*;
 use crate::{FoundationDescriptor, SceneDescriptor};
 
 struct ErrorCallback;

@@ -31,8 +31,6 @@ use physx::scene::{
 };
 use physx_sys::PxTolerancesScale;
 
-use crate::prelude as bpx;
-
 pub mod assets;
 pub mod callbacks;
 pub mod components;
@@ -42,6 +40,7 @@ pub mod prelude;
 pub mod raycast;
 pub mod resources;
 pub mod systems;
+pub mod types;
 pub mod utils;
 
 // reexport physx to avoid version conflicts
@@ -49,28 +48,9 @@ pub use physx;
 pub use physx_sys;
 pub mod physx_extras;
 
-use resources::DefaultMaterial;
-
-type PxMaterial = physx::material::PxMaterial<()>;
-type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
-type PxArticulationLink = physx::articulation_link::PxArticulationLink<Entity, PxShape>;
-type PxRigidStatic = physx::rigid_static::PxRigidStatic<Entity, PxShape>;
-type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<Entity, PxShape>;
-type PxArticulationReducedCoordinate =
-    physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<Entity, PxArticulationLink>;
-
-type PxScene = physx::scene::PxScene<
-    (),
-    PxArticulationLink,
-    PxRigidStatic,
-    PxRigidDynamic,
-    PxArticulationReducedCoordinate,
-    callbacks::OnCollision,
-    callbacks::OnTrigger,
-    callbacks::OnConstraintBreak,
-    callbacks::OnWakeSleep,
-    callbacks::OnAdvance,
->;
+use crate::prelude as bpx;
+use crate::resources::DefaultMaterial;
+use crate::types::*;
 
 #[derive(Clone)]
 pub struct FoundationDescriptor {

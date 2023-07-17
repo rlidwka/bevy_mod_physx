@@ -22,9 +22,9 @@ use physx_sys::{
     PxMeshGeometryFlags,
 };
 
-use super::PxMaterial;
 use crate::physx_extras::HeightFieldSample;
 use crate::prelude::{self as bpx, *};
+use crate::types::PxMaterial;
 
 #[derive(TypeUuid, TypePath, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]

@@ -6,11 +6,10 @@ use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxMeshScale_new_3, PxPhysics_createShape_mut, PxShape_release_mut};
 
-use super::{PxRigidDynamic, PxRigidStatic, PxShape};
 use crate::assets::GeometryInner;
 use crate::prelude::{self as bpx, IntoPxQuat, IntoPxVec3};
 use crate::resources::SceneRwLock;
-use crate::{PxArticulationLink, PxArticulationReducedCoordinate};
+use crate::types::*;
 
 #[derive(Component, Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RigidBody {

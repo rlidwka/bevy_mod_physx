@@ -24,9 +24,9 @@ use crate::components::{
     RigidStaticHandle,
     ShapeHandle,
 };
-use crate::prelude::*;
+use crate::prelude::{self as bpx, *};
 use crate::resources::DefaultMaterial;
-use crate::{prelude as bpx, PxArticulationReducedCoordinate, PxRigidDynamic, PxRigidStatic};
+use crate::types::*;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Entity, &'a bpx::RigidBody, &'a GlobalTransform, Option<&'a ArticulationJoint>),
@@ -38,7 +38,7 @@ type ShapesQuery<'world, 'state, 'a> = Query<'world, 'state,
     (Without<ShapeHandle>, Without<RigidDynamicHandle>, Without<RigidStaticHandle>)
 >;
 
-fn find_and_attach_nested_shapes<T: RigidActor<Shape = crate::PxShape>>(
+fn find_and_attach_nested_shapes<T: RigidActor<Shape = PxShape>>(
     commands: &mut Commands,
     entity: Entity,
     actor: &mut T,
@@ -257,7 +257,7 @@ pub fn create_rigid_actors(
                     )
                 };
 
-                let mut actor: Owner<crate::PxArticulationLink> = unsafe {
+                let mut actor: Owner<PxArticulationLink> = unsafe {
                     ArticulationLink::from_raw(articulation_link_tree[i].ptr, link_entity)
                 }.unwrap();
 

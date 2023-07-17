@@ -1,6 +1,8 @@
 use std::cell::RefCell;
+
 use physx::prelude::*;
-use super::*;
+
+use crate::types::*;
 
 pub struct OnCollision {
     callback: RefCell<Option<Box<dyn FnMut(&physx_sys::PxContactPairHeader, &[physx_sys::PxContactPair])>>>,
