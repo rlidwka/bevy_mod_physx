@@ -211,13 +211,17 @@ pub enum PhysicsSet {
 
 impl PhysicsSet {
     pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush].into_iter()
+        [Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync].into_iter()
     }
 
-    pub fn sets() -> SystemSetConfigs {
-        // sync is placed first to match debug visualization,
-        // some users may want to place sync last to get transform data faster
-        (Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush).chain()
+    pub fn sets(sync_first: bool) -> SystemSetConfigs {
+        if sync_first {
+            // sync is placed first to match debug visualization,
+            // some users may want to place sync last to get transform data faster
+            (Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush).chain()
+        } else {
+            (Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync).chain()
+        }
     }
 }
 
@@ -247,6 +251,7 @@ pub struct PhysicsCore {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
     pub timestep: TimestepMode,
+    pub sync_first: bool,
 }
 
 impl Default for PhysicsCore {
@@ -255,6 +260,7 @@ impl Default for PhysicsCore {
             foundation: default(),
             scene: default(),
             timestep: default(),
+            sync_first: true,
         }
     }
 }
@@ -278,7 +284,7 @@ impl Plugin for PhysicsCore {
 
         // it's important here to configure set order
         app.edit_schedule(PhysicsSchedule, |schedule| {
-            schedule.configure_sets(PhysicsSet::sets());
+            schedule.configure_sets(PhysicsSet::sets(self.sync_first));
         });
 
         // add all systems to the set
