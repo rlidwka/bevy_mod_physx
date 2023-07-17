@@ -37,6 +37,7 @@ pub mod plugins;
 pub mod prelude;
 pub mod types;
 pub mod utils;
+pub mod vehicles;
 
 // reexport physx to avoid version conflicts
 pub use physx;
