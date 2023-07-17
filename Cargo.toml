@@ -15,12 +15,15 @@ path = "src/lib.rs"
 bevy = "0.11.0"
 derive_more = "0.99.17"
 enumflags2 = "0.7.7"
-physx = "0.18.0"
-physx-sys = "0.11.3"
+physx = { path = "src/physx" }
+physx-sys = "0.8.1"
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
 bevy-inspector-egui = "0.19.0"
+# https://github.com/ForesightMiningSoftwareCorporation/bevy_infinite_grid/pull/23
+# TODO: update to crates.io version when it gets published
+bevy_infinite_grid = { git = "https://github.com/PikminGuts92/bevy_infinite_grid", rev = "de30909" }
 
 [features]
 serialize = ["dep:serde", "bevy/serialize"]

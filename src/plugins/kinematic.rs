@@ -5,6 +5,7 @@ use physx_sys::{
     PxRigidBody_setRigidBodyFlag_mut,
     PxRigidDynamic_setKinematicTarget_mut,
     PxRigidDynamic_wakeUp_mut,
+    PxRigidBodyFlag,
 };
 
 use crate::components::RigidDynamicHandle;
@@ -50,7 +51,7 @@ pub fn kinematic_enable(
         let mut handle = actor.get_mut(&mut scene);
 
         handle.set_global_pose(&kinematic.target.to_physx(), false);
-        unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, true); }
+        unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), PxRigidBodyFlag::eKINEMATIC, true); }
     }
 }
 
@@ -63,7 +64,7 @@ pub fn kinematic_disable(
         if let Ok(mut actor) = handles.get_mut(entity) {
             let mut handle = actor.get_mut(&mut scene);
 
-            unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, false); }
+            unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), PxRigidBodyFlag::eKINEMATIC, false); }
 
             // Kinematic body might be sleeping in awkward places (e.g. midair), and if it becomes
             // dynamic, it doesn't wake up automatically. We need to wake it up and force it to

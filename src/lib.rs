@@ -17,6 +17,7 @@ use std::time::Duration;
 use bevy::app::PluginGroupBuilder;
 use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
 use bevy::prelude::*;
+use enumflags2::BitFlags;
 use physx::prelude::*;
 use physx::scene::{
     BroadPhaseType,
@@ -24,7 +25,7 @@ use physx::scene::{
     FrictionType,
     PairFilteringMode,
     PruningStructureType,
-    SceneFlags,
+    SceneFlag,
     SceneLimits,
     SceneQueryUpdateMode,
     SolverType,
@@ -89,7 +90,7 @@ pub struct SceneDescriptor {
     pub bounce_threshold_velocity: f32,
     pub friction_offset_threshold: f32,
     pub ccd_max_separation: f32,
-    pub flags: SceneFlags,
+    pub flags: BitFlags<SceneFlag>,
     pub static_structure: PruningStructureType,
     pub dynamic_structure: PruningStructureType,
     pub dynamic_tree_rebuild_rate_hint: u32,
@@ -116,6 +117,7 @@ impl Default for SceneDescriptor {
     fn default() -> Self {
         let d = physx::traits::descriptor::SceneDescriptor::<
             (), PxArticulationLink, PxRigidStatic, PxRigidDynamic,
+            PxArticulation,
             PxArticulationReducedCoordinate,
             callbacks::OnCollision, callbacks::OnTrigger, callbacks::OnConstraintBreak,
             callbacks::OnWakeSleep, callbacks::OnAdvance
@@ -211,7 +213,6 @@ impl PluginGroup for PhysicsPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(PhysicsCore::default())
-            .add(crate::plugins::ArticulationPlugin)
             .add(crate::plugins::DampingPlugin)
             .add(crate::plugins::DebugRenderPlugin)
             .add(crate::plugins::ExternalForcePlugin)

@@ -99,9 +99,9 @@ impl Default for Shape {
         Self {
             geometry: default(),
             material: default(),
-            flags: ShapeFlags::SceneQueryShape
-                | ShapeFlags::SimulationShape
-                | ShapeFlags::Visualization,
+            flags: ShapeFlag::SceneQueryShape
+                | ShapeFlag::SimulationShape
+                | ShapeFlag::Visualization,
         }
     }
 }
@@ -169,7 +169,7 @@ impl ShapeHandle {
                     geometry_ptr,
                     material.as_ptr(),
                     true,
-                    flags,
+                    physx_sys::PxShapeFlags { mBits: flags.bits() as u8 },
                 ),
                 user_data
             ).unwrap()
