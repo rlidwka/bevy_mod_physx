@@ -44,6 +44,7 @@ pub mod raycast;
 pub mod resources;
 pub mod systems;
 pub mod utils;
+pub mod vehicles;
 
 // reexport physx to avoid version conflicts
 pub use physx;

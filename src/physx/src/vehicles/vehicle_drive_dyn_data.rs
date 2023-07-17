@@ -94,7 +94,7 @@ pub trait VehicleDriveDynData: Class<physx_sys::PxVehicleDriveDynData> {
     }
 
     /// Get the flag status that is used to select auto-gears.
-    fn get_use_auto_gears(&mut self) -> bool {
+    fn get_use_auto_gears(&self) -> bool {
         unsafe { PxVehicleDriveDynData_getUseAutoGears(self.as_ptr()) }
     }
 

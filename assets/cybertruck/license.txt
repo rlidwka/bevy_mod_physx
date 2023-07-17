@@ -1,0 +1,11 @@
+Model Information:
+* title:	Low-poly tesla cybertruck
+* source:	https://sketchfab.com/3d-models/low-poly-tesla-cybertruck-5d5d84862b1046b7983433938cd9fbe6
+* author:	Ivan Norman (https://sketchfab.com/vanidza)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Low-poly tesla cybertruck" (https://sketchfab.com/3d-models/low-poly-tesla-cybertruck-5d5d84862b1046b7983433938cd9fbe6) by Ivan Norman (https://sketchfab.com/vanidza) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
