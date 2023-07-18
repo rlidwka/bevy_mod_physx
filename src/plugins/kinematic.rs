@@ -1,7 +1,11 @@
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxRigidBody_setRigidBodyFlag_mut, PxRigidDynamic_setKinematicTarget_mut};
+use physx_sys::{
+    PxRigidBody_setRigidBodyFlag_mut,
+    PxRigidDynamic_setKinematicTarget_mut,
+    PxRigidDynamic_wakeUp_mut,
+};
 
 use crate::components::RigidDynamicHandle;
 use crate::prelude::{Scene, *};
@@ -60,6 +64,11 @@ pub fn kinematic_disable(
             let mut handle = actor.get_mut(&mut scene);
 
             unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, false); }
+
+            // Kinematic body might be sleeping in awkward places (e.g. midair), and if it becomes
+            // dynamic, it doesn't wake up automatically. We need to wake it up and force it to
+            // re-evaluate its life choices.
+            unsafe { PxRigidDynamic_wakeUp_mut(handle.as_mut_ptr()); }
         };
     }
 }
