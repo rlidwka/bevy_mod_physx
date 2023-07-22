@@ -61,3 +61,19 @@ fn setup_physics(
     ));
 }
 ```
+
+### Compatibility / Prior art
+
+ - published crates
+   - [bevy_mod_physx](https://crates.io/crates/bevy_mod_physx) v0.2.0 - Bevy 0.11, PhysX 5
+
+ - git tags
+   - [git:master](https://github.com/rlidwka/bevy_physx) - Bevy 0.11, PhysX 5
+   - [git:43ae89](https://github.com/rlidwka/bevy_physx/tree/43ae89e013daf00ef841611149420fb4d04c2a4f) - Bevy 0.10, PhysX 5
+   - [git:467a45](https://github.com/rlidwka/bevy_physx/tree/467a452eb94b069a6c997eadb0dcd13211e44673) - Bevy 0.11, PhysX 4
+   - [git:8f66a9](https://github.com/rlidwka/bevy_physx/tree/8f66a9965eb461794856898ca44a1faf13c295ab) - Bevy 0.10, PhysX 4
+
+ - other crates
+   - [bevy_mod_physx](https://github.com/MasterOfMarkets/bevy_mod_physx) - Bevy 0.10 (deprecated)
+   - [bevy_prototype_physx](https://github.com/superdump/bevy_prototype_physx) - Bevy 0.2-0.5 (unknown)
+   - [bevy_physx](https://crates.io/crates/bevy_physx) - (never existed)
