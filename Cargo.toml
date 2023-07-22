@@ -1,5 +1,5 @@
 [package]
-name = "bevy_physx"
+name = "bevy_mod_physx"
 version = "0.0.1"
 authors = ["Alex Kocharin <alex@kocharin.ru>"]
 description = "PhysX plugin for Bevy"
@@ -8,7 +8,7 @@ license = "MIT"
 edition = "2021"
 
 [lib]
-name = "bevy_physx"
+name = "bevy_mod_physx"
 path = "src/lib.rs"
 
 [dependencies]

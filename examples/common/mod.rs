@@ -29,7 +29,7 @@ pub struct DemoUtils;
 
 impl Plugin for DemoUtils {
     fn build(&self, app: &mut App) {
-        app.insert_resource(bevy_physx::plugins::NameFormatter(|entity, name| {
+        app.insert_resource(bevy_mod_physx::plugins::NameFormatter(|entity, name| {
             // set custom name in PVD
             let str = if let Some(name) = name {
                 format!("{name} ({entity:?})")

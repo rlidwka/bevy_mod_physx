@@ -1,4 +1,4 @@
-// bevy_physx doesn't add any events, this module only helps you with adding your own.
+// bevy_mod_physx doesn't add any events, this module only helps you with adding your own.
 //
 // It introduces event channels, on one side of which is mpsc::Sender<T>, and on another
 // side is bevy's EventReader<T>, and it automatically bridges between the two.

@@ -23,7 +23,7 @@ struct ErrorCallback;
 
 impl physx::physics::ErrorCallback for ErrorCallback {
     fn report_error(&self, code: PxErrorCode, message: &str, file: &str, line: u32) {
-        bevy::log::error!(target: "bevy_physx", "[{file:}:{line:}] {code:40}: {message:}", code=code as i32);
+        bevy::log::error!(target: "bevy_mod_physx", "[{file:}:{line:}] {code:40}: {message:}", code=code as i32);
     }
 }
 

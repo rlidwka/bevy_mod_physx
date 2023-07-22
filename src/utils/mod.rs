@@ -7,7 +7,7 @@ use physx_sys::PxBase_getConcreteType;
 use crate::types::*;
 
 /// # Safety
-/// User must ensure that pointer is valid and created by bevy_physx crate
+/// User must ensure that pointer is valid and created by bevy_mod_physx crate
 /// with corresponding prototype and userdata.
 ///
 /// When resolving collisions, you should check PxContactPairFlags::RemovedActorX
@@ -47,7 +47,7 @@ pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -
 }
 
 /// # Safety
-/// User must ensure that pointer is valid and created by bevy_physx crate
+/// User must ensure that pointer is valid and created by bevy_mod_physx crate
 /// with corresponding prototype and userdata.
 ///
 /// When resolving collisions, you should check PxContactPairFlags::RemovedShapeX
