@@ -1,0 +1,33 @@
+name: clippy
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        rust:
+         - stable
+
+    steps:
+     - uses: actions/checkout@v3
+     - uses: actions/cache@v3
+       with:
+         path: |
+           ~/.cargo/bin/
+           ~/.cargo/registry/index/
+           ~/.cargo/registry/cache/
+           ~/.cargo/git/db/
+           target/
+         key: ${{ runner.os }}-cargo-build-stable-${{ hashFiles('**/Cargo.toml') }}
+     - name: install alsa and udev
+       run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev
+       if: runner.os == 'linux'
+     - run: cargo clippy
+       env:
+         CARGO_INCREMENTAL: 0
+         RUSTFLAGS: "-C debuginfo=0 -D warnings"
