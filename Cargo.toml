@@ -3,8 +3,13 @@ name = "bevy_mod_physx"
 version = "0.2.0"
 authors = ["Alex Kocharin <alex@kocharin.ru>"]
 description = "PhysX plugin for Bevy"
+documentation = "https://docs.rs/bevy_mod_physx"
+homepage = "https://github.com/rlidwka/bevy_mod_physx"
+repository = "https://github.com/rlidwka/bevy_mod_physx"
 readme = "README.md"
+keywords = ["bevy", "physx", "gamedev", "physics"]
 license = "MIT"
+categories = ["game-development", "simulation"]
 edition = "2021"
 
 [lib]
