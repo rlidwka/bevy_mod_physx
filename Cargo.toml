@@ -1,6 +1,6 @@
 [package]
 name = "bevy_mod_physx"
-version = "0.0.1"
+version = "0.2.0"
 authors = ["Alex Kocharin <alex@kocharin.ru>"]
 description = "PhysX plugin for Bevy"
 readme = "README.md"
