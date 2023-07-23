@@ -121,7 +121,7 @@ impl ShapeHandle {
     pub fn create_shape(
         physics: &mut bpx::Physics,
         geometry: &mut bpx::Geometry,
-        material: &mut bpx::Material,
+        material: &bpx::Material,
         flags: ShapeFlags,
         user_data: Entity,
     ) -> Self {
