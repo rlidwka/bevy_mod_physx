@@ -1,11 +1,5 @@
 use bevy::prelude::*;
 use physx::prelude::*;
-use physx::traits::Class;
-use physx_sys::{
-    PxRigidBody_setRigidBodyFlag_mut,
-    PxRigidDynamic_setKinematicTarget_mut,
-    PxRigidDynamic_wakeUp_mut,
-};
 
 use crate::components::RigidDynamicHandle;
 use crate::prelude::{Scene, *};
@@ -47,10 +41,10 @@ pub fn kinematic_enable(
     >,
 ) {
     for (mut actor, kinematic) in added.iter_mut() {
-        let mut handle = actor.get_mut(&mut scene);
+        let mut rigid_body = actor.get_mut(&mut scene);
 
-        handle.set_global_pose(&kinematic.target.to_physx(), false);
-        unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, true); }
+        rigid_body.set_global_pose(&kinematic.target.to_physx(), false);
+        rigid_body.set_rigid_body_flag(RigidBodyFlag::Kinematic, true);
     }
 }
 
@@ -61,14 +55,14 @@ pub fn kinematic_disable(
 ) {
     for entity in removed.iter() {
         if let Ok(mut actor) = handles.get_mut(entity) {
-            let mut handle = actor.get_mut(&mut scene);
+            let mut rigid_body = actor.get_mut(&mut scene);
 
-            unsafe { PxRigidBody_setRigidBodyFlag_mut(handle.as_mut_ptr(), RigidBodyFlag::Kinematic, false); }
+            rigid_body.set_rigid_body_flag(RigidBodyFlag::Kinematic, false);
 
             // Kinematic body might be sleeping in awkward places (e.g. midair), and if it becomes
             // dynamic, it doesn't wake up automatically. We need to wake it up and force it to
             // re-evaluate its life choices.
-            unsafe { PxRigidDynamic_wakeUp_mut(handle.as_mut_ptr()); }
+            rigid_body.wake_up();
         };
     }
 }
@@ -84,13 +78,10 @@ pub fn kinematic_apply(
     // there's nothing to get back from physx engine
     for (actor, kinematic) in actors.iter_mut() {
         if let Some(mut actor) = actor {
-            let mut handle = actor.get_mut(&mut scene);
-            unsafe {
-                PxRigidDynamic_setKinematicTarget_mut(
-                    handle.as_mut_ptr(),
-                    kinematic.target.to_physx().as_ptr(),
-                );
-            }
+            let mut rigid_body = actor.get_mut(&mut scene);
+
+            rigid_body.set_kinematic_target(&kinematic.target.to_physx());
+
         } else if !kinematic.is_added() {
             bevy::log::warn!("Kinematic component exists, but it's not a rigid dynamic");
         };

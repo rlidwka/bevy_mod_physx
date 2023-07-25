@@ -60,12 +60,20 @@ pub fn velocity_sync(
     // user will experience 1-tick delay on any changes
     for (dynamic, articulation, articulation_base, mut velocity) in actors.iter_mut() {
         if let Some(mut actor) = dynamic {
+            let mut velocity_set = false;
+
             if velocity.is_changed() || actor.is_added() {
                 let mut actor_handle = actor.get_mut(&mut scene);
 
-                actor_handle.set_linear_velocity(&velocity.linear.to_physx(), true);
-                actor_handle.set_angular_velocity(&velocity.angular.to_physx(), true);
-            } else {
+                // should not set initial velocity when component is added, but actor is kinematic
+                if !actor_handle.get_rigid_body_flags().contains(RigidBodyFlags::Kinematic) {
+                    actor_handle.set_linear_velocity(&velocity.linear.to_physx(), true);
+                    actor_handle.set_angular_velocity(&velocity.angular.to_physx(), true);
+                    velocity_set = true;
+                }
+            }
+
+            if !velocity_set {
                 let actor_handle = actor.get(&scene);
 
                 let newvel = Velocity::new(
