@@ -53,7 +53,7 @@ impl Default for ArticulationJoint {
             // Default invalid Handle exists, so why not have default invalid Entity?
             // All accesses to it are checked anyways.
             //
-            parent: unsafe { std::mem::transmute(u64::MAX) },
+            parent: Entity::PLACEHOLDER,
 
             // For Fixed joints all motions must be locked (0 degrees of freedom).
             //

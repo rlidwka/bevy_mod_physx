@@ -1,3 +1,5 @@
+//! Monomorphized PhysX types used by Bevy plugin.
+//!
 use bevy::prelude::Entity;
 
 use crate::callbacks;

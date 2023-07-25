@@ -1,8 +1,12 @@
-#[doc(hidden)]
-pub use super::utils::type_bridge::*;
+//! Re-exports of commonly imported symbols from this crate.
+//!
+//! Please note that this prelude conflicts with Bevy's prelude
+//! (e.g. [Material] vs [bevy::prelude::Material], [Scene] vs [bevy::prelude::Scene]).
+//! Suggestions on how to resolve these conflicts are welcome.
 
-#[doc(hidden)]
-pub use super::{
+pub use crate::utils::type_bridge::*;
+
+pub use crate::{
     FoundationDescriptor,
     PhysicsCore,
     PhysicsPlugins,
@@ -13,22 +17,18 @@ pub use super::{
     TimestepMode,
 };
 
-#[doc(hidden)]
-pub use super::assets::{Geometry, Material};
+pub use crate::assets::{Geometry, Material};
 
-#[doc(hidden)]
-pub use super::components::{
+pub use crate::components::{
     ArticulationJoint,
     ArticulationJointMotion,
     RigidBody,
     Shape,
 };
 
-#[doc(hidden)]
-pub use super::events::AppExtensions;
+pub use crate::events::AppExtensions;
 
-#[doc(hidden)]
-pub use super::plugins::{
+pub use crate::plugins::{
     ArticulationJointDriveTargets,
     ArticulationJointDrives,
     ArticulationRoot,
@@ -46,8 +46,6 @@ pub use super::plugins::{
     Velocity,
 };
 
-#[doc(hidden)]
-pub use super::raycast::{RaycastHit, SceneQueryExt};
+pub use crate::raycast::{RaycastHit, SceneQueryExt};
 
-#[doc(hidden)]
-pub use super::resources::{Physics, Scene};
+pub use crate::resources::{Physics, Scene};

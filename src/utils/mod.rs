@@ -6,6 +6,8 @@ use physx_sys::PxBase_getConcreteType;
 
 use crate::types::*;
 
+/// Get actor [Entity] from raw PxRigidActor pointer from PhysX.
+///
 /// # Safety
 /// User must ensure that pointer is valid and created by bevy_mod_physx crate
 /// with corresponding prototype and userdata.
@@ -46,6 +48,8 @@ pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -
     }
 }
 
+/// Get shape [Entity] from raw PxShape pointer from PhysX.
+///
 /// # Safety
 /// User must ensure that pointer is valid and created by bevy_mod_physx crate
 /// with corresponding prototype and userdata.

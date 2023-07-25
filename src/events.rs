@@ -1,8 +1,12 @@
-// bevy_mod_physx doesn't add any events, this module only helps you with adding your own.
-//
-// It introduces event channels, on one side of which is mpsc::Sender<T>, and on another
-// side is bevy's EventReader<T>, and it automatically bridges between the two.
-// This feature is needed to get information from physx callbacks to bevy world.
+/// Extension traits that allow you to add physics events.
+///
+/// This crate doesn't add any events, but you can easily add your own (e.g. collisions).
+///
+/// This extension introduces event channels, on one side of which is mpsc::Sender<T>,
+/// and on another side is bevy's EventReader<T>, and it automatically bridges between the two.
+/// This feature is needed to get information from physx callbacks to bevy world.
+///
+/// See discussion in <https://github.com/bevyengine/bevy/issues/8983>.
 
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
@@ -13,16 +17,17 @@ use crate::{PhysicsSchedule, PhysicsSet};
 struct ChannelReceiver<T>(Mutex<Receiver<T>>);
 
 pub trait AppExtensions {
-    // Manage events of type `T` in physics schedule.
-    // Note that user setups may run physics any number of times per frame
-    // (more than once or less than once are both possible).
-    // Thus, all events must be handled in physics schedule, so they won't be missed.
+    /// Manage events of type `T` in [PhysicsSchedule].
+    ///
+    /// Note that user setups may run physics any number of times per frame
+    /// (more than once or less than once are both possible).
+    /// Thus, all events must be handled in physics schedule, so they won't be missed.
     fn add_physics_event<T: Event>(&mut self) -> &mut Self;
 
-    // Allows you to create bevy events using mpsc Sender
+    // Allows you to create bevy events using mpsc Sender.
     fn add_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
 
-    // Allows you to create bevy events in physics schedule using mpsc Sender
+    /// Allows you to create bevy events in [PhysicsSchedule] using mpsc Sender.
     fn add_physics_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
 }
 

@@ -1,7 +1,11 @@
 <p align="left">
-  <img src="https://user-images.githubusercontent.com/999113/253824185-ade6f3c1-0ce7-4e95-833a-daa619acbcb6.png" width="48%">
-&nbsp;
-  <img src="https://user-images.githubusercontent.com/999113/253824183-11d21bb3-700d-4a0b-aab4-60b48af49c23.png" width="48%">
+  <a href="https://github.com/rlidwka/bevy_mod_physx/blob/master/examples/articulation.rs" title="see collision example">
+    <img src="https://user-images.githubusercontent.com/999113/253824185-ade6f3c1-0ce7-4e95-833a-daa619acbcb6.png" width="48%">
+  </a>
+  &nbsp;
+  <a href="https://github.com/rlidwka/bevy_mod_physx/blob/master/examples/cube_stacks.rs" title="see articulation example">
+    <img src="https://user-images.githubusercontent.com/999113/253824183-11d21bb3-700d-4a0b-aab4-60b48af49c23.png" width="48%">
+  </a>
 </p>
 
 ### Bevy plugin for PhysX 5

@@ -1,3 +1,16 @@
+//! <p align="left">
+//!   <a href="https://github.com/rlidwka/bevy_mod_physx/blob/master/examples/articulation.rs" title="see collision example">
+//!     <img src="https://user-images.githubusercontent.com/999113/253824185-ade6f3c1-0ce7-4e95-833a-daa619acbcb6.png" width="48%">
+//!   </a>
+//!   &nbsp;
+//!   <a href="https://github.com/rlidwka/bevy_mod_physx/blob/master/examples/cube_stacks.rs" title="see articulation example">
+//!     <img src="https://user-images.githubusercontent.com/999113/253824183-11d21bb3-700d-4a0b-aab4-60b48af49c23.png" width="48%">
+//!   </a>
+//! </p>
+//!
+//! [PhysX](https://github.com/NVIDIA-Omniverse/PhysX) is an open-source Physics SDK written in C++ and developed by Nvidia. \
+//! This crate is a bridge between Bevy ECS and Rust [bindings](https://github.com/EmbarkStudios/physx-rs) made by Embark Studios.
+
 // useful asserts that's off by default
 #![warn(clippy::manual_assert)]
 #![warn(clippy::semicolon_if_nothing_returned)]
@@ -162,30 +175,52 @@ impl Default for SceneDescriptor {
     }
 }
 
-// All systems related to physics simulation are added to a separate schedule.
-// This allows user the flexibility of running it whenever needed
-// (for example, on fixed schedule).
+/// Dedicated schedule for all physics-related systems.
+///
+/// By default, it is executed in `PreUpdate` by [run_physics_schedule],
+/// see its documentation for details.
+///
 #[derive(ScheduleLabel, Clone, Debug, PartialEq, Eq, Hash)]
 pub struct PhysicsSchedule;
 
+/// SystemSet inside [PhysicsSchedule] where all physics systems live.
+///
+/// It is advised to put your own physics-related functions in PhysicsSchedule
+/// before or after this set.
+///
+/// ### Sync set execution order caveat
+///
+/// Note: [PhysicsSet::Sync] may be configured either at the end or at the
+/// beginning depending on [PhysicsCore] `sync_first` setting.
+///
+/// I.e. end user can choose two orders of execution:
+/// - Simulate, SimulateFlush, Create, CreateFlush, Sync
+/// - Sync, Simulate, SimulateFlush, Create, CreateFlush (default)
+///
+/// This is made so because PhysX debug render lags one frame behind:
+///  - <https://github.com/NVIDIA-Omniverse/PhysX/issues/169>
+///
+/// If you do not care about debug render, you can apply transforms
+/// a frame earlier by changing order of execution.
+///
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 pub enum PhysicsSet {
-    // everything related to simulation itself
-    // (scene simulation + vehicle simulation)
+    /// Systems that request simulation from PhysX.
+    ///
+    /// This includes scene simulation and (in the future) vehicle simulation.
     Simulate,
-    // apply system buffers, need to ensure that everything
-    // is applied before Create set run
+    /// A copy of [apply_deferred] that is required to ensure that deferred
+    /// system parameters are applied *before* Create set is executed.
     SimulateFlush,
-    // - propagate transforms
-    // - create new actors, and everything else that uses
-    //   commands to insert new components
-    // - apply system buffers
-    // maybe it should be split to more stages, but I don't expect
-    // this to have too many systems
+    /// Propagate transforms, create new actors, and everything else
+    /// that creates new components or executes other Commands.
+    ///
+    /// Maybe it will be split into more stages in the future.
     Create,
-    // apply system buffers from functions in Create set
+    /// A copy of [apply_deferred] that is required to ensure that deferred
+    /// system parameters *from* Create set are applied.
     CreateFlush,
-    // two-way sync of physx state with existing bevy components
+    /// Two-way sync of states between PhysX engine and existing Bevy components.
     Sync,
 }
 
@@ -316,19 +351,20 @@ impl Plugin for PhysicsCore {
     }
 }
 
+/// Defines how often physics shall be simulated with respect to bevy time.
 #[derive(Debug, PartialEq, Clone, Copy, Reflect)]
 #[reflect(Default)]
 pub enum TimestepMode {
-    /// Physics simulation will be advanced by dt at each Bevy tick.
+    /// Physics simulation will be advanced by `dt` at each Bevy tick.
     /// Real time does not make any difference for this timestep mode.
     /// This is preferred method if you have fixed FPS with the tools like bevy_framepace,
-    /// or running it in a FixedUpdate schedule.
+    /// or running it in a [FixedUpdate] schedule.
     Fixed {
         dt: f32,
         substeps: usize,
     },
     /// Physics simulation will be advanced at each Bevy tick by the real time elapsed,
-    /// but no more than max_dt.
+    /// but no more than `max_dt`.
     /// Simulation time will always match real time, unless system can't handle
     /// frames in time.
     Variable {
@@ -336,7 +372,7 @@ pub enum TimestepMode {
         time_scale: f32,
         substeps: usize,
     },
-    /// Physics simulation will be advanced by dt, but advance
+    /// Physics simulation will be advanced by `dt`, but advance
     /// no more than real time multiplied by time_scale (so some ticks might get skipped).
     /// Simulation time will lag up to `dt` with respect to real time.
     /// This is preferred method if you don't have limited FPS.
@@ -356,6 +392,10 @@ impl Default for TimestepMode {
     }
 }
 
+/// A clock that tracks how much time was simulated by the physics engine.
+///
+/// This clock is similar to [Time] and measures execution of [PhysicsSchedule],
+/// delta corresponds to time advanced from previous PhysicsSchedule execution.
 #[derive(Resource, Default, Debug, Reflect)]
 #[reflect(Resource, Default)]
 pub struct PhysicsTime {
@@ -427,6 +467,13 @@ impl PhysicsTime {
 #[derive(Resource, Default)]
 struct BevyTimeDelta(f32);
 
+/// Runs [PhysicsSchedule] in `PreUpdate`.
+///
+/// All systems related to physics simulation are put in a separate schedule in
+/// order to have more control over timing. See [TimestepMode] for details how
+/// to configure this, and you can use [TimestepMode::Custom] to replace this
+/// with a custom runner.
+///
 pub fn run_physics_schedule(world: &mut World) {
     fn simulate(world: &mut World, delta: f32, substeps: usize) {
         let dt = Duration::from_secs_f32(delta / substeps as f32);

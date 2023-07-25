@@ -1,8 +1,8 @@
-// These are optional additional components that we can sync with PhysX engine.
-//
-// They are added as a convenience, users can potentially disable them or implement
-// their own similar plugins.
-//
+//! Collection of plugins that sync additional components with PhysX engine.
+//!
+//! These are added as a convenience, users can potentially disable them or implement
+//! their own similar plugins.
+//!
 
 mod articulation;
 pub use articulation::{

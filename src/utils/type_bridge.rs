@@ -1,3 +1,12 @@
+//! Extension traits used to convert transforms between PhysX and Bevy types.
+//!
+//!  - [Vec3] <-> [PxVec3]
+//!  - [Quat] <-> [PxQuat]
+//!  - [Transform] <-> [PxTransform]
+//!
+//! Note: PhysX transforms ([PxTransform]) do not support scale,
+//!       so you should only use [Transform] without scale with this library.
+//!
 use bevy::prelude::*;
 use physx::prelude::*;
 
