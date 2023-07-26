@@ -1,3 +1,9 @@
+## 0.2.1 - bevy 0.11 - 2023-07-26
+
+### Fixed
+
+ - fix PhysX warning when using Velocity plugin with kinematic bodies
+
 ## 0.2.0 - bevy 0.11 - 2023-07-23
 
 Initial release.
