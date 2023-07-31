@@ -6,8 +6,10 @@
 
 mod articulation;
 pub use articulation::{
-    ArticulationJointDriveTargets,
+    ArticulationJointDriveTarget,
+    ArticulationJointDriveVelocity,
     ArticulationJointDrives,
+    ArticulationJointPosition,
     ArticulationPlugin,
     ArticulationRoot,
 };

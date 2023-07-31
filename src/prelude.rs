@@ -29,8 +29,10 @@ pub use crate::components::{
 pub use crate::events::AppExtensions;
 
 pub use crate::plugins::{
-    ArticulationJointDriveTargets,
+    ArticulationJointDriveTarget,
+    ArticulationJointDriveVelocity,
     ArticulationJointDrives,
+    ArticulationJointPosition,
     ArticulationRoot,
     Damping,
     DebugRenderSettings,

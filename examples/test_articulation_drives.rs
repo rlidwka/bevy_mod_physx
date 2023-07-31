@@ -89,9 +89,9 @@ pub fn spawn_scene(
             ..default()
         },
         ArticulationJointDrives {
-            drive_twist: drive_cfg,
-            drive_swing1: drive_cfg,
-            drive_swing2: drive_cfg,
+            twist: drive_cfg,
+            swing1: drive_cfg,
+            swing2: drive_cfg,
             ..default()
         },
     )).id();
@@ -121,12 +121,11 @@ pub fn spawn_scene(
             ..default()
         },
         ArticulationJointDrives {
-            drive_twist: drive_cfg,
-            drive_swing1: drive_cfg,
-            drive_swing2: drive_cfg,
+            twist: drive_cfg,
+            swing1: drive_cfg,
+            swing2: drive_cfg,
             ..default()
         },
-        ArticulationJointDriveTargets::default(),
         MassProperties::density(1000.),
     )).id();
 
@@ -155,12 +154,11 @@ pub fn spawn_scene(
             ..default()
         },
         ArticulationJointDrives {
-            drive_twist: drive_cfg,
-            drive_swing1: drive_cfg,
-            drive_swing2: drive_cfg,
+            twist: drive_cfg,
+            swing1: drive_cfg,
+            swing2: drive_cfg,
             ..default()
         },
-        ArticulationJointDriveTargets::default(),
         MassProperties::density(0.5),
     )).id();
 }
