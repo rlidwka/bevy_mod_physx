@@ -1,10 +1,16 @@
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxShape_getLocalPose, PxShape_setLocalPose_mut};
+use physx_sys::{
+    PxArticulationKinematicFlags,
+    PxArticulationReducedCoordinate_updateKinematic_mut,
+    PxShape_getLocalPose,
+    PxShape_setLocalPose_mut,
+};
 
 use crate::components::{
     ArticulationLinkHandle,
+    ArticulationRootHandle,
     RigidDynamicHandle,
     RigidStaticHandle,
     ShapeHandle,
@@ -55,14 +61,25 @@ pub fn sync_transform_dynamic(
 pub fn sync_transform_articulation_links(
     mut scene: ResMut<bpx::Scene>,
     global_transforms: Query<&GlobalTransform>,
-    mut actors: Query<(&mut ArticulationLinkHandle, &mut Transform, &GlobalTransform, Option<&Parent>)>,
+    mut actors: Query<(
+        Option<&mut ArticulationRootHandle>,
+        &mut ArticulationLinkHandle,
+        &mut Transform,
+        &GlobalTransform,
+        Option<&Parent>,
+    )>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but
     // user will experience 1-tick delay on any changes
-    for (mut actor, mut xform, gxform, parent) in actors.iter_mut() {
-        if *gxform != actor.predicted_gxform {
-            actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
+    for (mut root, mut actor, mut xform, gxform, parent) in actors.iter_mut() {
+        if root.is_some() && *gxform != actor.predicted_gxform {
+            let mut root_handle = root.as_mut().unwrap().get_mut(&mut scene);
+            //actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
+            root_handle.set_root_global_pose(&gxform.to_physx());
+            unsafe {
+                PxArticulationReducedCoordinate_updateKinematic_mut(root_handle.as_mut_ptr(), PxArticulationKinematicFlags::Position);
+            };
             actor.predicted_gxform = *gxform;
         } else {
             let actor_handle = actor.get(&scene);
