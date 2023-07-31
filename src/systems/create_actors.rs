@@ -25,7 +25,7 @@ use crate::components::{
     ShapeHandle,
 };
 use crate::prelude::{self as bpx, *};
-use crate::resources::DefaultMaterial;
+use crate::resources::DefaultMaterialHandle;
 use crate::types::*;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,
@@ -117,7 +117,7 @@ pub fn create_rigid_actors(
     new_actors: ActorsQuery,
     mut geometries: ResMut<Assets<bpx::Geometry>>,
     mut materials: ResMut<Assets<bpx::Material>>,
-    default_material: Res<DefaultMaterial>,
+    default_material: Res<DefaultMaterialHandle>,
 ) {
     struct ArticulationTreeNode<'a> {
         entity: Entity,

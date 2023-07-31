@@ -62,7 +62,7 @@ pub use physx_sys;
 pub mod physx_extras;
 
 use crate::prelude as bpx;
-use crate::resources::DefaultMaterial;
+use crate::resources::{DefaultMaterial, DefaultMaterialHandle};
 use crate::types::*;
 
 #[derive(Clone)]
@@ -266,6 +266,7 @@ pub struct PhysicsCore {
     pub foundation: FoundationDescriptor,
     pub scene: SceneDescriptor,
     pub timestep: TimestepMode,
+    pub default_material: DefaultMaterial,
     pub sync_first: bool,
 }
 
@@ -275,6 +276,11 @@ impl Default for PhysicsCore {
             foundation: default(),
             scene: default(),
             timestep: default(),
+            default_material: DefaultMaterial {
+                static_friction: 0.5,
+                dynamic_friction: 0.5,
+                restitution: 0.6,
+            },
             sync_first: true,
         }
     }
@@ -340,7 +346,7 @@ impl Plugin for PhysicsCore {
 
         app.insert_resource(scene);
 
-        let default_material = DefaultMaterial(
+        let default_material = DefaultMaterialHandle(
             app.world.resource_mut::<Assets<bpx::Material>>()
                 .add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap().into())
         );

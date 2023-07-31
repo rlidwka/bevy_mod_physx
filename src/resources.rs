@@ -247,5 +247,12 @@ impl<'t, T> Drop for SceneRwLockWriteGuard<'t, T> {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct DefaultMaterial {
+    pub static_friction: f32,
+    pub dynamic_friction: f32,
+    pub restitution: f32,
+}
+
 #[derive(Resource, Deref, DerefMut, Default)]
-pub struct DefaultMaterial(pub Handle<bpx::Material>);
+pub struct DefaultMaterialHandle(pub Handle<bpx::Material>);
