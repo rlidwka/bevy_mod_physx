@@ -205,6 +205,13 @@ pub struct PhysicsSchedule;
 ///
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy, SystemSet)]
 pub enum PhysicsSet {
+    /// First label in [PhysicsSet]. Use it to order your own systems
+    /// within [PhysicsSchedule].
+    First,
+    /// Update GlobalTransform component of all entities.
+    PropagateTransforms,
+    /// Two-way sync of states between PhysX engine and existing Bevy components.
+    Sync,
     /// Systems that request simulation from PhysX.
     ///
     /// This includes scene simulation and (in the future) vehicle simulation.
@@ -212,30 +219,43 @@ pub enum PhysicsSet {
     /// A copy of [apply_deferred] that is required to ensure that deferred
     /// system parameters are applied *before* Create set is executed.
     SimulateFlush,
-    /// Propagate transforms, create new actors, and everything else
-    /// that creates new components or executes other Commands.
-    ///
-    /// Maybe it will be split into more stages in the future.
+    /// Create new actors, and everything else that creates new components
+    /// or executes other Commands.
     Create,
     /// A copy of [apply_deferred] that is required to ensure that deferred
     /// system parameters *from* Create set are applied.
     CreateFlush,
-    /// Two-way sync of states between PhysX engine and existing Bevy components.
-    Sync,
+    /// Last label in [PhysicsSet]. Use it to order your own systems
+    /// within [PhysicsSchedule].
+    Last,
 }
 
 impl PhysicsSet {
-    pub fn iter() -> impl Iterator<Item = Self> {
-        [Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync].into_iter()
-    }
-
     pub fn sets(sync_first: bool) -> SystemSetConfigs {
         if sync_first {
             // sync is placed first to match debug visualization,
             // some users may want to place sync last to get transform data faster
-            (Self::Sync, Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush).chain()
+            (
+                Self::First,
+                Self::PropagateTransforms,
+                Self::Sync,
+                Self::Simulate,
+                Self::SimulateFlush,
+                Self::Create,
+                Self::CreateFlush,
+                Self::Last,
+            ).chain()
         } else {
-            (Self::Simulate, Self::SimulateFlush, Self::Create, Self::CreateFlush, Self::Sync).chain()
+            (
+                Self::First,
+                Self::PropagateTransforms,
+                Self::Simulate,
+                Self::SimulateFlush,
+                Self::Create,
+                Self::CreateFlush,
+                Self::Sync,
+                Self::Last,
+            ).chain()
         }
     }
 }
@@ -310,6 +330,11 @@ impl Plugin for PhysicsCore {
 
         // add all systems to the set
         app.add_systems(PhysicsSchedule, (
+            bevy::transform::systems::propagate_transforms,
+            bevy::transform::systems::sync_simple_transforms,
+        ).in_set(PhysicsSet::PropagateTransforms));
+
+        app.add_systems(PhysicsSchedule, (
             systems::sync_transform_static,
             systems::sync_transform_dynamic,
             systems::sync_transform_articulation_links,
@@ -325,8 +350,6 @@ impl Plugin for PhysicsCore {
         ).in_set(PhysicsSet::SimulateFlush));
 
         app.add_systems(PhysicsSchedule, (
-            bevy::transform::systems::propagate_transforms,
-            bevy::transform::systems::sync_simple_transforms,
             systems::create_rigid_actors,
         ).in_set(PhysicsSet::Create));
 
