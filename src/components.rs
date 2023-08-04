@@ -4,10 +4,10 @@ use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxMeshScale_new_3, PxPhysics_createShape_mut, PxShape_release_mut};
+use physx_sys::{PxPhysics_createShape_mut, PxShape_release_mut};
 
 use crate::assets::GeometryInner;
-use crate::prelude::{self as bpx, IntoPxQuat, IntoPxVec3};
+use crate::prelude as bpx;
 use crate::resources::SceneRwLock;
 use crate::types::*;
 
@@ -136,17 +136,17 @@ impl ShapeHandle {
             },
             GeometryInner::Capsule(geom) => { geom.as_ptr() },
             GeometryInner::Box(geom)     => { geom.as_ptr() },
-            GeometryInner::ConvexMesh { mesh, scale, rotation, flags } => {
+            GeometryInner::ConvexMesh { mesh, scale, flags } => {
                 PxConvexMeshGeometry::new(
                     mesh.lock().unwrap().as_mut(),
-                    unsafe { &PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) },
+                    scale,
                     *flags,
                 ).as_ptr()
             },
-            GeometryInner::TriangleMesh { mesh, scale, rotation, flags } => {
+            GeometryInner::TriangleMesh { mesh, scale, flags } => {
                 PxTriangleMeshGeometry::new(
                     mesh.lock().unwrap().as_mut(),
-                    unsafe { &PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) },
+                    scale,
                     *flags,
                 ).as_ptr()
             },
@@ -154,9 +154,9 @@ impl ShapeHandle {
                 PxHeightFieldGeometry::new(
                     mesh.lock().unwrap().as_mut(),
                     *flags,
-                    scale.y,
-                    scale.x,
-                    scale.z,
+                    scale.scale.y,
+                    scale.scale.x,
+                    scale.scale.z,
                 ).as_ptr()
             },
         };

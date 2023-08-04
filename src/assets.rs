@@ -13,6 +13,7 @@ use physx::cooking::{
     TriangleMeshCookingResult,
 };
 use physx::prelude::*;
+use physx::traits::Class;
 use physx::triangle_mesh::TriangleMesh;
 use physx_sys::{
     PxConvexFlags,
@@ -20,6 +21,9 @@ use physx_sys::{
     PxHeightFieldFormat,
     PxHeightFieldSample,
     PxMeshGeometryFlags,
+    PxMeshScale,
+    PxMeshScale_new,
+    PxMeshScale_new_3,
 };
 
 use crate::physx_extras::HeightFieldSample;
@@ -66,21 +70,19 @@ pub enum GeometryInner {
     // so it's simpler to construct geometry on demand
     ConvexMesh {
         mesh: Arc<Mutex<Owner<ConvexMesh>>>,
-        scale: Vec3,
-        rotation: Quat,
+        scale: PxMeshScale,
         flags: PxConvexMeshGeometryFlags,
     },
 
     TriangleMesh {
         mesh: Arc<Mutex<Owner<TriangleMesh>>>,
-        scale: Vec3,
-        rotation: Quat,
+        scale: PxMeshScale,
         flags: PxMeshGeometryFlags,
     },
 
     HeightField {
         mesh: Arc<Mutex<Owner<HeightField>>>,
-        scale: Vec3,
+        scale: PxMeshScale,
         flags: PxMeshGeometryFlags,
     },
 }
@@ -114,8 +116,7 @@ impl From<Owner<ConvexMesh>> for Geometry {
     fn from(value: Owner<ConvexMesh>) -> Self {
         Self { obj: GeometryInner::ConvexMesh {
             mesh: Arc::new(Mutex::new(value)),
-            scale: Vec3::ONE,
-            rotation: Quat::IDENTITY,
+            scale: unsafe { PxMeshScale_new() },
             flags: ConvexMeshGeometryFlags::TightBounds,
         } }
     }
@@ -125,8 +126,7 @@ impl From<Owner<TriangleMesh>> for Geometry {
     fn from(value: Owner<TriangleMesh>) -> Self {
         Self { obj: GeometryInner::TriangleMesh {
             mesh: Arc::new(Mutex::new(value)),
-            scale: Vec3::ONE,
-            rotation: Quat::IDENTITY,
+            scale: unsafe { PxMeshScale_new() },
             flags: MeshGeometryFlags::TightBounds,
         } }
     }
@@ -136,7 +136,7 @@ impl From<Owner<HeightField>> for Geometry {
     fn from(value: Owner<HeightField>) -> Self {
         Self { obj: GeometryInner::HeightField {
             mesh: Arc::new(Mutex::new(value)),
-            scale: Vec3::ONE,
+            scale: unsafe { PxMeshScale_new() },
             flags: MeshGeometryFlags::TightBounds,
         } }
     }
@@ -256,7 +256,19 @@ impl Geometry {
         mesh.into()
     }
 
-    pub fn with_scale(mut self, new_scale: Vec3) -> Self {
+    /// Apply scale factor to an existing mesh (convex, triangle or heightfield).
+    ///
+    /// Only applicable to ConvexMesh, TriangleMesh or HeightField.
+    ///
+    /// Using this function, you can cook a mesh once, then insert it into scene
+    /// with different scale factors.
+    ///
+    ///  - scale - Scaling factor (use `Vec3::splat(2)` to scale up 2x).
+    ///  - rotation - The orientation of the scaling axes (usually `Quat::IDENTITY`,
+    ///               ignored for HeightField).
+    ///
+    pub fn with_scale(mut self, scale: Vec3, rotation: Quat) -> Self {
+        let new_scale = unsafe { PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) };
         match self.obj {
             GeometryInner::ConvexMesh { ref mut scale, .. } => { *scale = new_scale; }
             GeometryInner::TriangleMesh { ref mut scale, .. } => { *scale = new_scale; }
@@ -268,17 +280,12 @@ impl Geometry {
         self
     }
 
-    pub fn with_rotation(mut self, new_rotation: Quat) -> Self {
-        match &mut self.obj {
-            GeometryInner::ConvexMesh { ref mut rotation, .. } => { *rotation = new_rotation; }
-            GeometryInner::TriangleMesh { ref mut rotation, .. } => { *rotation = new_rotation; }
-            _ => {
-                bevy::log::warn!("unable to set rotation, wrong geometry type (not ConvexMesh or TriangleMesh)");
-            }
-        };
-        self
-    }
-
+    /// Use tighter (but more expensive to compute) bounds around the geometry.
+    ///
+    /// Only applicable to ConvexMesh, TriangleMesh or HeightField.
+    ///
+    /// It is enabled by default, use `.with_tight_bounds(false)` to disable.
+    ///
     pub fn with_tight_bounds(mut self, tight_bounds: bool) -> Self {
         match &mut self.obj {
             GeometryInner::ConvexMesh { ref mut flags, .. } => {
@@ -297,6 +304,13 @@ impl Geometry {
         self
     }
 
+    /// Meshes with this flag set are treated as double-sided.
+    ///
+    /// Only applicable to TriangleMesh or HeightField.
+    ///
+    /// This flag is currently only used for raycasts and sweeps (it is ignored for overlap queries).
+    /// For detailed specifications of this flag for meshes and heightfields please refer to
+    /// the Geometry Query section of the PhysX user guide.
     pub fn with_double_sided(mut self, double_sided: bool) -> Self {
         match &mut self.obj {
             GeometryInner::TriangleMesh { ref mut flags, .. } => {
