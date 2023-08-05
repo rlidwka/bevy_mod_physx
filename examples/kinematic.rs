@@ -22,7 +22,9 @@ const CUE_SIZE: f32 = 0.5;
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_plugins(PhysicsPlugins)
+        .add_plugins(PhysicsPlugins.set(
+            PhysicsCore::new().with_pvd()
+        ))
         .add_plugins(common::DemoUtils) // optional
         .add_systems(Startup, (
             spawn_table,

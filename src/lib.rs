@@ -77,7 +77,7 @@ pub struct FoundationDescriptor {
     pub tolerances: PxTolerancesScale,
     /// Enable visual debugger (PVD).
     ///
-    /// Default: true
+    /// Default: false
     pub visual_debugger: bool,
     /// IP port used for PVD, should same as the port setting
     /// in PVD application.
@@ -95,7 +95,7 @@ impl Default for FoundationDescriptor {
         Self {
             extensions: true,
             tolerances: PxTolerancesScale { length: 1., speed: 10. },
-            visual_debugger: true,
+            visual_debugger: false,
             visual_debugger_port: 5425,
             visual_debugger_host: None,
         }
@@ -511,6 +511,27 @@ pub struct PhysicsCore {
     pub timestep: TimestepMode,
     pub default_material: DefaultMaterial,
     pub sync_first: bool,
+}
+
+impl PhysicsCore {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn with_timestep(mut self, timestep: TimestepMode) -> Self {
+        self.timestep = timestep;
+        self
+    }
+
+    pub fn with_gravity(mut self, gravity: Vec3) -> Self {
+        self.scene.gravity = gravity;
+        self
+    }
+
+    pub fn with_pvd(mut self) -> Self {
+        self.foundation.visual_debugger = true;
+        self
+    }
 }
 
 impl Default for PhysicsCore {

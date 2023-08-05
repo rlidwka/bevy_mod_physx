@@ -9,10 +9,11 @@ fn main() {
     App::new()
         .insert_resource(FixedTime::new_from_secs(0.05))
         .add_plugins(DefaultPlugins)
-        .add_plugins(PhysicsPlugins.set(PhysicsCore {
-            timestep: TimestepMode::Custom,
-            ..default()
-        }))
+        .add_plugins(PhysicsPlugins.set(
+            PhysicsCore::new()
+                .with_timestep(TimestepMode::Custom)
+                .with_pvd()
+        ))
         .add_plugins(common::DemoUtils) // optional
         .add_systems(Startup, (
             spawn_scene,
