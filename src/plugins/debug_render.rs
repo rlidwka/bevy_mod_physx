@@ -1,3 +1,22 @@
+//! Draw debug visualization on the screen.
+//!
+//! In order to enable debug visualization, you must insert
+//! [DebugRenderSettings] resource. `scale` parameter has to be set
+//! to a positive value, the rest of the parameters are set depending
+//! on what you want to visualize.
+//!
+//! Example:
+//! ```no_run
+//! app.insert_resource(DebugRenderSettings {
+//!     scale: 1.,
+//!     collision_shapes: 1.,
+//!     ..default()
+//! })
+//! ```
+//!
+//! Note: some visualizations are currently not implemented due to
+//!       lack of support of trimesh gizmos in bevy.
+//!
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
@@ -15,31 +34,65 @@ pub struct DebugRenderPlugin;
 
 #[derive(Resource, Default, Debug, Clone, Copy, Reflect)]
 #[reflect(Resource)]
+/// Set debug visualization parameters.
 pub struct DebugRenderSettings {
+    /// This overall visualization scale gets multiplied with the individual scales.
+    ///
+    /// Setting to zero ignores all visualizations. Default is 0.
     pub scale: f32,
+    /// Visualize the world axes.
     pub world_axes: f32,
+    /// Visualize a bodies axes.
     pub body_axes: f32,
+    /// Visualize a body’s mass axes.
+    ///
+    /// This visualization is also useful for visualizing the sleep state of bodies.
+    /// Sleeping bodies are drawn in black, while awake bodies are drawn in white.
+    /// If the body is sleeping and part of a sleeping group, it is drawn in red.
     pub body_mass_axes: f32,
+    /// Visualize the bodies linear velocity.
     pub body_lin_velocity: f32,
+    /// Visualize the bodies angular velocity.
     pub body_ang_velocity: f32,
+    /// Visualize contact points.
     pub contact_point: f32,
+    /// Visualize contact normals.
     pub contact_normal: f32,
+    /// Visualize contact errors.
     pub contact_error: f32,
+    /// Visualize contact forces.
     pub contact_force: f32,
+    /// Visualize actor axes.
     pub actor_axes: f32,
+    /// Visualize bounds (AABBs in world space)
     pub collision_aabbs: f32,
+    /// Shape visualization.
     pub collision_shapes: f32,
+    /// Shape axis visualization.
     pub collision_axes: f32,
+    /// Compound visualization (compound AABBs in world space).
     pub collision_compounds: f32,
+    /// Mesh & convex face normals.
     pub collision_fnormals: f32,
+    /// Active edges for meshes.
     pub collision_edges: f32,
+    /// Static pruning structures.
     pub collision_static: f32,
+    /// Dynamic pruning structures.
     pub collision_dynamic: f32,
+    /// Joint local axes.
     pub joint_local_frames: f32,
+    /// Joint limits.
     pub joint_limits: f32,
+    /// Visualize culling box.
     pub cull_box: f32,
+    /// MBP regions.
     pub mbp_regions: f32,
+    /// Renders the simulation mesh instead of the collision mesh
+    /// (only available for tetmeshes).
     pub simulation_mesh: f32,
+    /// Renders the SDF of a mesh instead of the collision mesh
+    /// (only available for triangle meshes with SDFs).
     pub sdf: f32,
 }
 

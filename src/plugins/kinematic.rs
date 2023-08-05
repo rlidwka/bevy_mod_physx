@@ -1,3 +1,11 @@
+//! Enable kinematic mode for an actor, set kinematic target.
+//!
+//! When [Kinematic] component is added, rigid body is set to be
+//! kinematic body, and its target will be updated each frame
+//! to [Kinematic::target]. When the component is removed, body
+//! stops being kinematic.
+//!
+//! Check out `examples/kinematic.rs` as an example.
 use bevy::prelude::*;
 use physx::prelude::*;
 
@@ -7,6 +15,7 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Enable kinematic mode for an actor, set kinematic target.
 pub struct Kinematic {
     pub target: Transform,
 }

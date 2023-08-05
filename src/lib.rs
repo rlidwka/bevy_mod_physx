@@ -45,7 +45,6 @@ use physx::scene::{
 use physx_sys::PxTolerancesScale;
 
 pub mod assets;
-pub mod callbacks;
 pub mod components;
 pub mod events;
 pub mod plugins;
@@ -66,12 +65,29 @@ use crate::resources::{DefaultMaterial, DefaultMaterialHandle};
 use crate::types::*;
 
 #[derive(Clone)]
+/// Descriptor class for creating a physics foundation.
 pub struct FoundationDescriptor {
+    /// Initialize the PhysXExtensions library.
+    ///
+    /// Default: true
     pub extensions: bool,
+    /// Values used to determine default tolerances for objects at creation time.
+    ///
+    /// Default: length=1, speed=10
     pub tolerances: PxTolerancesScale,
+    /// Enable visual debugger (PVD).
+    ///
+    /// Default: true
     pub visual_debugger: bool,
+    /// IP port used for PVD, should same as the port setting
+    /// in PVD application.
+    ///
+    /// Default: 5425
     pub visual_debugger_port: i32,
-    pub visual_debugger_remote: Option<String>,
+    /// Host address of the PVD application.
+    ///
+    /// Default: localhost
+    pub visual_debugger_host: Option<String>,
 }
 
 impl Default for FoundationDescriptor {
@@ -81,48 +97,257 @@ impl Default for FoundationDescriptor {
             tolerances: PxTolerancesScale { length: 1., speed: 10. },
             visual_debugger: true,
             visual_debugger_port: 5425,
-            visual_debugger_remote: None,
+            visual_debugger_host: None,
         }
     }
 }
 
+/// Descriptor class for creating a scene.
 pub struct SceneDescriptor {
-    pub on_collision: Option<callbacks::OnCollision>,
-    pub on_trigger: Option<callbacks::OnTrigger>,
-    pub on_constraint_break: Option<callbacks::OnConstraintBreak>,
+    /// This is called when certain contact events occur.
+    ///
+    /// The method will be called for a pair of actors if one of the colliding
+    /// shape pairs requested contact notification. You request which events
+    /// are reported using the filter shader/callback mechanism.
+    ///
+    /// Do not keep references to the passed objects, as they will be invalid
+    /// after this function returns.
+    pub on_collision: Option<OnCollision>,
+
+    /// This is called with the current trigger pair events.
+    ///
+    /// Shapes which have been marked as triggers using [ShapeFlag::TriggerShape]
+    /// will send events according to the pair flag specification in the filter shader.
+    pub on_trigger: Option<OnTrigger>,
+
+    /// This is called when a breakable constraint breaks.
+    pub on_constraint_break: Option<OnConstraintBreak>,
+
     //pub on_wake_sleep: Option<callbacks::OnWakeSleep>, // built-in callback
-    pub on_advance: Option<callbacks::OnAdvance>,
+
+    /// Provides early access to the new pose of moving rigid bodies.
+    ///
+    /// When this call occurs, rigid bodies having the [RigidBodyFlag::EnablePoseIntegrationPreview]
+    /// flag set, were moved by the simulation and their new poses can be accessed
+    /// through the provided buffers.
+    pub on_advance: Option<OnAdvance>,
+    /// Gravity vector. In bevy plugin, it is set to `Vec3(0, -9.81, 0)` by default.
     pub gravity: Vec3,
+    /// Filtering mode for kinematic-kinematic pairs in the broadphase.
+    ///
+    /// Default: [PairFilteringMode::Suppress]
     pub kine_kine_filtering_mode: PairFilteringMode,
+    /// Filtering mode for static-kinematic pairs in the broadphase.
+    ///
+    /// Default: [PairFilteringMode::Suppress]
     pub static_kine_filtering_mode: PairFilteringMode,
+    /// Selects the broad-phase algorithm to use.
+    ///
+    /// Default: [BroadPhaseType::Pabp]
     pub broad_phase_type: BroadPhaseType,
+    /// Expected scene limits.
     pub limits: SceneLimits,
+    /// Selects the friction algorithm to use for simulation.
+    ///
+    /// Default: [FrictionType::Patch]
     pub friction_type: FrictionType,
+    /// Selects the solver algorithm to use.
+    ///
+    /// Default: [SolverType::Pgs]
     pub solver_type: SolverType,
+    /// A contact with a relative velocity below this will not bounce.
+    ///
+    /// A typical value for simulation. stability is about 0.2 * gravity.
+    ///
+    /// Default: 0.2 * TolerancesScale::speed\
+    /// Range: (0, PX_MAX_F32)
     pub bounce_threshold_velocity: f32,
+    /// A threshold of contact separation distance used to decide if a contact
+    /// point will experience friction forces.
+    ///
+    /// Default: 0.04 * PxTolerancesScale::length\
+    /// Range: [0, PX_MAX_F32)
     pub friction_offset_threshold: f32,
+    /// A threshold for speculative CCD.
+    ///
+    /// Used to control whether bias, restitution or a combination of the two are
+    /// used to resolve the contacts.
+    ///
+    /// Default: 0.04 * PxTolerancesScale::length\
+    /// Range: [0, PX_MAX_F32)
     pub ccd_max_separation: f32,
+    /// Flags used to select scene options.
+    ///
+    /// Default: [SceneFlag::EnablePcm]
     pub flags: SceneFlags,
+    /// Defines the structure used to store static objects (PxRigidStatic actors).
+    ///
+    /// There are usually a lot more static actors than dynamic actors in a scene,
+    /// so they are stored in a separate structure. The idea is that when dynamic
+    /// actors move each frame, the static structure remains untouched and does
+    /// not need updating.
+    ///
+    /// Default: [PruningStructureType::DynamicAabbTree]
     pub static_structure: PruningStructureType,
+    /// Defines the structure used to store dynamic objects (non-PxRigidStatic actors).
+    ///
+    /// Default: [PruningStructureType::DynamicAabbTree]
     pub dynamic_structure: PruningStructureType,
+    /// Hint for how much work should be done per simulation frame to rebuild
+    /// the pruning structures.
+    ///
+    /// This parameter gives a hint on the distribution of the workload for
+    /// rebuilding the dynamic AABB tree pruning structure
+    /// [PruningStructureType::DynamicAabbTree]. It specifies the desired number
+    /// of simulation frames the rebuild process should take. Higher values will
+    /// decrease the workload per frame but the pruning structure will get more
+    /// and more outdated the longer the rebuild takes (which can make scene
+    /// queries less efficient).
+    ///
+    /// Default: 100\
+    /// Range: [4, PX_MAX_U32)
     pub dynamic_tree_rebuild_rate_hint: u32,
+    /// Defines the scene query update mode.
+    ///
+    /// Default: [SceneQueryUpdateMode::BuildEnabledCommitEnabled]
     pub scene_query_update_mode: SceneQueryUpdateMode,
+    /// Defines the number of actors required to spawn a separate rigid body
+    /// solver island task chain.
+    ///
+    /// This parameter defines the minimum number of actors required to spawn
+    /// a separate rigid body solver task chain. Setting a low value will potentially
+    /// cause more task chains to be generated. This may result in the overhead of
+    /// spawning tasks can become a limiting performance factor. Setting a high value
+    /// will potentially cause fewer islands to be generated. This may reduce thread
+    /// scaling (fewer task chains spawned) and may detrimentally affect performance
+    /// if some bodies in the scene have large solver iteration counts because all
+    /// constraints in a given island are solved by the maximum number of solver
+    /// iterations requested by any body in the island.
+    ///
+    /// Note that a rigid body solver task chain is spawned as soon as either
+    /// a sufficient number of rigid bodies or articulations are batched together.
+    ///
+    /// Default: 128
     pub solver_batch_size: u32,
+    /// Defines the number of articulations required to spawn a separate rigid body
+    /// solver island task chain.
+    ///
+    /// This parameter defines the minimum number of articulations required to spawn
+    /// a separate rigid body solver task chain. Setting a low value will potentially
+    /// cause more task chains to be generated. This may result in the overhead of
+    /// spawning tasks can become a limiting performance factor. Setting a high value
+    /// will potentially cause fewer islands to be generated. This may reduce thread
+    /// scaling (fewer task chains spawned) and may detrimentally affect performance
+    /// if some bodies in the scene have large solver iteration counts because all
+    /// constraints in a given island are solved by the maximum number of solver
+    /// iterations requested by any body in the island.
+    ///
+    /// Note that a rigid body solver task chain is spawned as soon as either
+    /// a sufficient number of rigid bodies or articulations are batched together.
+    ///
+    /// Default: 16
     pub solver_articulation_batch_size: u32,
+    /// Setting to define the number of 16K blocks that will be initially reserved
+    /// to store contact, friction, and contact cache data.
+    ///
+    /// This is the number of 16K memory blocks that will be automatically allocated
+    /// from the user allocator when the scene is instantiated. Further 16k memory
+    /// blocks may be allocated during the simulation up to maxNbContactDataBlocks.
+    ///
+    /// Default: 0\
+    /// Range: [0, PX_MAX_U32]
     pub nb_contact_data_blocks: u32,
+    /// Setting to define the maximum number of 16K blocks that can be allocated to
+    /// store contact, friction, and contact cache data.
+    ///
+    /// As the complexity of a scene increases, the SDK may require to allocate new
+    /// 16k blocks in addition to the blocks it has already allocated. This variable
+    /// controls the maximum number of blocks that the SDK can allocate.
+    ///
+    /// In the case that the scene is sufficiently complex that all the permitted
+    /// 16K blocks are used, contacts will be dropped and a warning passed to the
+    /// error stream.
+    ///
+    /// If a warning is reported to the error stream to indicate the number of 16K
+    /// blocks is insufficient for the scene complexity then the choices are either
+    /// (i) re-tune the number of 16K data blocks until a number is found that is
+    /// sufficient for the scene complexity, (ii) to simplify the scene or
+    /// (iii) to opt to not increase the memory requirements of physx and accept
+    /// some dropped contacts.
+    ///
+    /// Default: 65536\
+    /// Range: [0, PX_MAX_U32]
     pub max_nb_contact_data_blocks: u32,
+    /// The maximum bias coefficient used in the constraint solver.
+    ///
+    /// When geometric errors are found in the constraint solver, either as a result
+    /// of shapes penetrating or joints becoming separated or violating limits, a bias
+    /// is introduced in the solver position iterations to correct these errors.
+    /// This bias is proportional to 1/dt, meaning that the bias becomes increasingly
+    /// strong as the time-step passed to PxScene::simulate(…) becomes smaller. This
+    /// coefficient allows the application to restrict how large the bias coefficient is,
+    /// to reduce how violent error corrections are. This can improve simulation quality
+    /// in cases where either variable time-steps or extremely small time-steps are used.
+    ///
+    /// Default: PX_MAX_F32\
+    /// Range: [0, PX_MAX_F32]
     pub max_bias_coefficient: f32,
+    /// Size of the contact report stream (in bytes).
+    ///
+    /// The contact report stream buffer is used during the simulation to store all
+    /// the contact reports. If the size is not sufficient, the buffer will grow by
+    /// a factor of two. It is possible to disable the buffer growth by setting the
+    /// flag [SceneFlag::DisableContactReportBufferResize]. In that case the buffer
+    /// will not grow but contact reports not stored in the buffer will not get sent
+    /// in the contact report callbacks.
+    ///
+    /// Default: 8192\
+    /// Range: (0, PX_MAX_U32]
     pub contact_report_stream_buffer_size: u32,
+    /// Maximum number of CCD passes.
+    ///
+    /// The CCD performs multiple passes, where each pass every object advances to its time
+    /// of first impact. This value defines how many passes the CCD system should perform.
+    ///
+    /// Default: 1\
+    /// Range: [1, PX_MAX_U32]
     pub ccd_max_passes: u32,
+    /// CCD threshold.
+    ///
+    /// CCD performs sweeps against shapes if and only if the relative motion of
+    /// the shapes is fast-enough that a collision would be missed by the discrete
+    /// contact generation. However, in some circumstances, e.g. when the environment
+    /// is constructed from large convex shapes, this approach may produce undesired
+    /// simulation artefacts. This parameter defines the minimum relative motion that
+    /// would be required to force CCD between shapes. The smaller of this value and
+    /// the sum of the thresholds calculated for the shapes involved will be used.
+    ///
+    /// Default: PX_MAX_F32\
+    /// Range: [Eps, PX_MAX_F32]
     pub ccd_threshold: f32,
+    /// The wake counter reset value.
+    /// Calling wakeUp() on objects which support sleeping will set their wake counter
+    /// value to the specified reset value.
+    ///
+    /// Default: 0.4 (which corresponds to 20 frames for a time step of 0.02)\
+    /// Range: (0, PX_MAX_F32)
     pub wake_counter_reset_value: f32,
+    /// The bounds used to sanity check user-set positions of actors and articulation links.
+    ///
+    /// These bounds are used to check the position values of rigid actors inserted
+    /// into the scene, and positions set for rigid actors already within the scene.
+    ///
+    /// Default: (-PX_MAX_BOUNDS_EXTENTS, PX_MAX_BOUNDS_EXTENTS) on each axis\
+    /// Range: any valid [PxBounds3]
     pub sanity_bounds: PxBounds3,
 
+    /// The custom filter shader to use for collision filtering.
     pub simulation_filter_shader: FilterShaderDescriptor,
 
     pub thread_count: u32,
+    /// Limitation for the partitions in the GPU dynamics pipeline.
     pub gpu_max_num_partitions: u32,
-    pub gpu_compute_version: u32,
+    //pub gpu_compute_version: u32, // according to physx docs, shouldn't modify this
 }
 
 impl Default for SceneDescriptor {
@@ -130,8 +355,8 @@ impl Default for SceneDescriptor {
         let d = physx::traits::descriptor::SceneDescriptor::<
             (), PxArticulationLink, PxRigidStatic, PxRigidDynamic,
             PxArticulationReducedCoordinate,
-            callbacks::OnCollision, callbacks::OnTrigger, callbacks::OnConstraintBreak,
-            callbacks::OnWakeSleep, callbacks::OnAdvance
+            OnCollision, OnTrigger, OnConstraintBreak,
+            OnWakeSleep, OnAdvance
         >::new(());
 
         SceneDescriptor {
@@ -170,7 +395,7 @@ impl Default for SceneDescriptor {
             simulation_filter_shader: d.simulation_filter_shader,
             thread_count: d.thread_count,
             gpu_max_num_partitions: d.gpu_max_num_partitions,
-            gpu_compute_version: d.gpu_compute_version,
+            //gpu_compute_version: d.gpu_compute_version,
         }
     }
 }
@@ -266,19 +491,17 @@ impl PluginGroup for PhysicsPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(PhysicsCore::default())
-            .add(crate::plugins::ArticulationPlugin)
-            .add(crate::plugins::DampingPlugin)
-            .add(crate::plugins::DebugRenderPlugin)
-            .add(crate::plugins::ExternalForcePlugin)
-            .add(crate::plugins::KinematicPlugin)
-            .add(crate::plugins::MassPropertiesPlugin)
-            .add(crate::plugins::MaxVelocityPlugin)
-            .add(crate::plugins::NamePlugin)
-            .add(crate::plugins::ShapeFilterDataPlugin)
-            .add(crate::plugins::ShapeOffsetsPlugin)
-            .add(crate::plugins::SleepControlPlugin)
-            .add(crate::plugins::SleepMarkerPlugin)
-            .add(crate::plugins::VelocityPlugin)
+            .add(crate::plugins::articulation::ArticulationPlugin)
+            .add(crate::plugins::damping::DampingPlugin)
+            .add(crate::plugins::debug_render::DebugRenderPlugin)
+            .add(crate::plugins::external_force::ExternalForcePlugin)
+            .add(crate::plugins::kinematic::KinematicPlugin)
+            .add(crate::plugins::mass_properties::MassPropertiesPlugin)
+            .add(crate::plugins::name::NamePlugin)
+            .add(crate::plugins::shape_filter_data::ShapeFilterDataPlugin)
+            .add(crate::plugins::shape_offsets::ShapeOffsetsPlugin)
+            .add(crate::plugins::sleep::SleepPlugin)
+            .add(crate::plugins::velocity::VelocityPlugin)
     }
 }
 
@@ -364,7 +587,7 @@ impl Plugin for PhysicsCore {
     fn finish(&self, app: &mut App) {
         let mut physics = bpx::Physics::new(&self.foundation);
 
-        let wake_sleep_callback = app.world.remove_resource::<crate::plugins::WakeSleepCallback>();
+        let wake_sleep_callback = app.world.remove_resource::<crate::plugins::sleep::WakeSleepCallback>();
         let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
 
         app.insert_resource(scene);

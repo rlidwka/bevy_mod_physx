@@ -1,3 +1,4 @@
+//! Configure articulation joints and joint drives, get/set joint positions.
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
@@ -9,14 +10,27 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Sets flags on the articulation.
 pub struct ArticulationRoot {
+    /// Set articulation base to be fixed.
     pub fix_base: bool,
+    /// Limits for drive effort are forces and torques rather than impulses,
+    /// see [PxArticulationDrive::maxForce](https://nvidia-omniverse.github.io/PhysX/physx/5.2.1/_build/physx/latest/struct_px_articulation_drive.html#struct_px_articulation_drive_1a4c2df459aa7966584a61e219822e3229).
     pub drive_limits_are_forces: bool,
+    /// Disable collisions between the articulation’s links (note that parent/child
+    /// collisions are disabled internally in either case).
     pub disable_self_collision: bool,
+    /// Deprecated in PhysX: Enable in order to be able to query joint solver (i.e. constraint) forces using
+    /// [PxArticulationCache::jointSolverForces](https://nvidia-omniverse.github.io/PhysX/physx/5.2.1/_build/physx/latest/class_px_articulation_cache.html#class_px_articulation_cache_1aee4b49cb7f07370d3f7dfea378fa61a5).
     pub compute_joint_forces: bool,
 }
 
 #[derive(Component, Clone)]
+/// Configures a joint drive for each axis.
+///
+/// See [PxArticulationDrive](https://nvidia-omniverse.github.io/PhysX/physx/5.1.1/_build/physx/latest/struct_px_articulation_drive.html#struct_px_articulation_drive)
+/// for parameter details; and the manual for further information, and the drives’ implicit
+/// spring-damper (i.e. PD control) implementation in particular.
 pub struct ArticulationJointDrives {
     pub twist: PxArticulationDrive,
     pub swing1: PxArticulationDrive,
@@ -43,6 +57,10 @@ impl Default for ArticulationJointDrives {
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Sets the joint drive position target for each axis.
+///
+/// The target units are linear units (equivalent to scene units) for a translational axis,
+/// or rad for a rotational axis.
 pub struct ArticulationJointDriveTarget {
     pub twist: f32,
     pub swing1: f32,
@@ -55,6 +73,10 @@ pub struct ArticulationJointDriveTarget {
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Sets the joint drive velocity target for each axis.
+///
+/// The target units are linear units (equivalent to scene units) per second for
+/// a translational axis, or radians per second for a rotational axis.
 pub struct ArticulationJointDriveVelocity {
     pub twist: f32,
     pub swing1: f32,
@@ -67,6 +89,7 @@ pub struct ArticulationJointDriveVelocity {
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Two-way sync of the joint position for each axis.
 pub struct ArticulationJointPosition {
     pub twist: f32,
     pub swing1: f32,

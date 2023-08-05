@@ -1,3 +1,7 @@
+//! Compute and set mass properties (mass/density, inertia, center of mass) for a rigid body.
+//!
+//! We don't support setting mass for each individual shape at the moment,
+//! you can still do so with raw physx-sys calls.
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
@@ -8,13 +12,19 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Set mass properties for a rigid body.
 pub enum MassProperties {
     Density {
+        /// The density of the body. Used to compute the mass of the body.
+        /// The density must be greater than 0.
         density: f32,
+        /// The center of mass relative to the actor frame.
         center: Vec3,
     },
     Mass {
+        /// The mass of the body. Must be greater than 0.
         mass: f32,
+        /// The center of mass relative to the actor frame.
         center: Vec3,
     },
 }

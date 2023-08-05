@@ -1,3 +1,21 @@
+//! Assigns a name for the object to be displayed in PVD.
+//!
+//! This is for debugging and is not used by the SDK.
+//! It is displayed for example in PhysX Visual Debugger.
+//!
+//! In order to use this feature, you should insert [NameFormatter]
+//! resource:
+//! ```no_run
+//! app.insert_resource(NameFormatter(|entity, name| {
+//!     let str = if let Some(name) = name {
+//!         format!("{name} ({entity:?})")
+//!     } else {
+//!         format!("({entity:?})")
+//!     };
+//!
+//!     std::borrow::Cow::Owned(CString::new(str).unwrap())
+//! }));
+//! ```
 use std::borrow::Cow;
 use std::ffi::CString;
 

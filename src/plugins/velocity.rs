@@ -1,3 +1,4 @@
+//! Get/set linear and angular velocity of a rigid body, set maximum velocity.
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
@@ -14,8 +15,13 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Two-way sync of the linear and angular velocity of the rigid body.
+///
+/// Changing these values wakes the actor if it is sleeping.
 pub struct Velocity {
+    /// The linear velocity of the actor.
     pub linear: Vec3,
+    /// The angular velocity of the actor.
     pub angular: Vec3,
 }
 
@@ -37,12 +43,43 @@ impl Velocity {
     }
 }
 
+#[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
+#[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
+#[reflect(Component, Default)]
+/// Set the maximum linear and angular velocity permitted for this actor.
+///
+/// With this component, you can set the maximum linear and angular velocity permitted
+/// for this rigid body. Higher velocities are clamped to these value.
+pub struct MaxVelocity {
+    /// Max allowable linear velocity for actor. Range: [0, PX_MAX_F32). Default: PX_MAX_F32.
+    pub linear: f32,
+    /// Max allowable angular velocity for actor. Range: [0, PX_MAX_F32). Default: 100.
+    pub angular: f32,
+}
+
+impl MaxVelocity {
+    pub fn new(linear: f32, angular: f32) -> Self {
+        Self { linear, angular }
+    }
+
+    pub fn linear(linear: f32) -> Self {
+        Self { linear, ..default() }
+    }
+
+    pub fn angular(angular: f32) -> Self {
+        Self { angular, ..default() }
+    }
+}
+
 pub struct VelocityPlugin;
 
 impl Plugin for VelocityPlugin {
     fn build(&self, app: &mut App) {
         app.register_type::<Velocity>();
+        app.register_type::<MaxVelocity>();
+
         app.add_systems(PhysicsSchedule, velocity_sync.in_set(PhysicsSet::Sync));
+        app.add_systems(PhysicsSchedule, max_velocity_sync.in_set(PhysicsSet::Sync));
     }
 }
 
@@ -118,5 +155,37 @@ pub fn velocity_sync(
         } else if !velocity.is_added() {
             bevy::log::warn!("Velocity component exists, but it's neither a rigid dynamic nor articulation link");
         }
+    }
+}
+
+pub fn max_velocity_sync(
+    mut scene: ResMut<Scene>,
+    mut actors: Query<
+        (
+            Option<&mut RigidDynamicHandle>,
+            Option<&mut ArticulationLinkHandle>,
+            Ref<MaxVelocity>,
+        ),
+        Or<(
+            Added<RigidDynamicHandle>,
+            Added<ArticulationLinkHandle>,
+            Changed<MaxVelocity>,
+        )>,
+    >,
+) {
+    // this function only applies user defined properties,
+    // there's nothing to get back from physx engine
+    for (dynamic, articulation, max_velocity) in actors.iter_mut() {
+        if let Some(mut actor) = dynamic {
+            let mut actor_handle = actor.get_mut(&mut scene);
+            actor_handle.set_max_linear_velocity(max_velocity.linear);
+            actor_handle.set_max_angular_velocity(max_velocity.angular);
+        } else if let Some(mut actor) = articulation {
+            let mut actor_handle = actor.get_mut(&mut scene);
+            actor_handle.set_max_linear_velocity(max_velocity.linear);
+            actor_handle.set_max_angular_velocity(max_velocity.angular);
+        } else if !max_velocity.is_added() {
+            bevy::log::warn!("MaxVelocity component exists, but it's neither a rigid dynamic nor articulation link");
+        };
     }
 }

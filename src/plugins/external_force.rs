@@ -1,4 +1,9 @@
-// this covers ExternalForce and ExternalImpulse (see ForceMode attribute of the struct)
+//! Continuously apply force and torque to the actor.
+//!
+//! Force and torque are defined in the global coordinate frame.
+//!
+//! This is similar to ExternalForce and ExternalImpulse in rapier
+//! (see ForceMode attribute of the struct).
 use bevy::prelude::*;
 use physx::prelude::*;
 
@@ -8,11 +13,17 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Hash, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Parameter to [ExternalForce], determines the exact operation that is carried out.
 pub enum ExternalForceMode {
+    /// parameter has unit of length/ time^2, i.e., an acceleration. It gets treated just like
+    /// a force except the mass is not divided out before integration.
     Acceleration,
+    /// parameter has unit of mass * length / time, i.e., force * time
     Impulse,
+    /// parameter has unit of length / time, i.e., the effect is mass independent: a velocity change.
     VelocityChange,
     #[default]
+    /// parameter has unit of mass * length / time^2, i.e., a force
     Force,
 }
 
@@ -41,9 +52,13 @@ impl From<ExternalForceMode> for ForceMode {
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Continuously apply force and torque to the actor.
 pub struct ExternalForce {
+    /// Force/Impulse to apply defined in the global frame.
     pub force: Vec3,
+    /// Torque to apply defined in the global frame.
     pub torque: Vec3,
+    /// The mode to use when applying the force/impulse.
     pub mode: ExternalForceMode,
 }
 

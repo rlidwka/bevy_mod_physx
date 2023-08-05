@@ -203,7 +203,7 @@ impl From<HeightFieldSample> for physx_sys::PxHeightFieldSample {
 
 impl HeightFieldSample {
     // In PhysX, material can only be in 0x00..0x7F range, high bit has special meaning.
-    // In material0 high bit is tesselation flag, in material1 it is reserved.
+    // In material0 high bit is tessellation flag, in material1 it is reserved.
     // We can use PxHeightFieldSample_tessFlag methods, but it's easier to just do bit arithmetic in Rust.
     const BIT_MASK: u8 = 0x80;
 

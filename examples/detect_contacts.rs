@@ -3,8 +3,8 @@ mod common;
 use std::sync::mpsc::channel;
 
 use bevy::prelude::*;
-use bevy_mod_physx::callbacks::OnCollision;
 use bevy_mod_physx::prelude::{self as bpx, *};
+use bevy_mod_physx::types::OnCollision;
 use bevy_mod_physx::utils::{get_actor_entity_from_ptr, get_shape_entity_from_ptr};
 use physx::scene::FilterShaderDescriptor;
 use physx_sys::{

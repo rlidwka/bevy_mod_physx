@@ -17,6 +17,7 @@ use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
+use bevy_mod_physx::prelude::*;
 
 pub mod debug_render;
 use debug_render::DebugRenderPlugin;
@@ -29,7 +30,7 @@ pub struct DemoUtils;
 
 impl Plugin for DemoUtils {
     fn build(&self, app: &mut App) {
-        app.insert_resource(bevy_mod_physx::plugins::NameFormatter(|entity, name| {
+        app.insert_resource(NameFormatter(|entity, name| {
             // set custom name in PVD
             let str = if let Some(name) = name {
                 format!("{name} ({entity:?})")

@@ -1,3 +1,4 @@
+//! Various helpers and extension traits.
 pub mod type_bridge;
 
 use bevy::prelude::*;

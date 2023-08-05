@@ -1,3 +1,4 @@
+//! Set the shape's query and collision filter data.
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
@@ -13,6 +14,7 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Set the shape's query and collision filter data.
 pub struct ShapeFilterData {
     pub query_filter_data: [ u32; 4 ],
     pub simulation_filter_data: [ u32; 4 ],

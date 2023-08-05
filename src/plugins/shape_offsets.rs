@@ -1,3 +1,4 @@
+//! Set the shape's contact offset and rest offset for collisions.
 use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxShape_setContactOffset_mut, PxShape_setRestOffset_mut};
@@ -8,8 +9,27 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Set the shape's contact offset and rest offset for collisions.
 pub struct ShapeOffsets {
+    /// Sets the contact offset.
+    ///
+    /// Shapes whose distance is less than the sum of their contactOffset values will
+    /// generate contacts. The contact offset must be positive and greater than the rest
+    /// offset. Having a contactOffset greater than than the restOffset allows the collision
+    /// detection system to predictively enforce the contact constraint even when the objects
+    /// are slightly separated. This prevents jitter that would occur if the constraint were
+    /// enforced only when shapes were within the rest distance.
+    ///
+    /// Default: 0.02f * PxTolerancesScale::length
     pub contact_offset: f32,
+    /// Sets the rest offset.
+    ///
+    /// Two shapes will come to rest at a distance equal to the sum of their restOffset
+    /// values. If the restOffset is 0, they should converge to touching exactly.
+    /// Having a restOffset greater than zero is useful to have objects slide smoothly,
+    /// so that they do not get hung up on irregularities of each others’ surfaces.
+    ///
+    /// Default: 0.0f
     pub rest_offset: f32,
 }
 

@@ -15,7 +15,6 @@ use physx_sys::{
 };
 
 use super::prelude::{self as bpx, *};
-use crate::callbacks::OnWakeSleep;
 use crate::types::*;
 use crate::{FoundationDescriptor, SceneDescriptor};
 
@@ -36,7 +35,7 @@ impl Physics {
         builder.enable_visual_debugger(foundation_desc.visual_debugger);
         builder.with_extensions(foundation_desc.extensions);
         builder.set_pvd_port(foundation_desc.visual_debugger_port);
-        if let Some(host) = foundation_desc.visual_debugger_remote.as_ref() {
+        if let Some(host) = foundation_desc.visual_debugger_host.as_ref() {
             builder.set_pvd_host(host);
         }
         builder.set_length_tolerance(foundation_desc.tolerances.length);
@@ -118,7 +117,6 @@ impl Scene {
                 simulation_filter_shader,
                 thread_count: d.thread_count,
                 gpu_max_num_partitions: d.gpu_max_num_partitions,
-                gpu_compute_version: d.gpu_compute_version,
                 ..physx::traits::descriptor::SceneDescriptor::new(())
             })
             .unwrap();

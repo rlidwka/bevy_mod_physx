@@ -28,26 +28,24 @@ pub use crate::components::{
 
 pub use crate::events::AppExtensions;
 
-pub use crate::plugins::{
+pub use crate::plugins::articulation::{
     ArticulationJointDriveTarget,
     ArticulationJointDriveVelocity,
     ArticulationJointDrives,
     ArticulationJointPosition,
     ArticulationRoot,
-    Damping,
-    DebugRenderSettings,
-    ExternalForce,
-    Kinematic,
-    NameFormatter,
-    MassProperties,
-    MaxVelocity,
-    ShapeOffsets,
-    ShapeFilterData,
-    SleepControl,
-    Sleeping,
-    Velocity,
 };
 
-pub use crate::raycast::{RaycastHit, SceneQueryExt};
+pub use crate::plugins::damping::Damping;
+pub use crate::plugins::debug_render::DebugRenderSettings;
+pub use crate::plugins::external_force::ExternalForce;
+pub use crate::plugins::kinematic::Kinematic;
+pub use crate::plugins::name::NameFormatter;
+pub use crate::plugins::mass_properties::MassProperties;
+pub use crate::plugins::shape_offsets::ShapeOffsets;
+pub use crate::plugins::shape_filter_data::ShapeFilterData;
+pub use crate::plugins::sleep::{SleepControl, Sleeping};
+pub use crate::plugins::velocity::{MaxVelocity, Velocity};
 
+pub use crate::raycast::{RaycastHit, SceneQueryExt};
 pub use crate::resources::{Physics, Scene};

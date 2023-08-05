@@ -1,12 +1,12 @@
-/// Extension traits that allow you to add physics events.
-///
-/// This crate doesn't add any events, but you can easily add your own (e.g. collisions).
-///
-/// This extension introduces event channels, on one side of which is mpsc::Sender<T>,
-/// and on another side is bevy's EventReader<T>, and it automatically bridges between the two.
-/// This feature is needed to get information from physx callbacks to bevy world.
-///
-/// See discussion in <https://github.com/bevyengine/bevy/issues/8983>.
+//! Extension traits that allow you to add physics events.
+//!
+//! This crate doesn't add any events, but you can easily add your own (e.g. collisions).
+//!
+//! This extension introduces event channels, on one side of which is `mpsc::Sender<T>`,
+//! and on another side is bevy's `EventReader<T>`, and it automatically bridges between the two.
+//! This feature is needed to get information from physx callbacks to bevy world.
+//!
+//! See discussion in <https://github.com/bevyengine/bevy/issues/8983>.
 
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;

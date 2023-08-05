@@ -1,3 +1,4 @@
+//! Set linear and angular damping coefficients for a rigid body.
 use bevy::prelude::*;
 use physx::prelude::*;
 
@@ -7,8 +8,11 @@ use crate::prelude::{Scene, *};
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
 #[reflect(Component, Default)]
+/// Set linear and angular damping coefficients for a rigid body.
 pub struct Damping {
+    /// The linear damping coefficient associated with this actor.
     pub linear: f32,
+    /// The angular damping coefficient associated with this actor.
     pub angular: f32,
 }
 
