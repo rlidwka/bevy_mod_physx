@@ -26,7 +26,7 @@ use physx_sys::{
     PxMeshScale_new_3,
 };
 
-use crate::physx_extras::HeightFieldSample;
+use crate::utils::physx_extras::HeightFieldSample;
 use crate::prelude::{self as bpx, *};
 use crate::types::PxMaterial;
 

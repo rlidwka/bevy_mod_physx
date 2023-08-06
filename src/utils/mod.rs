@@ -1,4 +1,7 @@
 //! Various helpers and extension traits.
+pub mod events;
+pub mod physx_extras;
+pub mod raycast;
 pub mod type_bridge;
 
 use bevy::prelude::*;
@@ -7,7 +10,7 @@ use physx_sys::PxBase_getConcreteType;
 
 use crate::types::*;
 
-/// Get actor [Entity] from raw PxRigidActor pointer from PhysX.
+/// Get actor [Entity] from raw [PxRigidActor](physx_sys::PxRigidActor) pointer from PhysX.
 ///
 /// # Safety
 /// User must ensure that pointer is valid and created by bevy_mod_physx crate
@@ -49,7 +52,7 @@ pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -
     }
 }
 
-/// Get shape [Entity] from raw PxShape pointer from PhysX.
+/// Get shape [Entity] from raw [PxShape](physx_sys::PxShape) pointer from PhysX.
 ///
 /// # Safety
 /// User must ensure that pointer is valid and created by bevy_mod_physx crate

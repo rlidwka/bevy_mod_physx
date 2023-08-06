@@ -4,8 +4,6 @@
 //! (e.g. [Material] vs [bevy::prelude::Material], [Scene] vs [bevy::prelude::Scene]).
 //! Suggestions on how to resolve these conflicts are welcome.
 
-pub use crate::utils::type_bridge::*;
-
 pub use crate::{
     FoundationDescriptor,
     PhysicsCore,
@@ -26,8 +24,6 @@ pub use crate::components::{
     Shape,
 };
 
-pub use crate::events::AppExtensions;
-
 pub use crate::plugins::articulation::{
     ArticulationJointDriveTarget,
     ArticulationJointDriveVelocity,
@@ -47,5 +43,9 @@ pub use crate::plugins::shape_filter_data::ShapeFilterData;
 pub use crate::plugins::sleep::{SleepControl, Sleeping};
 pub use crate::plugins::velocity::{MaxVelocity, Velocity};
 
-pub use crate::raycast::{RaycastHit, SceneQueryExt};
 pub use crate::resources::{Physics, Scene};
+
+pub use crate::utils::events::AppExtensions;
+pub use crate::utils::physx_extras::{ActorMapExtras, ConvexMeshExtras, HeightFieldExtras, TriangleMeshExtras};
+pub use crate::utils::raycast::{RaycastHit, SceneQueryExt};
+pub use crate::utils::type_bridge::*;

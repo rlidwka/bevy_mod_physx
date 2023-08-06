@@ -1,3 +1,4 @@
+//! Extension trait for Scene that adds raycasts.
 use std::ffi::c_void;
 use std::mem::MaybeUninit;
 use std::ptr::{drop_in_place, null_mut};

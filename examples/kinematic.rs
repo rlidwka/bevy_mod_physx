@@ -6,8 +6,8 @@ use std::ffi::c_void;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 use bevy_mod_physx::prelude::{self as bpx, *};
-use bevy_mod_physx::raycast::SceneQueryFilter;
 use bevy_mod_physx::utils::get_actor_entity_from_ptr;
+use bevy_mod_physx::utils::raycast::SceneQueryFilter;
 use physx_sys::{PxFilterData, PxQueryHitType, PxRigidActor, PxShape};
 
 #[derive(Component)]

@@ -19,7 +19,6 @@ use physx_sys::{
 
 use crate::types::OnWakeSleep;
 use crate::components::{ArticulationRootHandle, RigidDynamicHandle};
-use crate::physx_extras::ActorMapExtras;
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Hash, Reflect)]

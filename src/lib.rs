@@ -46,10 +46,8 @@ use physx_sys::PxTolerancesScale;
 
 pub mod assets;
 pub mod components;
-pub mod events;
 pub mod plugins;
 pub mod prelude;
-pub mod raycast;
 pub mod resources;
 pub mod systems;
 pub mod types;
@@ -58,7 +56,6 @@ pub mod utils;
 // reexport physx to avoid version conflicts
 pub use physx;
 pub use physx_sys;
-pub mod physx_extras;
 
 use crate::prelude as bpx;
 use crate::resources::{DefaultMaterial, DefaultMaterialHandle};

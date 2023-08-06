@@ -4,7 +4,6 @@ use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::render_resource::PrimitiveTopology;
 use bevy_mod_physx::assets::GeometryInner;
-use bevy_mod_physx::physx_extras::ConvexMeshExtras;
 use bevy_mod_physx::prelude::{self as bpx, *};
 
 fn main() {
