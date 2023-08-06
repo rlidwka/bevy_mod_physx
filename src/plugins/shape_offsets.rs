@@ -3,7 +3,6 @@ use bevy::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxShape_setContactOffset_mut, PxShape_setRestOffset_mut};
 
-use crate::components::ShapeHandle;
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]

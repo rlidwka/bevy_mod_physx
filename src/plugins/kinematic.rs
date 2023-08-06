@@ -9,7 +9,6 @@
 use bevy::prelude::*;
 use physx::prelude::*;
 
-use crate::components::RigidDynamicHandle;
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]

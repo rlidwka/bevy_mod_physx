@@ -8,7 +8,6 @@ use physx_sys::{
     PxShape_setSimulationFilterData_mut,
 };
 
-use crate::components::ShapeHandle;
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Eq, Clone, Copy, Reflect)]

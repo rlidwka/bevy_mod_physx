@@ -8,13 +8,6 @@ use physx_sys::{
     PxShape_setLocalPose_mut,
 };
 
-use crate::components::{
-    ArticulationLinkHandle,
-    ArticulationRootHandle,
-    RigidDynamicHandle,
-    RigidStaticHandle,
-    ShapeHandle,
-};
 use crate::prelude::{self as bpx, *};
 
 pub fn sync_transform_dynamic(

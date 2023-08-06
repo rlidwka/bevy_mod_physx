@@ -9,7 +9,6 @@ use physx_sys::{
     PxArticulationReducedCoordinate_setRootLinearVelocity_mut,
 };
 
-use crate::components::{ArticulationLinkHandle, ArticulationRootHandle, RigidDynamicHandle};
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]

@@ -4,7 +4,6 @@ use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{PxArticulationDrive, PxArticulationLink_getInboundJoint, PxArticulationJointReducedCoordinate_setDriveVelocity_mut, PxArticulationJointReducedCoordinate_getJointPosition, PxArticulationJointReducedCoordinate_setJointPosition_mut};
 
-use crate::components::{ArticulationLinkHandle, ArticulationRootHandle};
 use crate::prelude::{Scene, *};
 
 #[derive(Component, Debug, Default, PartialEq, Clone, Copy, Reflect)]

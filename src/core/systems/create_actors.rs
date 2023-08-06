@@ -16,16 +16,8 @@ use physx_sys::{
     PxShape_setLocalPose_mut,
 };
 
-use crate::components::{
-    ArticulationJoint,
-    ArticulationLinkHandle,
-    ArticulationRootHandle,
-    RigidDynamicHandle,
-    RigidStaticHandle,
-    ShapeHandle,
-};
+use crate::core::material::DefaultMaterialHandle;
 use crate::prelude::{self as bpx, *};
-use crate::resources::DefaultMaterialHandle;
 use crate::types::*;
 
 type ActorsQuery<'world, 'state, 'a> = Query<'world, 'state,

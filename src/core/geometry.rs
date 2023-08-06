@@ -1,3 +1,16 @@
+//! Geometry object defines the characteristics of a spatial object.
+//!
+//! Following geometries are supported:
+//!  - basic shapes
+//!    - sphere
+//!    - capsule
+//!    - box
+//!    - plane
+//!  - cooked shapes
+//!    - convex mesh
+//!    - triangle mesh
+//!    - heightfield
+//!
 use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 
@@ -26,28 +39,12 @@ use physx_sys::{
     PxMeshScale_new_3,
 };
 
-use crate::utils::physx_extras::HeightFieldSample;
 use crate::prelude::{self as bpx, *};
-use crate::types::PxMaterial;
-
-#[derive(TypeUuid, TypePath, Deref, DerefMut)]
-#[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
-pub struct Material(Owner<PxMaterial>);
-
-impl Material {
-    pub fn new(physics: &mut bpx::Physics, static_friction: f32, dynamic_friction: f32, restitution: f32) -> Self {
-        physics.create_material(static_friction, dynamic_friction, restitution, ()).unwrap().into()
-    }
-}
-
-impl From<Owner<PxMaterial>> for Material {
-    fn from(value: Owner<PxMaterial>) -> Self {
-        Self(value)
-    }
-}
+use crate::utils::physx_extras::HeightFieldSample;
 
 #[derive(TypeUuid, TypePath, Clone, Deref, DerefMut)]
 #[uuid = "db246120-e6af-4ebf-a95a-a6efe1c54d9f"]
+/// Geometry object defines the characteristics of a spatial object.
 pub struct Geometry {
     pub obj: GeometryInner,
 }

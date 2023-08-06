@@ -26,6 +26,14 @@ pub type PxScene = physx::scene::PxScene<
     OnAdvance,
 >;
 
+/// This is called when certain contact events occur.
+///
+/// The method will be called for a pair of actors if one of the colliding
+/// shape pairs requested contact notification. You request which events
+/// are reported using the filter shader/callback mechanism.
+///
+/// Do not keep references to the passed objects, as they will be invalid
+/// after this function returns.
 pub struct OnCollision {
     callback: RefCell<Option<Box<dyn FnMut(&physx_sys::PxContactPairHeader, &[physx_sys::PxContactPair])>>>,
     initialized: bool,
@@ -57,6 +65,10 @@ impl CollisionCallback for OnCollision {
     }
 }
 
+/// This is called with the current trigger pair events.
+///
+/// Shapes which have been marked as triggers using [ShapeFlag::TriggerShape]
+/// will send events according to the pair flag specification in the filter shader.
 pub struct OnTrigger {
     callback: RefCell<Option<Box<dyn FnMut(&[physx_sys::PxTriggerPair])>>>,
     initialized: bool,
@@ -88,6 +100,7 @@ impl TriggerCallback for OnTrigger {
     }
 }
 
+/// This is called when a breakable constraint breaks.
 pub struct OnConstraintBreak {
     callback: RefCell<Option<Box<dyn FnMut(&[physx_sys::PxConstraintInfo])>>>,
     initialized: bool,
@@ -119,6 +132,7 @@ impl ConstraintBreakCallback for OnConstraintBreak {
     }
 }
 
+/// This is called with the actors which have just been woken up or put to sleep.
 pub struct OnWakeSleep {
     callback: RefCell<Option<Box<dyn FnMut(&[&physx::actor::ActorMap<PxArticulationLink, PxRigidStatic, PxRigidDynamic>], bool)>>>,
     initialized: bool,
@@ -150,6 +164,11 @@ impl WakeSleepCallback<PxArticulationLink, PxRigidStatic, PxRigidDynamic> for On
     }
 }
 
+/// Provides early access to the new pose of moving rigid bodies.
+///
+/// When this call occurs, rigid bodies having the [RigidBodyFlag::EnablePoseIntegrationPreview]
+/// flag set, were moved by the simulation and their new poses can be accessed
+/// through the provided buffers.
 pub struct OnAdvance {
     callback: RefCell<Option<Box<dyn FnMut(&[&physx::rigid_body::RigidBodyMap<PxArticulationLink, PxRigidDynamic>], &[PxTransform])>>>,
     initialized: bool,

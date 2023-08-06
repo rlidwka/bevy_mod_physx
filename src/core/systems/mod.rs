@@ -1,3 +1,4 @@
+//! Systems performing actor creation, simulation and transform sync.
 use bevy::prelude::*;
 use physx::scene::Scene;
 

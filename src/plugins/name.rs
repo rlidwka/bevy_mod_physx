@@ -27,13 +27,7 @@ use physx_sys::{
     PxShape_setName_mut,
 };
 
-use crate::components::{
-    ArticulationLinkHandle,
-    ArticulationRootHandle,
-    RigidDynamicHandle,
-    RigidStaticHandle,
-    ShapeHandle,
-};
+use crate::core::articulation::{ArticulationLinkHandle, ArticulationRootHandle};
 use crate::prelude::{Scene, *};
 
 #[derive(Resource)]
