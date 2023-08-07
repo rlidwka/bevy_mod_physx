@@ -79,7 +79,7 @@ fn setup_physics(
 
 |[]() |[]() |[]() |[]()
 |--|--|--|--
-| published | [bevy_mod_physx](https://crates.io/crates/bevy_mod_physx) v0.2.0 | Bevy 0.11 | PhysX 5
+| published | [0.2.x - 0.3.x](https://crates.io/crates/bevy_mod_physx) | Bevy 0.11 | PhysX 5
 | | | |
 | git tags | [git:master](https://github.com/rlidwka/bevy_mod_physx) | Bevy 0.11 | PhysX 5
 | | [git:a21b570](https://github.com/rlidwka/bevy_mod_physx/tree/a21b570b20a1e7ac22b5c86c54fcc1597760f2ec) | Bevy 0.11 | PhysX 4
