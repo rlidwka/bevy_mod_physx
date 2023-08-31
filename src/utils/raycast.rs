@@ -9,13 +9,12 @@ use physx::traits::Class;
 use physx_sys::{
     create_raycast_filter_callback,
     create_raycast_filter_callback_func,
-    PxHitFlags,
     PxQueryFilterCallback,
     PxQueryFilterCallback_delete,
     PxQueryFilterData,
     PxQueryFilterData_new,
-    PxQueryFlags,
-    PxSceneQueryExt_raycastSingle,
+    PxQueryFlag,
+    PxSceneQueryExt_raycastSingle_mut,
     RaycastHitCallback,
 };
 
@@ -27,7 +26,7 @@ pub struct RaycastHit {
     pub actor: Entity,
     pub shape: Entity,
     pub face_index: u32,
-    pub flags: PxHitFlags,
+    //pub flags: PxHitFlags,
     pub position: Vec3,
     pub normal: Vec3,
     pub distance: f32,
@@ -45,7 +44,7 @@ impl SceneQueryFilter {
 
     pub fn ignore<T: RigidActor>(actor: &T) -> Self {
         let mut result = Self::new();
-        result.filter_data.flags.insert(PxQueryFlags::Prefilter);
+        result.filter_data.flags.mBits |= PxQueryFlag::ePREFILTER as u16;
         result.pre_filter_callback = Some(unsafe {
             create_raycast_filter_callback(actor.as_ptr())
         });
@@ -57,7 +56,7 @@ impl SceneQueryFilter {
     #[allow(clippy::not_unsafe_ptr_arg_deref)]
     pub fn callback(callback: RaycastHitCallback, userdata: *mut c_void) -> Self {
         let mut result = Self::new();
-        result.filter_data.flags.insert(PxQueryFlags::Prefilter);
+        result.filter_data.flags.mBits |= PxQueryFlag::ePREFILTER as u16;
         result.pre_filter_callback = Some(unsafe {
             create_raycast_filter_callback_func(callback, userdata)
         });
@@ -65,12 +64,12 @@ impl SceneQueryFilter {
     }
 
     pub fn without_static(mut self) -> Self {
-        self.filter_data.flags.remove(PxQueryFlags::Static);
+        self.filter_data.flags.mBits &= PxQueryFlag::eSTATIC as u16;
         self
     }
 
     pub fn without_dynamic(mut self) -> Self {
-        self.filter_data.flags.remove(PxQueryFlags::Dynamic);
+        self.filter_data.flags.mBits &= PxQueryFlag::eDYNAMIC as u16;
         self
     }
 }
@@ -103,15 +102,15 @@ impl SceneQueryExt for Scene {
         let mut raycast_hit = MaybeUninit::uninit();
 
         if !unsafe {
-            PxSceneQueryExt_raycastSingle(
+            PxSceneQueryExt_raycastSingle_mut(
                 scene.as_ptr(),
                 &origin.to_physx_sys(),
                 &direction.to_physx_sys(),
                 max_distance,
-                PxHitFlags::Default,
+                physx_sys::PxSceneQueryFlags { mBits: physx_sys::PxHitFlag::eDEFAULT as u16 },
                 raycast_hit.as_mut_ptr(),
-                &filter.filter_data as *const _,
-                filter.pre_filter_callback.unwrap_or(null_mut()),
+                &filter.filter_data as *const _ as *const _,
+                filter.pre_filter_callback.unwrap_or(null_mut()) as *mut _,
                 null_mut(),
             )
         } { return None; }
@@ -123,7 +122,7 @@ impl SceneQueryExt for Scene {
             actor: unsafe { get_actor_entity_from_ptr(raycast_hit.actor) },
             shape: unsafe { get_shape_entity_from_ptr(raycast_hit.shape) },
             face_index: raycast_hit.faceIndex,
-            flags: raycast_hit.flags,
+            //flags: raycast_hit.flags,
             position: raycast_hit.position.to_bevy(),
             normal: raycast_hit.normal.to_bevy(),
             distance: raycast_hit.distance,

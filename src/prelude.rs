@@ -28,14 +28,6 @@ pub use crate::core::scene::{Scene, SceneDescriptor};
 pub use crate::core::shape::{Shape, ShapeHandle};
 pub use crate::core::RigidBody;
 
-pub use crate::plugins::articulation::{
-    ArticulationJointDriveTarget,
-    ArticulationJointDriveVelocity,
-    ArticulationJointDrives,
-    ArticulationJointPosition,
-    ArticulationRoot,
-};
-
 pub use crate::plugins::damping::Damping;
 pub use crate::plugins::debug_render::DebugRenderSettings;
 pub use crate::plugins::external_force::ExternalForce;
@@ -48,11 +40,6 @@ pub use crate::plugins::sleep::{SleepControl, Sleeping};
 pub use crate::plugins::velocity::{MaxVelocity, Velocity};
 
 pub use crate::utils::events::AppExtensions;
-pub use crate::utils::physx_extras::{
-    ActorMapExtras,
-    ConvexMeshExtras,
-    HeightFieldExtras,
-    TriangleMeshExtras,
-};
+pub use crate::utils::physx_extras::ActorMapExtras;
 pub use crate::utils::raycast::{RaycastHit, SceneQueryExt};
 pub use crate::utils::type_bridge::*;

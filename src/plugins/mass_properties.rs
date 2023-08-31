@@ -4,7 +4,7 @@
 //! you can still do so with raw physx-sys calls.
 use bevy::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxRigidBodyExt_setMassAndUpdateInertia_1, PxRigidBodyExt_updateMassAndInertia_1};
+use physx_sys::{PxRigidBodyExt_updateMassAndInertia_mut_1, PxRigidBodyExt_setMassAndUpdateInertia_mut_1};
 
 use crate::prelude::{Scene, *};
 
@@ -99,7 +99,7 @@ pub fn mass_properties_sync(
 
         match *mass_props {
             MassProperties::Density { density, center } => unsafe {
-                PxRigidBodyExt_updateMassAndInertia_1(
+                PxRigidBodyExt_updateMassAndInertia_mut_1(
                     actor_handle,
                     density,
                     center.to_physx_sys().as_ptr(),
@@ -108,7 +108,7 @@ pub fn mass_properties_sync(
             }
 
             MassProperties::Mass { mass, center } => unsafe {
-                PxRigidBodyExt_setMassAndUpdateInertia_1(
+                PxRigidBodyExt_setMassAndUpdateInertia_mut_1(
                     actor_handle,
                     mass,
                     center.to_physx_sys().as_ptr(),

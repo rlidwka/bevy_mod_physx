@@ -10,6 +10,7 @@ pub type PxShape = physx::shape::PxShape<Entity, PxMaterial>;
 pub type PxArticulationLink = physx::articulation_link::PxArticulationLink<Entity, PxShape>;
 pub type PxRigidStatic = physx::rigid_static::PxRigidStatic<Entity, PxShape>;
 pub type PxRigidDynamic = physx::rigid_dynamic::PxRigidDynamic<Entity, PxShape>;
+pub type PxArticulation = physx::articulation::PxArticulation<(), PxArticulationLink>;
 pub type PxArticulationReducedCoordinate =
     physx::articulation_reduced_coordinate::PxArticulationReducedCoordinate<Entity, PxArticulationLink>;
 
@@ -18,6 +19,7 @@ pub type PxScene = physx::scene::PxScene<
     PxArticulationLink,
     PxRigidStatic,
     PxRigidDynamic,
+    PxArticulation,
     PxArticulationReducedCoordinate,
     OnCollision,
     OnTrigger,

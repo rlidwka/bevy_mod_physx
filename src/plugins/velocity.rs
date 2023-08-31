@@ -1,13 +1,6 @@
 //! Get/set linear and angular velocity of a rigid body, set maximum velocity.
 use bevy::prelude::*;
 use physx::prelude::*;
-use physx::traits::Class;
-use physx_sys::{
-    PxArticulationReducedCoordinate_getRootAngularVelocity,
-    PxArticulationReducedCoordinate_getRootLinearVelocity,
-    PxArticulationReducedCoordinate_setRootAngularVelocity_mut,
-    PxArticulationReducedCoordinate_setRootLinearVelocity_mut,
-};
 
 use crate::prelude::{Scene, *};
 
@@ -94,7 +87,7 @@ pub fn velocity_sync(
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but
     // user will experience 1-tick delay on any changes
-    for (dynamic, articulation, articulation_base, mut velocity) in actors.iter_mut() {
+    for (dynamic, articulation, _articulation_base, mut velocity) in actors.iter_mut() {
         if let Some(mut actor) = dynamic {
             let mut velocity_set = false;
 
@@ -102,7 +95,7 @@ pub fn velocity_sync(
                 let mut actor_handle = actor.get_mut(&mut scene);
 
                 // should not set initial velocity when component is added, but actor is kinematic
-                if !actor_handle.get_rigid_body_flags().contains(RigidBodyFlags::Kinematic) {
+                if !actor_handle.get_rigid_body_flags().contains(RigidBodyFlag::Kinematic) {
                     actor_handle.set_linear_velocity(&velocity.linear.to_physx(), true);
                     actor_handle.set_angular_velocity(&velocity.angular.to_physx(), true);
                     velocity_set = true;
@@ -115,25 +108,6 @@ pub fn velocity_sync(
                 let newvel = Velocity::new(
                     actor_handle.get_linear_velocity().to_bevy(),
                     actor_handle.get_angular_velocity().to_bevy(),
-                );
-
-                // extra check so we don't mutate on every frame without changes
-                if *velocity != newvel { *velocity = newvel; }
-            }
-        } else if let Some(mut root) = articulation_base {
-            if velocity.is_changed() || root.is_added() {
-                let ptr = root.get_mut(&mut scene).as_mut_ptr();
-
-                unsafe {
-                    PxArticulationReducedCoordinate_setRootLinearVelocity_mut(ptr, &velocity.linear.to_physx_sys(), true);
-                    PxArticulationReducedCoordinate_setRootAngularVelocity_mut(ptr, &velocity.angular.to_physx_sys(), true);
-                }
-            } else {
-                let ptr = root.get(&scene).as_ptr();
-
-                let newvel = Velocity::new(
-                    unsafe { PxArticulationReducedCoordinate_getRootLinearVelocity(ptr) }.to_bevy(),
-                    unsafe { PxArticulationReducedCoordinate_getRootAngularVelocity(ptr) }.to_bevy(),
                 );
 
                 // extra check so we don't mutate on every frame without changes

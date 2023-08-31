@@ -189,12 +189,12 @@ fn move_kinematic(
             _shape: *const PxShape,
             _hit_flags: u32,
             user_data: *const c_void,
-        ) -> PxQueryHitType {
+        ) -> u32 {
             let entity = *(user_data as *const Entity);
             if get_actor_entity_from_ptr(actor) == entity {
-                PxQueryHitType::Block
+                PxQueryHitType::eBLOCK
             } else {
-                PxQueryHitType::None
+                PxQueryHitType::eNONE
             }
         }
 

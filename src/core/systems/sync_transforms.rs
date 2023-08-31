@@ -2,8 +2,6 @@ use bevy::prelude::*;
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::{
-    PxArticulationKinematicFlags,
-    PxArticulationReducedCoordinate_updateKinematic_mut,
     PxShape_getLocalPose,
     PxShape_setLocalPose_mut,
 };
@@ -28,51 +26,6 @@ pub fn sync_transform_dynamic(
     for (mut actor, mut xform, gxform, parent) in actors.iter_mut() {
         if *gxform != actor.predicted_gxform {
             actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
-            actor.predicted_gxform = *gxform;
-        } else {
-            let actor_handle = actor.get(&scene);
-            let new_gxform = actor_handle.get_global_pose().to_bevy();
-            let mut new_xform = new_gxform;
-
-            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
-                let (_scale, inv_rotation, inv_translation) =
-                    parent_transform.affine().inverse().to_scale_rotation_translation();
-
-                new_xform.rotation = inv_rotation * new_xform.rotation;
-                new_xform.translation = inv_rotation * new_xform.translation + inv_translation;
-            }
-
-            // avoid triggering bevy's change tracking if no change
-            if *xform != new_xform { *xform = new_xform; }
-
-            drop(actor_handle);
-            actor.predicted_gxform = new_gxform.into();
-        }
-    }
-}
-
-pub fn sync_transform_articulation_links(
-    mut scene: ResMut<bpx::Scene>,
-    global_transforms: Query<&GlobalTransform>,
-    mut actors: Query<(
-        Option<&mut ArticulationRootHandle>,
-        &mut ArticulationLinkHandle,
-        &mut Transform,
-        &GlobalTransform,
-        Option<&Parent>,
-    )>,
-) {
-    // this function does two things: sets physx property (if changed) or writes it back (if not);
-    // we need it to happen inside a single system to avoid change detection loops, but
-    // user will experience 1-tick delay on any changes
-    for (mut root, mut actor, mut xform, gxform, parent) in actors.iter_mut() {
-        if root.is_some() && *gxform != actor.predicted_gxform {
-            let mut root_handle = root.as_mut().unwrap().get_mut(&mut scene);
-            //actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
-            root_handle.set_root_global_pose(&gxform.to_physx());
-            unsafe {
-                PxArticulationReducedCoordinate_updateKinematic_mut(root_handle.as_mut_ptr(), PxArticulationKinematicFlags::Position);
-            };
             actor.predicted_gxform = *gxform;
         } else {
             let actor_handle = actor.get(&scene);

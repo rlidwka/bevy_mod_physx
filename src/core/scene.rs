@@ -3,6 +3,7 @@ use std::ptr::null;
 
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
+use enumflags2::BitFlags;
 use physx::prelude::*;
 use physx::scene::{
     BroadPhaseType,
@@ -10,7 +11,7 @@ use physx::scene::{
     FrictionType,
     PairFilteringMode,
     PruningStructureType,
-    SceneFlags,
+    SceneFlag,
     SceneLimits,
     SceneQueryUpdateMode,
     SolverType,
@@ -95,7 +96,7 @@ impl Scene {
 
         Self {
             scene: SceneRwLock::new(scene),
-            use_physx_lock: d.flags.contains(SceneFlags::RequireRwLock),
+            use_physx_lock: d.flags.contains(SceneFlag::RequireRwLock),
             send_sleep_notifies,
         }
     }
@@ -294,7 +295,7 @@ pub struct SceneDescriptor {
     /// Flags used to select scene options.
     ///
     /// Default: [SceneFlag::EnablePcm]
-    pub flags: SceneFlags,
+    pub flags: BitFlags<SceneFlag>,
     /// Defines the structure used to store static objects (PxRigidStatic actors).
     ///
     /// There are usually a lot more static actors than dynamic actors in a scene,
@@ -469,6 +470,7 @@ impl Default for SceneDescriptor {
     fn default() -> Self {
         let d = physx::traits::descriptor::SceneDescriptor::<
             (), PxArticulationLink, PxRigidStatic, PxRigidDynamic,
+            PxArticulation,
             PxArticulationReducedCoordinate,
             OnCollision, OnTrigger, OnConstraintBreak,
             OnWakeSleep, OnAdvance

@@ -148,7 +148,6 @@ impl PluginGroup for PhysicsPlugins {
     fn build(self) -> PluginGroupBuilder {
         PluginGroupBuilder::start::<Self>()
             .add(PhysicsCore::default())
-            .add(crate::plugins::articulation::ArticulationPlugin)
             .add(crate::plugins::damping::DampingPlugin)
             .add(crate::plugins::debug_render::DebugRenderPlugin)
             .add(crate::plugins::external_force::ExternalForcePlugin)
@@ -239,7 +238,6 @@ impl Plugin for PhysicsCore {
         app.add_systems(PhysicsSchedule, (
             systems::sync_transform_static,
             systems::sync_transform_dynamic,
-            systems::sync_transform_articulation_links,
             systems::sync_transform_nested_shapes,
         ).in_set(PhysicsSet::Sync));
 
