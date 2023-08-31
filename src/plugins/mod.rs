@@ -3,7 +3,6 @@
 //! These are added as a convenience, users can potentially disable them or implement
 //! their own similar plugins.
 //!
-pub mod articulation;
 pub mod damping;
 pub mod debug_render;
 pub mod external_force;

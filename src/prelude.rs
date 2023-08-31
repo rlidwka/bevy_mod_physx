@@ -28,14 +28,6 @@ pub use crate::core::scene::{Scene, SceneDescriptor};
 pub use crate::core::shape::{Shape, ShapeHandle};
 pub use crate::core::RigidBody;
 
-pub use crate::plugins::articulation::{
-    ArticulationJointDriveTarget,
-    ArticulationJointDriveVelocity,
-    ArticulationJointDrives,
-    ArticulationJointPosition,
-    ArticulationRoot,
-};
-
 pub use crate::plugins::damping::Damping;
 pub use crate::plugins::debug_render::DebugRenderSettings;
 pub use crate::plugins::external_force::ExternalForce;

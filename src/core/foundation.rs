@@ -2,15 +2,15 @@
 use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
-use physx_sys::{PxErrorCode, PxTolerancesScale};
+use physx_sys::PxTolerancesScale;
 
 use crate::types::*;
 
 struct ErrorCallback;
 
 impl physx::physics::ErrorCallback for ErrorCallback {
-    fn report_error(&self, code: PxErrorCode, message: &str, file: &str, line: u32) {
-        bevy::log::error!(target: "bevy_mod_physx", "[{file:}:{line:}] {code:40}: {message:}", code=code as i32);
+    fn report_error(&self, _code: enumflags2::BitFlags<physx::foundation::ErrorCode>, message: &str, file: &str, line: u32) {
+        bevy::log::error!(target: "bevy_mod_physx", "[{file:}:{line:}]: {message:}");
     }
 }
 
@@ -22,6 +22,7 @@ impl Physics {
         let mut builder = physx::physics::PhysicsFoundationBuilder::default();
         builder.enable_visual_debugger(foundation_desc.visual_debugger);
         builder.with_extensions(foundation_desc.extensions);
+        builder.with_vehicle_sdk(true);
         builder.set_pvd_port(foundation_desc.visual_debugger_port);
         if let Some(host) = foundation_desc.visual_debugger_host.as_ref() {
             builder.set_pvd_host(host);

@@ -4,18 +4,6 @@ use std::sync::mpsc::channel;
 use bevy::prelude::*;
 use physx::prelude::*;
 use physx::rigid_dynamic::RigidDynamic;
-use physx::traits::Class;
-use physx_sys::{
-    PxArticulationReducedCoordinate_getSleepThreshold,
-    PxArticulationReducedCoordinate_getStabilizationThreshold,
-    PxArticulationReducedCoordinate_getWakeCounter,
-    PxArticulationReducedCoordinate_isSleeping,
-    PxArticulationReducedCoordinate_putToSleep_mut,
-    PxArticulationReducedCoordinate_setSleepThreshold_mut,
-    PxArticulationReducedCoordinate_setStabilizationThreshold_mut,
-    PxArticulationReducedCoordinate_setWakeCounter_mut,
-    PxArticulationReducedCoordinate_wakeUp_mut,
-};
 
 use crate::types::OnWakeSleep;
 use crate::prelude::{Scene, *};
@@ -86,7 +74,7 @@ impl Plugin for SleepPlugin {
 
         app.world.insert_resource(WakeSleepCallback(OnWakeSleep::new(move |actors, is_waking| {
             let entities = actors.iter().map(|actor| {
-                actor.cast_map(
+                actor.cast_map_ref(
                     |articulation| *articulation.get_user_data(),
                     |rstatic| *rstatic.get_user_data(),
                     |rdynamic| *rdynamic.get_user_data(),
@@ -134,7 +122,7 @@ pub fn sleep_control_sync(
     // this function does two things: sets physx property (if changed) or writes it back (if not);
     // we need it to happen inside a single system to avoid change detection loops, but
     // user will experience 1-tick delay on any changes
-    for (dynamic, articulation_base, mut control) in actors.iter_mut() {
+    for (dynamic, _articulation_base, mut control) in actors.iter_mut() {
         if let Some(mut actor) = dynamic {
             if control.is_changed() || (actor.is_added() && *control != default()) {
                 let mut handle = actor.get_mut(&mut scene);
@@ -163,38 +151,153 @@ pub fn sleep_control_sync(
                 // extra check so we don't mutate on every frame without changes
                 if *control != new_control { *control = new_control; }
             }
-        } else if let Some(mut root) = articulation_base {
-            if control.is_changed() || (root.is_added() && *control != default()) {
-                let mut handle = root.get_mut(&mut scene);
-
-                if control.is_sleeping != unsafe { PxArticulationReducedCoordinate_isSleeping(handle.as_ptr()) } {
-                    if control.is_sleeping {
-                        unsafe { PxArticulationReducedCoordinate_putToSleep_mut(handle.as_mut_ptr()) };
-                    } else {
-                        unsafe { PxArticulationReducedCoordinate_wakeUp_mut(handle.as_mut_ptr()) };
-                    }
-                }
-
-                unsafe {
-                    PxArticulationReducedCoordinate_setStabilizationThreshold_mut(handle.as_mut_ptr(), control.stabilization_threshold);
-                    PxArticulationReducedCoordinate_setSleepThreshold_mut(handle.as_mut_ptr(), control.sleep_threshold);
-                    PxArticulationReducedCoordinate_setWakeCounter_mut(handle.as_mut_ptr(), control.wake_counter);
-                }
-            } else {
-                let handle = root.get(&scene);
-
-                let new_control = SleepControl {
-                    is_sleeping: unsafe { PxArticulationReducedCoordinate_isSleeping(handle.as_ptr()) },
-                    sleep_threshold: unsafe { PxArticulationReducedCoordinate_getSleepThreshold(handle.as_ptr()) },
-                    stabilization_threshold: unsafe { PxArticulationReducedCoordinate_getStabilizationThreshold(handle.as_ptr()) },
-                    wake_counter: unsafe { PxArticulationReducedCoordinate_getWakeCounter(handle.as_ptr()) },
-                };
-
-                // extra check so we don't mutate on every frame without changes
-                if *control != new_control { *control = new_control; }
-            }
         } else if !control.is_added() {
             bevy::log::warn!("SleepControl component exists, but it's neither a rigid dynamic nor articulation root");
+        }
+    }
+}
+
+//
+// Stuff that's now present in physx, but we use older version
+//
+use physx::actor::{ActorMap, ActorType};
+
+pub trait ActorMapExtras<'a, L, S, D>
+where
+    L: ArticulationLink + 'a,
+    S: RigidStatic + 'a,
+    D: RigidDynamic + 'a,
+{
+    fn cast_map_ref<Ret, ALFn, RSFn, RDFn>(
+        &'a self,
+        articulation_link_fn: ALFn,
+        rigid_static_fn: RSFn,
+        rigid_dynamic_fn: RDFn,
+    ) -> Ret
+    where
+        ALFn: FnMut(&'a L) -> Ret,
+        RSFn: FnMut(&'a S) -> Ret,
+        RDFn: FnMut(&'a D) -> Ret;
+
+    fn cast_map_mut<Ret, ALFn, RSFn, RDFn>(
+        &'a mut self,
+        articulation_link_fn: ALFn,
+        rigid_static_fn: RSFn,
+        rigid_dynamic_fn: RDFn,
+    ) -> Ret
+    where
+        ALFn: FnMut(&'a mut L) -> Ret,
+        RSFn: FnMut(&'a mut S) -> Ret,
+        RDFn: FnMut(&'a mut D) -> Ret;
+
+    fn as_rigid_dynamic_ref(&self) -> Option<&D>;
+    fn as_rigid_static_ref(&self) -> Option<&S>;
+    fn as_articulation_link_ref(&self) -> Option<&L>;
+
+    fn as_rigid_dynamic_mut(&mut self) -> Option<&mut D>;
+    fn as_rigid_static_mut(&mut self) -> Option<&mut S>;
+    fn as_articulation_link_mut(&mut self) -> Option<&mut L>;
+}
+
+impl<'a, L, S, D> ActorMapExtras<'a, L, S, D> for ActorMap<L, S, D>
+where
+    L: ArticulationLink + 'a,
+    S: RigidStatic + 'a,
+    D: RigidDynamic + 'a,
+{
+    fn cast_map_ref<Ret, ALFn, RSFn, RDFn>(
+        &'a self,
+        mut articulation_link_fn: ALFn,
+        mut rigid_static_fn: RSFn,
+        mut rigid_dynamic_fn: RDFn,
+    ) -> Ret
+    where
+        ALFn: FnMut(&'a L) -> Ret,
+        RSFn: FnMut(&'a S) -> Ret,
+        RDFn: FnMut(&'a D) -> Ret,
+    {
+        // This uses get_type not get_concrete_type because get_concrete_type does not seem to
+        // work for actors retrieved via get_active_actors.
+        match self.get_type() {
+            ActorType::RigidDynamic => {
+                rigid_dynamic_fn(unsafe { &*(self as *const _ as *const D) })
+            }
+            ActorType::RigidStatic => rigid_static_fn(unsafe { &*(self as *const _ as *const S) }),
+            ActorType::ArticulationLink => {
+                articulation_link_fn(unsafe { &*(self as *const _ as *const L) })
+            }
+        }
+    }
+
+    fn cast_map_mut<Ret, ALFn, RSFn, RDFn>(
+        &'a mut self,
+        mut articulation_link_fn: ALFn,
+        mut rigid_static_fn: RSFn,
+        mut rigid_dynamic_fn: RDFn,
+    ) -> Ret
+    where
+        ALFn: FnMut(&'a mut L) -> Ret,
+        RSFn: FnMut(&'a mut S) -> Ret,
+        RDFn: FnMut(&'a mut D) -> Ret,
+    {
+        // This uses get_type not get_concrete_type because get_concrete_type does not seem to
+        // work for actors retrieved via get_active_actors.
+        match self.get_type() {
+            ActorType::RigidDynamic => {
+                rigid_dynamic_fn(unsafe { &mut *(self as *mut _ as *mut D) })
+            }
+            ActorType::RigidStatic => rigid_static_fn(unsafe { &mut *(self as *mut _ as *mut S) }),
+            ActorType::ArticulationLink => {
+                articulation_link_fn(unsafe { &mut *(self as *mut _ as *mut L) })
+            }
+        }
+    }
+
+    /// Tries to cast to RigidDynamic.
+    fn as_rigid_dynamic_ref(&self) -> Option<&D> {
+        match self.get_type() {
+            ActorType::RigidDynamic => unsafe { Some(&*(self as *const _ as *const D)) },
+            _ => None,
+        }
+    }
+
+    /// Tries to cast to RigidStatic.
+    fn as_rigid_static_ref(&self) -> Option<&S> {
+        match self.get_type() {
+            ActorType::RigidStatic => unsafe { Some(&*(self as *const _ as *const S)) },
+            _ => None,
+        }
+    }
+
+    /// Tries to cast to ArticulationLink.
+    fn as_articulation_link_ref(&self) -> Option<&L> {
+        match self.get_type() {
+            ActorType::ArticulationLink => unsafe { Some(&*(self as *const _ as *const L)) },
+            _ => None,
+        }
+    }
+
+    /// Tries to cast to RigidDynamic.
+    fn as_rigid_dynamic_mut(&mut self) -> Option<&mut D> {
+        match self.get_type() {
+            ActorType::RigidDynamic => unsafe { Some(&mut *(self as *mut _ as *mut D)) },
+            _ => None,
+        }
+    }
+
+    /// Tries to cast to RigidStatic.
+    fn as_rigid_static_mut(&mut self) -> Option<&mut S> {
+        match self.get_type() {
+            ActorType::RigidStatic => unsafe { Some(&mut *(self as *mut _ as *mut S)) },
+            _ => None,
+        }
+    }
+
+    /// Tries to cast to ArticulationLink.
+    fn as_articulation_link_mut(&mut self) -> Option<&mut L> {
+        match self.get_type() {
+            ActorType::ArticulationLink => unsafe { Some(&mut *(self as *mut _ as *mut L)) },
+            _ => None,
         }
     }
 }
