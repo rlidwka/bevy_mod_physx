@@ -48,11 +48,5 @@ pub use crate::plugins::sleep::{SleepControl, Sleeping};
 pub use crate::plugins::velocity::{MaxVelocity, Velocity};
 
 pub use crate::utils::events::AppExtensions;
-pub use crate::utils::physx_extras::{
-    ActorMapExtras,
-    ConvexMeshExtras,
-    HeightFieldExtras,
-    TriangleMeshExtras,
-};
 pub use crate::utils::raycast::{RaycastHit, SceneQueryExt};
 pub use crate::utils::type_bridge::*;

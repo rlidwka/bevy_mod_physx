@@ -40,7 +40,6 @@ use physx_sys::{
 };
 
 use crate::prelude::{self as bpx, *};
-use crate::utils::physx_extras::HeightFieldSample;
 
 #[derive(TypeUuid, TypePath, Clone, Deref, DerefMut)]
 #[uuid = "db246120-e6af-4ebf-a95a-a6efe1c54d9f"]

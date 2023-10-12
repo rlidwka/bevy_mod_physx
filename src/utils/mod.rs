@@ -1,6 +1,5 @@
 //! Various helpers and extension traits.
 pub mod events;
-pub mod physx_extras;
 pub mod raycast;
 pub mod type_bridge;
 

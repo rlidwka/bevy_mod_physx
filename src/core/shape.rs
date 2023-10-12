@@ -1,10 +1,9 @@
 //! Defines characteristics of collision shapes (geometry, material).
-use std::ptr::drop_in_place;
-
 use bevy::prelude::*;
+use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
-use physx_sys::{PxPhysics_createShape_mut, PxShape_release_mut};
+use physx_sys::PxPhysics_createShape_mut;
 
 use crate::core::geometry::GeometryInner;
 use crate::core::scene::SceneRwLock;
@@ -30,16 +29,18 @@ impl Default for Shape {
     }
 }
 
-#[derive(Component)]
+#[derive(Component, Deref, DerefMut)]
 pub struct ShapeHandle {
-    handle: Option<SceneRwLock<Owner<PxShape>>>,
+    #[deref]
+    #[deref_mut]
+    handle: SceneRwLock<Owner<PxShape>>,
     // we want to specify outward normal for PxPlane specifically, so need to return transform for this
     pub custom_xform: Transform,
 }
 
 impl ShapeHandle {
     pub fn new(px_shape: Owner<PxShape>, custom_xform: Transform) -> Self {
-        Self { handle: Some(SceneRwLock::new(px_shape)), custom_xform }
+        Self { handle: SceneRwLock::new(px_shape), custom_xform }
     }
 
     pub fn create_shape(
@@ -100,37 +101,5 @@ impl ShapeHandle {
         };
 
         Self::new(shape, transform)
-    }
-}
-
-impl Drop for ShapeHandle {
-    fn drop(&mut self) {
-        // TODO: remove this entire drop when this gets fixed:
-        // https://github.com/EmbarkStudios/physx-rs/issues/180
-        let mut shape = self.handle.take().unwrap();
-        unsafe {
-            use physx::shape::Shape;
-            drop_in_place(shape.get_mut_unsafe().get_user_data_mut());
-            PxShape_release_mut(shape.get_mut_unsafe().as_mut_ptr());
-        }
-        std::mem::forget(shape);
-    }
-}
-
-impl std::ops::Deref for ShapeHandle {
-    type Target = SceneRwLock<Owner<PxShape>>;
-
-    fn deref(&self) -> &Self::Target {
-        // TODO: replace with Deref/DerefMut derive when this gets fixed:
-        // https://github.com/EmbarkStudios/physx-rs/issues/180
-        self.handle.as_ref().unwrap()
-    }
-}
-
-impl std::ops::DerefMut for ShapeHandle {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        // TODO: replace with Deref/DerefMut derive when this gets fixed:
-        // https://github.com/EmbarkStudios/physx-rs/issues/180
-        self.handle.as_mut().unwrap()
     }
 }

@@ -86,7 +86,7 @@ impl Plugin for SleepPlugin {
 
         app.world.insert_resource(WakeSleepCallback(OnWakeSleep::new(move |actors, is_waking| {
             let entities = actors.iter().map(|actor| {
-                actor.cast_map_ref(
+                actor.cast_map(
                     |articulation| *articulation.get_user_data(),
                     |rstatic| *rstatic.get_user_data(),
                     |rdynamic| *rdynamic.get_user_data(),
