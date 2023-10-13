@@ -1,3 +1,9 @@
+## 0.3.1 - bevy 0.11 - 2023-10-13
+
+### Fixed
+
+ - updated physx-rs to newer version, removed workarounds for now fixed issues there
+
 ## 0.3.0 - bevy 0.11 - 2023-08-07
 
 ### Added
