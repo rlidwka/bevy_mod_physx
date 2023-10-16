@@ -1,6 +1,6 @@
 [package]
 name = "bevy_mod_physx"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Alex Kocharin <alex@kocharin.ru>"]
 description = "PhysX plugin for Bevy"
 documentation = "https://docs.rs/bevy_mod_physx"
@@ -20,12 +20,12 @@ path = "src/lib.rs"
 bevy = "0.11.0"
 derive_more = "0.99.17"
 enumflags2 = "0.7.7"
-physx = "0.18.0"
-physx-sys = "0.11.3"
+physx = "0.19.0"
+physx-sys = "0.11.5"
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
-bevy-inspector-egui = "0.19.0"
+bevy-inspector-egui = "0.20.0"
 
 [features]
 serialize = ["dep:serde", "bevy/serialize"]
