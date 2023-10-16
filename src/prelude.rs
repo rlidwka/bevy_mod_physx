@@ -46,6 +46,7 @@ pub use crate::plugins::shape_filter_data::ShapeFilterData;
 pub use crate::plugins::shape_offsets::ShapeOffsets;
 pub use crate::plugins::sleep::{SleepControl, Sleeping};
 pub use crate::plugins::velocity::{MaxVelocity, Velocity};
+pub use crate::plugins::lock_flags::RigidDynamicLockFlags;
 
 pub use crate::utils::events::AppExtensions;
 pub use crate::utils::physx_extras::{

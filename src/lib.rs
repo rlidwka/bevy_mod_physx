@@ -159,6 +159,7 @@ impl PluginGroup for PhysicsPlugins {
             .add(crate::plugins::shape_offsets::ShapeOffsetsPlugin)
             .add(crate::plugins::sleep::SleepPlugin)
             .add(crate::plugins::velocity::VelocityPlugin)
+            .add(crate::plugins::lock_flags::LockFlagsPlugin)
     }
 }
 
