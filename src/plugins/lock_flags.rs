@@ -1,9 +1,7 @@
-
-
-
 use bevy::prelude::*;
 use physx::traits::Class;
 use crate::prelude::{Scene, *};
+
 
 #[derive(Component, Debug, PartialEq, Clone, Copy, Reflect, Default)]
 #[cfg_attr(feature = "serialize", derive(serde::Serialize, serde::Deserialize))]
@@ -54,7 +52,6 @@ pub fn lock_flags_sync(
         };
 
         unsafe {
-            info!("lock_flags_sync");
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockLinearX, lock_flags.lock_linear_x);
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockLinearY, lock_flags.lock_linear_y);
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockLinearZ, lock_flags.lock_linear_z);
@@ -62,7 +59,6 @@ pub fn lock_flags_sync(
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockAngularX, lock_flags.lock_angular_x);
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockAngularY, lock_flags.lock_angular_y);
             physx_sys::PxRigidDynamic_setRigidDynamicLockFlag_mut(actor_handle, physx_sys::PxRigidDynamicLockFlag::LockAngularZ, lock_flags.lock_angular_z);
-
         }
 
     } 
