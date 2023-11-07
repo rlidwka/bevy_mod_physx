@@ -7,7 +7,7 @@ fn main() {
     // this example demonstrates how to run physics within bevy's FixedTimestep,
     // you can similar approach if you need to control when to run physics (e.g. pause on demand)
     App::new()
-        .insert_resource(FixedTime::new_from_secs(0.05))
+        .insert_resource(Time::<Fixed>::from_seconds(0.05))
         .add_plugins(DefaultPlugins)
         .add_plugins(PhysicsPlugins.set(
             PhysicsCore::new()
@@ -24,7 +24,7 @@ fn main() {
 }
 
 pub fn run_physics_schedule(world: &mut World) {
-    let period = world.resource::<FixedTime>().period;
+    let period = world.resource::<Time<Fixed>>().timestep();
     let mut pxtime = world.resource_mut::<PhysicsTime>();
     pxtime.update(period);
     world.run_schedule(PhysicsSchedule);

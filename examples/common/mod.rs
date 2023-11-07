@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
-use bevy::pbr::DirectionalLightShadowMap;
+use bevy::pbr::{DirectionalLightShadowMap, ShadowFilteringMethod};
 use bevy::prelude::*;
 use bevy_mod_physx::prelude::*;
 
@@ -48,6 +48,9 @@ impl Plugin for DemoUtils {
             brightness: 1.0 / 5.0f32,
         });
         app.insert_resource(Msaa::default());
+
+        // using 4096x4096 shadow maps to get the best possible quality
+        // for demos, but it's not great for performance
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
 
         // log fps to console
@@ -68,7 +71,7 @@ impl Plugin for DemoUtils {
         app.add_systems(Update, spacebar_pauses_simulation);
 
         if SIMULATION_STARTS_PAUSED {
-            app.add_systems(Startup, |mut time: ResMut<Time>| time.pause());
+            app.add_systems(Startup, |mut time: ResMut<Time<Virtual>>| time.pause());
         }
 
         app.add_systems(Update, bevy::window::close_on_esc);
@@ -102,6 +105,7 @@ fn adjust_camera_settings(
         let (yaw, pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
 
         commands.entity(entity)
+            .insert(ShadowFilteringMethod::Jimenez14)
             .insert(OrbitCamera {
                 gimbal_x: -yaw,
                 gimbal_y: -pitch,
@@ -113,7 +117,7 @@ fn adjust_camera_settings(
 
 fn spacebar_pauses_simulation(
     keys: Res<Input<KeyCode>>,
-    mut time: ResMut<Time>,
+    mut time: ResMut<Time<Virtual>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {
         if time.is_paused() {

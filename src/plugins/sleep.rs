@@ -111,7 +111,7 @@ pub fn sleep_marker_sync(
     mut commands: Commands,
     mut events: EventReader<WakeSleepEvent>,
 ) {
-    for WakeSleepEvent { entities, is_waking } in events.iter() {
+    for WakeSleepEvent { entities, is_waking } in events.read() {
         for entity in entities.iter() {
             let Some(mut cmd) = commands.get_entity(*entity) else { continue; };
             if *is_waking {

@@ -269,7 +269,7 @@ fn highlight_on_hit(
     mut events: EventReader<CollisionEvent>,
     highlighable: Query<(), With<Highlightable>>,
 ) {
-    for event in events.iter() {
+    for event in events.read() {
         for entity in [ event.actor0, event.actor1 ] {
             if highlighable.get(entity).is_ok() {
                 commands.entity(entity)

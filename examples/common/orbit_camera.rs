@@ -97,21 +97,21 @@ fn apply_camera_controls(
 
     let mut events = vec![];
 
-    for ev in scroll_events.iter() {
+    for ev in scroll_events.read() {
         events.push(MyEvent::Zoom(ev.y));
     }
 
     if buttons.pressed(MouseButton::Left) {
-        for ev in move_events.iter() {
+        for ev in move_events.read() {
             events.push(MyEvent::Rotate((ev.delta.x, ev.delta.y)));
         }
     } else if buttons.pressed(MouseButton::Right) {
-        for ev in move_events.iter() {
+        for ev in move_events.read() {
             events.push(MyEvent::Pan((ev.delta.x, ev.delta.y)));
         }
     }
 
-    for ev in gamepad_events.iter() {
+    for ev in gamepad_events.read() {
         match ev {
             GamepadEvent::Axis(ev) => {
                 match ev.axis_type {

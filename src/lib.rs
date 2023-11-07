@@ -219,8 +219,8 @@ impl Plugin for PhysicsCore {
             app.add_plugins(AssetPlugin::default());
         }
 
-        app.add_asset::<bpx::Geometry>();
-        app.add_asset::<bpx::Material>();
+        app.init_asset::<bpx::Geometry>();
+        app.init_asset::<bpx::Material>();
 
         app.register_type::<PhysicsTime>();
         app.insert_resource(PhysicsTime::new(self.timestep));
