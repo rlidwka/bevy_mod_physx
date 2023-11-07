@@ -61,7 +61,7 @@ pub fn kinematic_disable(
     mut removed: RemovedComponents<Kinematic>,
     mut handles: Query<&mut RigidDynamicHandle>,
 ) {
-    for entity in removed.iter() {
+    for entity in removed.read() {
         if let Ok(mut actor) = handles.get_mut(entity) {
             let mut rigid_body = actor.get_mut(&mut scene);
 

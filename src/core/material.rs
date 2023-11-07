@@ -8,7 +8,7 @@ use physx::prelude::*;
 use crate::prelude as bpx;
 use crate::types::PxMaterial;
 
-#[derive(TypeUuid, TypePath, Deref, DerefMut)]
+#[derive(Asset, TypeUuid, TypePath, Deref, DerefMut)]
 #[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
 /// Material object represents a set of surface properties.
 pub struct Material(Owner<PxMaterial>);

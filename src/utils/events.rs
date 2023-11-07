@@ -10,7 +10,10 @@
 
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
+
+use bevy::ecs::event::event_update_system;
 use bevy::prelude::*;
+
 use crate::{PhysicsSchedule, PhysicsSet};
 
 #[derive(Resource, Deref, DerefMut)]
@@ -36,7 +39,7 @@ impl AppExtensions for App {
         if !self.world.contains_resource::<Events<T>>() {
             self.init_resource::<Events<T>>();
             self.add_systems(PhysicsSchedule, (
-                Events::<T>::update_system,
+                event_update_system::<T>,
             ).before(PhysicsSet::Create));
         }
         self
@@ -51,7 +54,7 @@ impl AppExtensions for App {
         self.add_event::<T>();
         self.add_systems(PhysicsSchedule, (
             channel_to_event::<T>,
-        ).after(Events::<T>::update_system).before(PhysicsSet::Create));
+        ).after(event_update_system::<T>).before(PhysicsSet::Create));
 
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self
@@ -66,7 +69,7 @@ impl AppExtensions for App {
         self.add_physics_event::<T>();
         self.add_systems(PhysicsSchedule, (
             channel_to_event::<T>,
-        ).after(Events::<T>::update_system).before(PhysicsSet::Create));
+        ).after(event_update_system::<T>).before(PhysicsSet::Create));
 
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self

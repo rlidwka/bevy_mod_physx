@@ -41,7 +41,7 @@ use physx_sys::{
 
 use crate::prelude::{self as bpx, *};
 
-#[derive(TypeUuid, TypePath, Clone, Deref, DerefMut)]
+#[derive(Asset, TypeUuid, TypePath, Clone, Deref, DerefMut)]
 #[uuid = "db246120-e6af-4ebf-a95a-a6efe1c54d9f"]
 /// Geometry object defines the characteristics of a spatial object.
 pub struct Geometry {
