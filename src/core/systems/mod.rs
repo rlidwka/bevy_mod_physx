@@ -13,6 +13,6 @@ pub fn scene_simulate(
     time: Res<crate::prelude::PhysicsTime>,
 ) {
     let mut scene = scene.get_mut();
-    scene.simulate(time.delta_seconds, None, None);
+    scene.simulate(time.delta_seconds(), None, None);
     scene.fetch_results(true).unwrap();
 }

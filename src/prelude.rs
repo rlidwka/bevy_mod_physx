@@ -10,6 +10,7 @@ pub use crate::{
     PhysicsSchedule,
     PhysicsSet,
     PhysicsTime,
+    PhysicsTimeExtensions,
     TimestepMode,
 };
 

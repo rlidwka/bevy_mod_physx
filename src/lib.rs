@@ -324,75 +324,42 @@ impl Default for TimestepMode {
     }
 }
 
-/// A clock that tracks how much time was simulated by the physics engine.
-///
-/// This clock is similar to [Time] and measures execution of [PhysicsSchedule],
+/// This is a specialization of the [Time] structure that measures execution of [PhysicsSchedule],
 /// delta corresponds to time advanced from previous PhysicsSchedule execution.
-#[derive(Resource, Default, Debug, Reflect)]
-#[reflect(Resource, Default)]
-pub struct PhysicsTime {
-    timestep: TimestepMode,
-    delta: Duration,
-    delta_seconds: f32,
-    delta_seconds_f64: f64,
-    elapsed: Duration,
-    elapsed_seconds: f32,
-    elapsed_seconds_f64: f64,
+#[derive(Debug, Default, Copy, Clone, Reflect)]
+#[reflect(Default)]
+pub struct PhysicsTimeInner {
+    pub timestep: TimestepMode,
+    pub overstep: Duration,
 }
 
-impl PhysicsTime {
-    pub fn new(timestep: TimestepMode) -> Self {
-        Self { timestep, ..default() }
-    }
+/// A clock that tracks how much time was simulated by the physics engine.
+///
+/// This clock is a [Time] that measures execution of [PhysicsSchedule],
+/// delta corresponds to time advanced from previous PhysicsSchedule execution.
+pub type PhysicsTime = Time<PhysicsTimeInner>;
 
-    pub fn update(&mut self, delta: Duration) {
-        self.delta = delta;
-        self.delta_seconds = self.delta.as_secs_f32();
-        self.delta_seconds_f64 = self.delta.as_secs_f64();
+pub trait PhysicsTimeExtensions {
+    // have to wrap this into a trait:
+    // https://github.com/bevyengine/bevy/pull/8964#issuecomment-1799771605
+    fn new(timestep: TimestepMode) -> Self;
+    fn timestep(&self) -> TimestepMode;
+    fn set_timestep(&mut self, timestep: TimestepMode);
+}
 
-        self.elapsed += delta;
-        self.elapsed_seconds = self.elapsed.as_secs_f32();
-        self.elapsed_seconds_f64 = self.elapsed.as_secs_f64();
-    }
-
-    #[inline]
-    pub fn timestep(&self) -> TimestepMode {
-        self.timestep
-    }
-
-    #[inline]
-    pub fn set_timestep(&mut self, timestep: TimestepMode) {
-        self.timestep = timestep;
+impl PhysicsTimeExtensions for PhysicsTime {
+    fn new(timestep: TimestepMode) -> Self {
+        Self::new_with(PhysicsTimeInner { timestep, overstep: Duration::default() })
     }
 
     #[inline]
-    pub fn delta(&self) -> Duration {
-        self.delta
+    fn timestep(&self) -> TimestepMode {
+        self.context().timestep
     }
 
     #[inline]
-    pub fn delta_seconds(&self) -> f32 {
-        self.delta_seconds
-    }
-
-    #[inline]
-    pub fn delta_seconds_f64(&self) -> f64 {
-        self.delta_seconds_f64
-    }
-
-    #[inline]
-    pub fn elapsed(&self) -> Duration {
-        self.elapsed
-    }
-
-    #[inline]
-    pub fn elapsed_seconds(&self) -> f32 {
-        self.elapsed_seconds
-    }
-
-    #[inline]
-    pub fn elapsed_seconds_f64(&self) -> f64 {
-        self.elapsed_seconds_f64
+    fn set_timestep(&mut self, timestep: TimestepMode) {
+        self.context_mut().timestep = timestep;
     }
 }
 
@@ -411,7 +378,7 @@ pub fn run_physics_schedule(world: &mut World) {
         let dt = Duration::from_secs_f32(delta / substeps as f32);
         for _ in 0..substeps {
             let mut pxtime = world.resource_mut::<PhysicsTime>();
-            pxtime.update(dt);
+            pxtime.advance_by(dt);
             world.run_schedule(PhysicsSchedule);
         }
     }

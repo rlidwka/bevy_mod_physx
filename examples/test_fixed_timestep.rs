@@ -26,7 +26,7 @@ fn main() {
 pub fn run_physics_schedule(world: &mut World) {
     let period = world.resource::<Time<Fixed>>().timestep();
     let mut pxtime = world.resource_mut::<PhysicsTime>();
-    pxtime.update(period);
+    pxtime.advance_by(period);
     world.run_schedule(PhysicsSchedule);
 }
 
