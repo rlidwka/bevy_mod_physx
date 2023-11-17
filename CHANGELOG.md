@@ -1,3 +1,9 @@
+## 0.3.2 - bevy 0.11 - 2023-11-17
+
+### Added
+
+ - added `lock_flags` plugin (`RigidDynamicLockFlags`)
+
 ## 0.3.1 - bevy 0.11 - 2023-10-13
 
 ### Fixed
