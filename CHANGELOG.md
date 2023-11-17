@@ -1,3 +1,9 @@
+## 0.4.0 - bevy 0.12 - 2023-11-17
+
+### Changed
+
+ - updated Bevy to 0.12
+
 ## 0.3.2 - bevy 0.11 - 2023-11-17
 
 ### Added
