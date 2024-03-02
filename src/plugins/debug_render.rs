@@ -179,44 +179,53 @@ fn debug_visualization(
     let buffer = unsafe { PxScene_getRenderBuffer_mut(scene.as_mut_ptr()) };
 
     // display points
-    /*let points = unsafe {
-        std::slice::from_raw_parts(
-            PxRenderBuffer_getPoints(buffer),
-            PxRenderBuffer_getNbPoints(buffer) as usize,
-        )
-    };
+    /*let ptr = unsafe { PxRenderBuffer_getPoints(buffer) };
+    if !ptr.is_null() {
+        let points = unsafe {
+            std::slice::from_raw_parts(
+                PxRenderBuffer_getPoints(buffer),
+                PxRenderBuffer_getNbPoints(buffer) as usize,
+            )
+        };
 
-    for point in points {
-        dbg!(point.pos.to_bevy());
+        for point in points {
+            dbg!(point.pos.to_bevy());
+        }
     }*/
 
     // display lines
-    let lines = unsafe {
-        std::slice::from_raw_parts(
-            PxRenderBuffer_getLines(buffer),
-            PxRenderBuffer_getNbLines(buffer) as usize,
-        )
-    };
+    let ptr = unsafe { PxRenderBuffer_getLines(buffer) };
+    if !ptr.is_null() {
+        let lines = unsafe {
+            std::slice::from_raw_parts(
+                PxRenderBuffer_getLines(buffer),
+                PxRenderBuffer_getNbLines(buffer) as usize,
+            )
+        };
 
-    for line in lines {
-        assert_eq!(line.color0, line.color1);
-        let color: [u8; 4] = line.color0.to_ne_bytes();
-        gizmos.line(
-            line.pos0.to_bevy(),
-            line.pos1.to_bevy(),
-            Color::rgba_u8(color[0], color[1], color[2], color[3]),
-        );
+        for line in lines {
+            assert_eq!(line.color0, line.color1);
+            let color: [u8; 4] = line.color0.to_ne_bytes();
+            gizmos.line(
+                line.pos0.to_bevy(),
+                line.pos1.to_bevy(),
+                Color::rgba_u8(color[0], color[1], color[2], color[3]),
+            );
+        }
     }
 
     // display triangles
-    /*let triangles = unsafe {
-        std::slice::from_raw_parts(
-            PxRenderBuffer_getTriangles(buffer),
-            PxRenderBuffer_getNbTriangles(buffer) as usize,
-        )
-    };
+    /*let ptr = unsafe { PxRenderBuffer_getTriangles(buffer) };
+    if !ptr.is_null() {
+        let triangles = unsafe {
+            std::slice::from_raw_parts(
+                PxRenderBuffer_getTriangles(buffer),
+                PxRenderBuffer_getNbTriangles(buffer) as usize,
+            )
+        };
 
-    for triangle in triangles {
-        dbg!(triangle.pos0.to_bevy());
+        for triangle in triangles {
+            dbg!(triangle.pos0.to_bevy());
+        }
     }*/
 }
