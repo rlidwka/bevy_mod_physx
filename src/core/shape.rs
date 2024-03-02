@@ -56,7 +56,7 @@ impl ShapeHandle {
         let geometry_ptr = match &mut geometry.obj {
             GeometryInner::Sphere(geom)  => { geom.as_ptr() },
             GeometryInner::Plane { plane, normal } => {
-                transform.rotate(Quat::from_rotation_arc(Vec3::X, *normal));
+                transform.rotate(Quat::from_rotation_arc(Vec3::X, **normal));
                 plane.as_ptr()
             },
             GeometryInner::Capsule(geom) => { geom.as_ptr() },

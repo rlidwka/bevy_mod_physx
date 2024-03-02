@@ -43,10 +43,11 @@ fn spawn_long_chain(
     const OVERLAPPING_LINKS: bool = true;
 
     let mut position = Vec3::new(0., 24., 0.);
-    let mesh = meshes.add(Capsule3d::new(RADIUS, HALF_HEIGHT + RADIUS * 2.));
+    let primitive = Capsule3d::new(RADIUS, HALF_HEIGHT + RADIUS * 2.);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(1., 0.7, 0.));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::capsule(HALF_HEIGHT, RADIUS));
+    let px_geometry = px_geometries.add(primitive);
     let mut parent_link = None;
 
     for _ in 0..SEGMENTS {
@@ -126,9 +127,10 @@ fn spawn_long_chain(
     position.x -= (RADIUS + HALF_HEIGHT) * 2.;
     position.x += (RADIUS + HALF_HEIGHT) + BOX_SIZE;
 
-    let box_mesh = meshes.add(Cuboid::from_size(Vec3::splat(BOX_SIZE * 2.)));
+    let primitive = Cuboid::from_size(Vec3::splat(BOX_SIZE * 2.));
+    let box_mesh = meshes.add(primitive);
     let box_material = materials.add(Color::rgb(0.8, 0.7, 0.6));
-    let box_geometry = px_geometries.add(bpx::Geometry::cuboid(BOX_SIZE, BOX_SIZE, BOX_SIZE));
+    let box_geometry = px_geometries.add(primitive);
 
     commands.spawn_empty()
         .insert(bpx::RigidBody::ArticulationLink)
@@ -176,10 +178,11 @@ fn spawn_obstacle(
     const HALF_Y: f32 = 0.1;
     const HALF_Z: f32 = 2.;
 
-    let mesh = meshes.add(Cuboid::new(HALF_X * 2., HALF_Y * 2., HALF_Z * 2.).mesh());
+    let primitive = Cuboid::new(HALF_X * 2., HALF_Y * 2., HALF_Z * 2.);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(HALF_X, HALF_Y, HALF_Z));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
     let transform = Transform::from_xyz(10., 21., 0.);
 
@@ -207,9 +210,10 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let primitive = Plane3d::default();
+    let mesh = meshes.add(primitive.mesh().size(500., 500.));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()

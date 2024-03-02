@@ -27,9 +27,10 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let primitive = Plane3d::default();
+    let mesh = meshes.add(primitive.mesh().size(500., 500.));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
@@ -56,10 +57,11 @@ fn spawn_stacks(
     const WIDTH: f32 = 0.5;
     const SIZE: usize = 10;
 
-    let mesh = meshes.add(Cuboid::from_size(Vec3::splat(WIDTH)));
+    let primitive = Cuboid::from_size(Vec3::splat(WIDTH));
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(WIDTH / 2., WIDTH / 2., WIDTH / 2.));
+    let px_geometry = px_geometries.add(primitive);
 
     for i in 0..5 {
         commands.spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., -1.25 * i as f32)))
@@ -102,10 +104,11 @@ fn spawn_dynamic(
 ) {
     const RADIUS: f32 = 1.25;
 
-    let mesh = meshes.add(Sphere::new(RADIUS).mesh());
+    let primitive = Sphere::new(RADIUS);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::ball(RADIUS));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     let transform = Transform::from_xyz(0., 5., 12.5);

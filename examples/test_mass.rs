@@ -25,59 +25,63 @@ pub fn spawn_scene(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
 ) {
     // plane
+    let primitive = Plane3d::default();
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
             material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         },
         RigidBody::Static,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::halfspace(Vec3::Y)),
+            geometry: px_geometries.add(primitive),
             ..default()
         },
     ));
 
+    let primitive = Cuboid::from_size(Vec3::splat(1.0));
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Cuboid::from_size(Vec3::splat(1.0))),
+            mesh: meshes.add(primitive),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(-1.2, 5.0, 0.0),
             ..default()
         },
         RigidBody::Dynamic,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::cuboid(0.5, 0.5, 0.5)),
+            geometry: px_geometries.add(primitive),
             ..default()
         },
         MassProperties::density(1000.)
     ));
 
+    let primitive = Cuboid::from_size(Vec3::splat(1.0));
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Cuboid::from_size(Vec3::splat(1.0))),
+            mesh: meshes.add(primitive),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(1.2, 5.0, 0.0),
             ..default()
         },
         RigidBody::Dynamic,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::cuboid(0.5, 0.5, 0.5)),
+            geometry: px_geometries.add(primitive),
             ..default()
         },
         MassProperties::density(0.1)
     ));
 
+    let primitive = Sphere::new(1.);
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Sphere::new(1.).mesh()),
+            mesh: meshes.add(primitive),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(0.0, 1.0, 0.0),
             ..default()
         },
         RigidBody::Dynamic,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::ball(1.)),
+            geometry: px_geometries.add(primitive),
             ..default()
         },
         MassProperties::density(1.)

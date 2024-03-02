@@ -149,9 +149,10 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let primitive = Plane3d::default();
+    let mesh = meshes.add(primitive.mesh().size(500., 500.));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
@@ -178,8 +179,9 @@ fn spawn_tiles(
     let num = 32;
     let rad = 1.0;
     let height = 0.1;
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(rad, height, rad));
-    let mesh = meshes.add(Cuboid::new(rad * 2., height * 2., rad * 2.).mesh());
+    let primitive = Cuboid::new(rad * 2., height * 2., rad * 2.);
+    let px_geometry = px_geometries.add(primitive);
+    let mesh = meshes.add(primitive);
     let material = materials.normal.clone();
 
     let shift = rad * 2.5;
@@ -218,12 +220,11 @@ fn spawn_dynamic(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    const RADIUS: f32 = 1.25;
-
-    let mesh = meshes.add(Sphere::new(RADIUS).mesh());
+    let primitive = Sphere::new(1.25);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::ball(RADIUS));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));
 
     let transform = Transform::from_xyz(0., 5., 32.5);

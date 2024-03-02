@@ -48,9 +48,10 @@ fn spawn_table(
     const THICKNESS: f32 = 0.5;
     const SIDE_HEIGHT: f32 = 1.;
 
-    let mesh = meshes.add(Cuboid::new(SIZE, THICKNESS, SIZE));
+    let primitive = Cuboid::new(SIZE, THICKNESS, SIZE);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(SIZE / 2., THICKNESS / 2., SIZE / 2.));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
@@ -69,9 +70,10 @@ fn spawn_table(
         .insert(Surface)
         .insert(Name::new("TableSurface"));
 
-    let mesh = meshes.add(Cuboid::new(SIZE + THICKNESS, SIDE_HEIGHT, THICKNESS));
+    let primitive = Cuboid::new(SIZE + THICKNESS, SIDE_HEIGHT, THICKNESS);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(SIZE / 2. + THICKNESS / 2., SIDE_HEIGHT / 2., THICKNESS / 2.));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     for side in 0..4 {
@@ -104,10 +106,11 @@ fn spawn_pyramid(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Sphere::new(BALL_SIZE).mesh());
+    let primitive = Sphere::new(BALL_SIZE);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::ball(BALL_SIZE));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));
 
     for dx in 0..8 {
@@ -144,10 +147,11 @@ fn spawn_kinematic(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Cuboid::new(CUE_SIZE, CUE_SIZE, CUE_SIZE));
+    let primitive = Cuboid::new(CUE_SIZE, CUE_SIZE, CUE_SIZE);
+    let mesh = meshes.add(primitive);
     let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(CUE_SIZE / 2., CUE_SIZE / 2., CUE_SIZE / 2.));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));
     let transform = Transform::from_xyz(0., BALL_SIZE, 0.);
 
