@@ -1,3 +1,9 @@
+## 0.4.1 - bevy 0.12 - 2024-03-02
+
+### Fixed
+
+ - fixed null pointer handling in debug visualization (it now crashes as debug assertion in newer Rust versions)
+
 ## 0.4.0 - bevy 0.12 - 2023-11-17
 
 ### Changed

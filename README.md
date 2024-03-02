@@ -77,20 +77,20 @@ fn setup_physics(
 
 ### Compatibility / Prior art
 
-|[]() |[]() |[]() |[]()
-|--|--|--|--
-| published | [0.4.x](https://crates.io/crates/bevy_mod_physx) | Bevy 0.12 | PhysX 5
-| | [0.2.x - 0.3.x](https://crates.io/crates/bevy_mod_physx) | Bevy 0.11 | PhysX 5
-| | | |
-| git tags | [git:master](https://github.com/rlidwka/bevy_mod_physx) | Bevy 0.12 | PhysX 5
-| | [git:a2741a6](https://github.com/rlidwka/bevy_mod_physx/tree/a2741a632b03e0a2c5763768a1042ca8d42774a1) | Bevy 0.11 | PhysX 5
-| | [git:a21b570](https://github.com/rlidwka/bevy_mod_physx/tree/a21b570b20a1e7ac22b5c86c54fcc1597760f2ec) | Bevy 0.11 | PhysX 4
-| | [git:43ae89e](https://github.com/rlidwka/bevy_mod_physx/tree/43ae89e013daf00ef841611149420fb4d04c2a4f) | Bevy 0.10 | PhysX 5
-| | [git:8f66a99](https://github.com/rlidwka/bevy_mod_physx/tree/8f66a9965eb461794856898ca44a1faf13c295ab) | Bevy 0.10 | PhysX 4
-| | | |
-| other crates | [bevy_mod_physx](https://github.com/MasterOfMarkets/bevy_mod_physx) v0.1.0 | Bevy 0.10 | deprecated
-| | [bevy_prototype_physx](https://github.com/superdump/bevy_prototype_physx) | Bevy 0.2-0.5 | unknown
-| | [bevy_physx](https://crates.io/crates/bevy_physx) | | never existed
-| | | |
+|[]()           |[]()                                                                                                    |[]()          |[]()           |
+|---------------|--------------------------------------------------------------------------------------------------------|--------------|---------------|
+| published     | [0.4.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.12    | PhysX 5       |
+|               | [0.2.x - 0.3.x](https://crates.io/crates/bevy_mod_physx)                                               | Bevy 0.11    | PhysX 5       |
+|               |                                                                                                        |              |               |
+| git tags      | [git:master](https://github.com/rlidwka/bevy_mod_physx)                                                | Bevy 0.12    | PhysX 5       |
+|               | [git:a2741a6](https://github.com/rlidwka/bevy_mod_physx/tree/a2741a632b03e0a2c5763768a1042ca8d42774a1) | Bevy 0.11    | PhysX 5       |
+|               | [git:a21b570](https://github.com/rlidwka/bevy_mod_physx/tree/a21b570b20a1e7ac22b5c86c54fcc1597760f2ec) | Bevy 0.11    | PhysX 4       |
+|               | [git:43ae89e](https://github.com/rlidwka/bevy_mod_physx/tree/43ae89e013daf00ef841611149420fb4d04c2a4f) | Bevy 0.10    | PhysX 5       |
+|               | [git:8f66a99](https://github.com/rlidwka/bevy_mod_physx/tree/8f66a9965eb461794856898ca44a1faf13c295ab) | Bevy 0.10    | PhysX 4       |
+|               |                                                                                                        |              |               |
+| other crates  | [bevy_mod_physx](https://github.com/MasterOfMarkets/bevy_mod_physx) v0.1.0                             | Bevy 0.10    | deprecated    |
+|               | [bevy_prototype_physx](https://github.com/superdump/bevy_prototype_physx)                              | Bevy 0.2-0.5 | unknown       |
+|               | [bevy_physx](https://crates.io/crates/bevy_physx)                                                      |              | never existed |
+|               |                                                                                                        |              |               |
 
 *Note: you can find PhysX 4 version of this crate. It exists because PhysX 5 bindings don't have Vehicle API. It is not officially supported nor published to crates.io, and may get removed in the future.*
