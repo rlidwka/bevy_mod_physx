@@ -38,16 +38,16 @@ pub fn spawn_scene(
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(shape::Plane::from_size(1000.0).into()),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
 
-    let bevy_material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
-    let root_mesh = meshes.add(Mesh::from(shape::Box::new(0.5, 0.5, 0.5)));
+    let bevy_material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let root_mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.5));
     let root_geometry = px_geometries.add(bpx::Geometry::cuboid(0.25, 0.25, 0.25));
-    let part_mesh = meshes.add(Mesh::from(shape::UVSphere { radius: 0.2, ..default() }));
+    let part_mesh = meshes.add(Sphere::new(0.2).mesh());
     let part_geometry = px_geometries.add(bpx::Geometry::ball(0.2));
     let limited_joint = ArticulationJointMotion::Limited { min: -std::f32::consts::FRAC_PI_4, max: std::f32::consts::FRAC_PI_4 };
 

@@ -27,8 +27,8 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0, subdivisions: 4 }));
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
+    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -56,8 +56,8 @@ fn spawn_stacks(
     const WIDTH: f32 = 0.5;
     const SIZE: usize = 10;
 
-    let mesh = meshes.add(Mesh::from(shape::Cube { size: WIDTH }));
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    let mesh = meshes.add(Cuboid::from_size(Vec3::splat(WIDTH)));
+    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(bpx::Geometry::cuboid(WIDTH / 2., WIDTH / 2., WIDTH / 2.));
 
@@ -102,8 +102,8 @@ fn spawn_dynamic(
 ) {
     const RADIUS: f32 = 1.25;
 
-    let mesh = meshes.add(Mesh::from(shape::UVSphere { radius: 1.25, ..default() }));
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6).into());
+    let mesh = meshes.add(Sphere::new(RADIUS).mesh());
+    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(bpx::Geometry::ball(RADIUS));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));

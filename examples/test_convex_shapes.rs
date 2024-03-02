@@ -2,6 +2,7 @@ mod common;
 
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
+use bevy::render::render_asset::RenderAssetUsages;
 use bevy::render::render_resource::PrimitiveTopology;
 use bevy_mod_physx::core::geometry::GeometryInner;
 use bevy_mod_physx::prelude::{self as bpx, *};
@@ -66,10 +67,10 @@ fn create_bevy_mesh_from_geometry(geometry: &Geometry) -> Mesh {
         _ => unimplemented!()
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD);
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-    mesh.set_indices(Some(Indices::U32(indices)));
+    mesh.insert_indices(Indices::U32(indices));
     mesh
 }
 
@@ -88,8 +89,8 @@ pub fn spawn_scene(
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(shape::Plane::from_size(1000.0).into()),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
@@ -100,7 +101,7 @@ pub fn spawn_scene(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(mesh),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(-2.0, 7.0, 0.0).with_rotation(Quat::from_rotation_z(-1.)),
             ..default()
         },
@@ -127,7 +128,7 @@ pub fn spawn_scene(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(mesh),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(2.0, 7.0, 0.0).with_rotation(Quat::from_rotation_z(-1.)),
             ..default()
         },

@@ -46,8 +46,8 @@ fn init_materials(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(DemoMaterials {
-        normal: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        highlighted: materials.add(Color::rgb(0.3, 0.4, 0.9).into()),
+        normal: materials.add(Color::rgb(0.8, 0.7, 0.6)),
+        highlighted: materials.add(Color::rgb(0.3, 0.4, 0.9)),
     });
 }
 
@@ -59,8 +59,8 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Mesh::from(shape::Plane { size: 500.0, subdivisions: 4 }));
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3).into());
+    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -88,7 +88,7 @@ fn spawn_cubes(
     let num = 8;
     let rad = 1.0;
     let px_geometry = px_geometries.add(bpx::Geometry::cuboid(rad, rad, rad));
-    let mesh = meshes.add(Mesh::from(shape::Cube { size: rad * 2. }));
+    let mesh = meshes.add(Cuboid::from_size(Vec3::splat(rad * 2.)));
     let material = materials.normal.clone();
 
     let shift = rad * 2.0 + rad;
@@ -152,7 +152,7 @@ fn hover_highlight(
     for (camera, camera_transform) in &cameras {
         let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else { continue; };
 
-        if let Some(hit) = scene.raycast(ray.origin, ray.direction, f32::MAX, &default()) {
+        if let Some(hit) = scene.raycast(ray, f32::MAX, &default()) {
             if highlighable.get(hit.actor).is_ok() {
                 commands.entity(hit.actor)
                     .insert(materials.highlighted.clone())

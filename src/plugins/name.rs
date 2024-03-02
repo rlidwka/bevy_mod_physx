@@ -43,7 +43,7 @@ impl Plugin for NamePlugin {
             PhysicsSchedule,
             name_sync
                 .after(crate::systems::scene_simulate)
-                .run_if(resource_exists::<NameFormatter>())
+                .run_if(resource_exists::<NameFormatter>)
                 .in_set(PhysicsSet::Simulate),
         );
     }
