@@ -89,7 +89,7 @@ fn adjust_light_settings(
     // but we still want examples to be functional by default without this plugin.
     // So a good solution is to get existing light and adjust it to look nicer.
     for (entity, mut light) in query.iter_mut() {
-        light.illuminance = 15000.;
+        light.illuminance = 6500.;
         light.shadows_enabled = true;
         commands.entity(entity).insert(DemoUtilsLightFixed);
     }
@@ -116,7 +116,7 @@ fn adjust_camera_settings(
 }
 
 fn spacebar_pauses_simulation(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut time: ResMut<Time<Virtual>>,
 ) {
     if keys.just_pressed(KeyCode::Space) {

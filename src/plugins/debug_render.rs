@@ -112,7 +112,7 @@ impl Plugin for DebugRenderPlugin {
         app.add_systems(
             Update,
             (set_visualization_params, debug_visualization)
-                .run_if(resource_exists::<DebugRenderSettings>()),
+                .run_if(resource_exists::<DebugRenderSettings>),
         );
     }
 }

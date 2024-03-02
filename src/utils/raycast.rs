@@ -94,19 +94,19 @@ impl Drop for SceneQueryFilter {
 }
 
 pub trait SceneQueryExt {
-    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit>;
+    fn raycast(&self, ray: Ray3d, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit>;
 }
 
 impl SceneQueryExt for Scene {
-    fn raycast(&self, origin: Vec3, direction: Vec3, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit> {
+    fn raycast(&self, ray: Ray3d, max_distance: f32, filter: &SceneQueryFilter) -> Option<RaycastHit> {
         let scene = self.get();
         let mut raycast_hit = MaybeUninit::uninit();
 
         if !unsafe {
             PxSceneQueryExt_raycastSingle(
                 scene.as_ptr(),
-                &origin.to_physx_sys(),
-                &direction.to_physx_sys(),
+                &ray.origin.to_physx_sys(),
+                &ray.direction.to_physx_sys(),
                 max_distance,
                 PxHitFlags::Default,
                 raycast_hit.as_mut_ptr(),

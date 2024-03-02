@@ -82,7 +82,7 @@ fn apply_camera_controls(
     mut gamepad_events: EventReader<GamepadEvent>,
     mut gamepad_state: Local<GamepadState>,
     time: Res<Time>,
-    buttons: Res<Input<MouseButton>>,
+    buttons: Res<ButtonInput<MouseButton>>,
     mut egui_contexts: EguiContexts,
     mut camera_query: Query<&mut OrbitCamera>,
 ) {

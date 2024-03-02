@@ -18,7 +18,7 @@ impl Plugin for DebugRenderPlugin {
 }
 
 fn debug_render_toggle(
-    input: Res<Input<KeyCode>>,
+    input: Res<ButtonInput<KeyCode>>,
     mut settings: ResMut<DebugRenderSettings>,
 ) {
     if input.just_pressed(KeyCode::F11) {

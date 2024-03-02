@@ -2,14 +2,13 @@
 //!
 //! This specifies static friction, dynamic friction and restitution of any surface.
 use bevy::prelude::*;
-use bevy::reflect::{TypePath, TypeUuid};
+use bevy::reflect::TypePath;
 use physx::prelude::*;
 
 use crate::prelude as bpx;
 use crate::types::PxMaterial;
 
-#[derive(Asset, TypeUuid, TypePath, Deref, DerefMut)]
-#[uuid = "5351ec05-c0fd-426a-b35e-62008a6b10e1"]
+#[derive(Asset, TypePath, Deref, DerefMut)]
 /// Material object represents a set of surface properties.
 pub struct Material(Owner<PxMaterial>);
 

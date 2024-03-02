@@ -35,8 +35,8 @@ pub fn spawn_scene(
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(shape::Plane::from_size(1000.0).into()),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
@@ -50,8 +50,8 @@ pub fn spawn_scene(
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::UVSphere { radius: 0.5, ..default() } )),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            mesh: meshes.add(Sphere::new(0.5).mesh()),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(-2.0, 5.0, 0.0),
             ..default()
         }
@@ -66,8 +66,8 @@ pub fn spawn_scene(
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::UVSphere { radius: 0.5, ..default() } )),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            mesh: meshes.add(Sphere::new(0.5).mesh()),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(2.0, 5.0, 0.0),
             ..default()
         }
