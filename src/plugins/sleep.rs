@@ -3,7 +3,6 @@ use std::sync::mpsc::channel;
 
 use bevy::prelude::*;
 use physx::prelude::*;
-use physx::rigid_dynamic::RigidDynamic;
 use physx::traits::Class;
 use physx_sys::{
     PxArticulationReducedCoordinate_getSleepThreshold,

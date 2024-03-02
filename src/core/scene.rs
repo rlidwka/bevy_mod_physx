@@ -5,15 +5,10 @@ use bevy::prelude::*;
 use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::scene::{
-    BroadPhaseType,
-    FilterShaderDescriptor,
     FrictionType,
-    PairFilteringMode,
-    PruningStructureType,
     SceneFlags,
     SceneLimits,
     SceneQueryUpdateMode,
-    SolverType,
 };
 use physx::traits::Class;
 use physx_sys::{
