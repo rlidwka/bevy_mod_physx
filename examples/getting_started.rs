@@ -33,7 +33,7 @@ fn setup_physics(
     commands.spawn((
         RigidBody::Static,
         Shape {
-            geometry: geometries.add(Geometry::halfspace(Vec3::Y)),
+            geometry: geometries.add(Plane3d::default()),
             material: materials.add(Material::new(&mut physics, 0.5, 0.5, 0.6)),
             ..default()
         },
@@ -44,7 +44,7 @@ fn setup_physics(
     commands.spawn((
         RigidBody::Dynamic,
         Shape {
-            geometry: geometries.add(Geometry::ball(0.5)),
+            geometry: geometries.add(Sphere::new(0.5)),
             material: materials.add(Material::new(&mut physics, 0.5, 0.5, 0.6)),
             ..default()
         },

@@ -59,9 +59,10 @@ fn spawn_plane(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
-    let mesh = meshes.add(Plane3d::default().mesh().size(500., 500.));
+    let primitive = Plane3d::default();
+    let mesh = meshes.add(primitive.mesh().size(500., 500.));
     let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
-    let px_geometry = px_geometries.add(bpx::Geometry::halfspace(Vec3::Y));
+    let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
@@ -87,8 +88,9 @@ fn spawn_cubes(
 ) {
     let num = 8;
     let rad = 1.0;
-    let px_geometry = px_geometries.add(bpx::Geometry::cuboid(rad, rad, rad));
-    let mesh = meshes.add(Cuboid::from_size(Vec3::splat(rad * 2.)));
+    let primitive = Cuboid::from_size(Vec3::splat(rad * 2.));
+    let px_geometry = px_geometries.add(primitive);
+    let mesh = meshes.add(primitive);
     let material = materials.normal.clone();
 
     let shift = rad * 2.0 + rad;

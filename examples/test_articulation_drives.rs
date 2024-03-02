@@ -30,26 +30,32 @@ pub fn spawn_scene(
     mut px_materials: ResMut<Assets<bpx::Material>>,
 ) {
     // plane
+    let primitive = Plane3d::default();
     commands.spawn((
         bpx::RigidBody::Static,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::halfspace(Vec3::Y)),
+            geometry: px_geometries.add(primitive),
             material: px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.)),
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
             material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
 
+    let primitive_root = Cuboid::from_size(Vec3::splat(0.5));
     let bevy_material = materials.add(Color::rgb(0.8, 0.7, 0.6));
-    let root_mesh = meshes.add(Cuboid::new(0.5, 0.5, 0.5));
-    let root_geometry = px_geometries.add(bpx::Geometry::cuboid(0.25, 0.25, 0.25));
-    let part_mesh = meshes.add(Sphere::new(0.2).mesh());
-    let part_geometry = px_geometries.add(bpx::Geometry::ball(0.2));
-    let limited_joint = ArticulationJointMotion::Limited { min: -std::f32::consts::FRAC_PI_4, max: std::f32::consts::FRAC_PI_4 };
+    let root_mesh = meshes.add(primitive_root);
+    let root_geometry = px_geometries.add(primitive_root);
+    let primitive_part = Sphere::new(0.2);
+    let part_mesh = meshes.add(primitive_part);
+    let part_geometry = px_geometries.add(primitive_part);
+    let limited_joint = ArticulationJointMotion::Limited {
+        min: -std::f32::consts::FRAC_PI_4,
+        max: std::f32::consts::FRAC_PI_4,
+    };
 
     let root = commands.spawn((
         PbrBundle {

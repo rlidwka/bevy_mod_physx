@@ -58,7 +58,7 @@ pub enum GeometryInner {
     // thus a lot of complications here
     Plane {
         plane: PxPlaneGeometry,
-        normal: Vec3,
+        normal: Direction3d,
     },
 
     // for convexmesh and triangle mesh we have to own the mesh,
@@ -91,7 +91,7 @@ impl From<PxSphereGeometry> for Geometry {
 impl From<PxPlaneGeometry> for Geometry {
     fn from(value: PxPlaneGeometry) -> Self {
         // makes more sense to default normal to Y axis (ground), but physx defaults to X axis
-        Self { obj: GeometryInner::Plane { plane: value, normal: Vec3::X } }
+        Self { obj: GeometryInner::Plane { plane: value, normal: Direction3d::X } }
     }
 }
 
@@ -137,24 +137,66 @@ impl From<Owner<HeightField>> for Geometry {
     }
 }
 
+impl From<Sphere> for Geometry {
+    fn from(sphere: Sphere) -> Self {
+        PxSphereGeometry::new(sphere.radius).into()
+    }
+}
+
+impl From<Plane3d> for Geometry {
+    fn from(plane: Plane3d) -> Self {
+        Self {
+            obj: GeometryInner::Plane {
+                plane: PxPlaneGeometry::new(),
+                normal: plane.normal,
+            },
+        }
+    }
+}
+
+impl From<Capsule3d> for Geometry {
+    fn from(capsule: Capsule3d) -> Self {
+        PxCapsuleGeometry::new(capsule.radius, capsule.half_length).into()
+    }
+}
+
+impl From<Cuboid> for Geometry {
+    fn from(cuboid: Cuboid) -> Self {
+        PxBoxGeometry::new(cuboid.half_size.x, cuboid.half_size.y, cuboid.half_size.z).into()
+    }
+}
+
 impl Geometry {
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use Bevy's `Sphere` primitive (e.g. using `Geometry::from`)"
+    )]
     pub fn ball(radius: f32) -> Self {
-        PxSphereGeometry::new(radius).into()
+        Sphere::new(radius).into()
     }
 
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use Bevy's `Plane3d` primitive (e.g. using `Geometry::from`)"
+    )]
     pub fn halfspace(outward_normal: Vec3) -> Self {
-        let Some(outward_normal) = outward_normal.try_normalize() else {
-            panic!("halfspace outward normal is zero");
-        };
-        Self { obj: GeometryInner::Plane { plane: PxPlaneGeometry::new(), normal: outward_normal } }
+        Plane3d::new(outward_normal).into()
     }
 
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use Bevy's `Capsule3d` primitive (e.g. using `Geometry::from`)"
+    )]
     pub fn capsule(half_height: f32, radius: f32) -> Self {
-        PxCapsuleGeometry::new(radius, half_height).into()
+        Capsule3d::new(radius, half_height).into()
     }
 
+    #[deprecated(
+        since = "0.5.0",
+        note = "please use Bevy's `Cuboid` primitive (e.g. using `Geometry::from`)"
+    )]
     pub fn cuboid(half_x: f32, half_y: f32, half_z: f32) -> Self {
-        PxBoxGeometry::new(half_x, half_y, half_z).into()
+        Cuboid::new(half_x * 2., half_y * 2., half_z * 2.).into()
     }
 
     pub fn convex_mesh(

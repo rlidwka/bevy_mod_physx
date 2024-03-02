@@ -82,14 +82,15 @@ pub fn spawn_scene(
     mut px_geometries: ResMut<Assets<bpx::Geometry>>,
 ) {
     // plane
+    let primitive = Plane3d::default();
     commands.spawn((
         RigidBody::Static,
         bpx::Shape {
-            geometry: px_geometries.add(bpx::Geometry::halfspace(Vec3::Y)),
+            geometry: px_geometries.add(primitive),
             ..default()
         },
         PbrBundle {
-            mesh: meshes.add(Plane3d::default().mesh().size(1000., 1000.)),
+            mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
             material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
             ..default()
         }
