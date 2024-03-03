@@ -1,3 +1,9 @@
+## 0.5.0 - bevy 0.13 - 2024-03-03
+
+### Changed
+
+ - updated Bevy to 0.13
+
 ## 0.4.1 - bevy 0.12 - 2024-03-02
 
 ### Fixed
