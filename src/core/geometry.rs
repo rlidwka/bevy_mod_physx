@@ -10,12 +10,15 @@
 //!    - convex mesh
 //!    - triangle mesh
 //!    - heightfield
+//!  - bevy meshes
+//!    - convex mesh
+//!    - triangle mesh
 //!
 use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
-use bevy::reflect::TypePath;
+use bevy::render::mesh::{Indices, VertexAttributeValues};
 use physx::convex_mesh::ConvexMesh;
 use physx::cooking::{
     self,
@@ -293,6 +296,34 @@ impl Geometry {
         mesh.into()
     }
 
+    /// Convert bevy's [`Mesh`](Mesh) to [`Geometry`](Geometry), assuming
+    /// it's a valid trimesh.
+    ///
+    /// Also see [`trimesh`](Geometry::trimesh).
+    pub fn bevy_trimesh(
+        physics: &mut bpx::Physics,
+        mesh: &Mesh,
+    ) -> Result<Self, TriangleMeshCookingError> {
+        let Some((verts, indices)) = extract_mesh_vertices_indices(mesh) else {
+            return Err(TriangleMeshCookingError::Failure);
+        };
+        Self::trimesh(physics, verts.as_slice(), indices.as_slice())
+    }
+
+    /// Convert bevy's [`Mesh`](Mesh) to [`Geometry`](Geometry), assuming
+    /// it's a convex mesh.
+    ///
+    /// Also see [`convex_mesh`](Geometry::convex_mesh).
+    pub fn bevy_convex_mesh(
+        physics: &mut bpx::Physics,
+        mesh: &Mesh,
+    ) -> Result<Self, ConvexMeshCookingError> {
+        let Some((verts, _)) = extract_mesh_vertices_indices(mesh) else {
+            return Err(ConvexMeshCookingError::Failure);
+        };
+        Self::convex_mesh(physics, verts.as_slice())
+    }
+
     /// Apply scale factor to an existing mesh (convex, triangle or heightfield).
     ///
     /// Only applicable to ConvexMesh, TriangleMesh or HeightField.
@@ -383,4 +414,29 @@ pub enum TriangleMeshCookingError {
 pub struct GeometryInnerPlane {
     pub plane: PxPlaneGeometry,
     pub normal: Vec3,
+}
+
+fn extract_mesh_vertices_indices(mesh: &Mesh) -> Option<(Vec<Vec3>, Vec<[u32; 3]>)> {
+    let vertices = mesh.attribute(Mesh::ATTRIBUTE_POSITION)?;
+    let indices = mesh.indices()?;
+
+    let vtx: Vec<_> = match vertices {
+        VertexAttributeValues::Float32(vtx) => {
+            Some(vtx.chunks(3).map(|v| Vec3::new(v[0], v[1], v[2])).collect())
+        }
+        VertexAttributeValues::Float32x3(vtx) => {
+            Some(vtx.iter().map(|v| Vec3::new(v[0], v[1], v[2])).collect())
+        }
+        _ => None,
+    }?;
+
+    let idx = match indices {
+        Indices::U16(idx) => idx
+            .chunks_exact(3)
+            .map(|i| [i[0] as u32, i[1] as u32, i[2] as u32])
+            .collect(),
+        Indices::U32(idx) => idx.chunks_exact(3).map(|i| [i[0], i[1], i[2]]).collect(),
+    };
+
+    Some((vtx, idx))
 }
