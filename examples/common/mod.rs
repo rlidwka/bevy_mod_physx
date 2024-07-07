@@ -15,7 +15,7 @@ use std::time::Duration;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
-use bevy::pbr::{DirectionalLightShadowMap, ShadowFilteringMethod};
+use bevy::pbr::DirectionalLightShadowMap;
 use bevy::prelude::*;
 use bevy_mod_physx::prelude::*;
 
@@ -42,7 +42,7 @@ impl Plugin for DemoUtils {
         }));
         app.add_plugins(DebugRenderPlugin);
 
-        app.insert_resource(ClearColor(Color::rgb(0., 0., 0.)));
+        app.insert_resource(ClearColor(Color::srgb(0., 0., 0.)));
         app.insert_resource(AmbientLight {
             color: Color::WHITE,
             brightness: 1.0 / 5.0f32,
@@ -74,7 +74,7 @@ impl Plugin for DemoUtils {
             app.add_systems(Startup, |mut time: ResMut<Time<Virtual>>| time.pause());
         }
 
-        app.add_systems(Update, bevy::window::close_on_esc);
+        app.add_systems(Update, close_on_esc);
     }
 }
 
@@ -105,7 +105,7 @@ fn adjust_camera_settings(
         let (yaw, pitch, _roll) = transform.rotation.to_euler(EulerRot::YXZ);
 
         commands.entity(entity)
-            .insert(ShadowFilteringMethod::Jimenez14)
+            // .insert(ShadowFilteringMethod::Jimenez14)
             .insert(OrbitCamera {
                 gimbal_x: -yaw,
                 gimbal_y: -pitch,
@@ -124,6 +124,20 @@ fn spacebar_pauses_simulation(
             time.unpause();
         } else {
             time.pause();
+        }
+    }
+}
+
+pub fn close_on_esc(
+    mut commands: Commands,
+    focused_windows: Query<(Entity, &Window)>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for (window, focus) in focused_windows.iter() {
+        if !focus.focused { continue; }
+
+        if input.just_pressed(KeyCode::Escape) {
+            commands.entity(window).despawn();
         }
     }
 }

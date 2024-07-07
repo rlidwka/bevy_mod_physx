@@ -36,7 +36,8 @@ impl Scene {
 
         // PxBounds3 doesn't have Clone/Copy, even though it should
         let sanity_bounds = unsafe {
-            physx::math::PxBounds3::from(*(std::mem::transmute::<_, &physx_sys::PxBounds3>(&d.sanity_bounds)))
+            std::mem::transmute_copy(&d.sanity_bounds)
+            //physx::math::PxBounds3::from(*(std::mem::transmute::<&physx::math::PxBounds3, &physx_sys::PxBounds3>(&d.sanity_bounds)))
         };
 
         // not needless match, as it doesn't support Clone/Copy

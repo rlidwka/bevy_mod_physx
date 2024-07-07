@@ -91,7 +91,7 @@ pub fn spawn_scene(
         },
         PbrBundle {
             mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
+            material: materials.add(Color::srgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
@@ -102,7 +102,7 @@ pub fn spawn_scene(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(mesh),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
+            material: materials.add(Color::srgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(-2.0, 7.0, 0.0).with_rotation(Quat::from_rotation_z(-1.)),
             ..default()
         },
@@ -129,7 +129,7 @@ pub fn spawn_scene(
     commands.spawn((
         PbrBundle {
             mesh: meshes.add(mesh),
-            material: materials.add(Color::rgb(0.8, 0.7, 0.6)),
+            material: materials.add(Color::srgb(0.8, 0.7, 0.6)),
             transform: Transform::from_xyz(2.0, 7.0, 0.0).with_rotation(Quat::from_rotation_z(-1.)),
             ..default()
         },

@@ -40,13 +40,13 @@ pub fn spawn_scene(
         },
         PbrBundle {
             mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
-            material: materials.add(Color::rgb(0.3, 0.5, 0.3)),
+            material: materials.add(Color::srgb(0.3, 0.5, 0.3)),
             ..default()
         }
     ));
 
     let primitive_root = Cuboid::from_size(Vec3::splat(0.5));
-    let bevy_material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let bevy_material = materials.add(Color::srgb(0.8, 0.7, 0.6));
     let root_mesh = meshes.add(primitive_root);
     let root_geometry = px_geometries.add(primitive_root);
     let primitive_part = Sphere::new(0.2);

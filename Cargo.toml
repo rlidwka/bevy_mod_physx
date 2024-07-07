@@ -17,7 +17,7 @@ name = "bevy_mod_physx"
 path = "src/lib.rs"
 
 [dependencies]
-bevy = "0.13.0"
+bevy = "0.14.0"
 derive_more = "0.99.17"
 enumflags2 = "0.7.7"
 physx = "0.19.0"
@@ -25,7 +25,7 @@ physx-sys = "0.11.5"
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies]
-bevy-inspector-egui = "0.23.0"
+bevy-inspector-egui = "0.25.0"
 
 [features]
 serialize = ["dep:serde", "bevy/serialize"]

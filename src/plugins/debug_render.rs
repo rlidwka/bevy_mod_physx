@@ -209,7 +209,7 @@ fn debug_visualization(
             gizmos.line(
                 line.pos0.to_bevy(),
                 line.pos1.to_bevy(),
-                Color::rgba_u8(color[0], color[1], color[2], color[3]),
+                Color::srgba_u8(color[0], color[1], color[2], color[3]),
             );
         }
     }

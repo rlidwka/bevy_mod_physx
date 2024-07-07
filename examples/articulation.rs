@@ -45,7 +45,7 @@ fn spawn_long_chain(
     let mut position = Vec3::new(0., 24., 0.);
     let primitive = Capsule3d::new(RADIUS, HALF_HEIGHT + RADIUS * 2.);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(1., 0.7, 0.));
+    let material = materials.add(Color::srgb(1., 0.7, 0.));
 
     let px_geometry = px_geometries.add(primitive);
     let mut parent_link = None;
@@ -129,7 +129,7 @@ fn spawn_long_chain(
 
     let primitive = Cuboid::from_size(Vec3::splat(BOX_SIZE * 2.));
     let box_mesh = meshes.add(primitive);
-    let box_material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let box_material = materials.add(Color::srgb(0.8, 0.7, 0.6));
     let box_geometry = px_geometries.add(primitive);
 
     commands.spawn_empty()
@@ -180,7 +180,7 @@ fn spawn_obstacle(
 
     let primitive = Cuboid::new(HALF_X * 2., HALF_Y * 2., HALF_Z * 2.);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
@@ -212,7 +212,7 @@ fn spawn_plane(
 ) {
     let primitive = Plane3d::default();
     let mesh = meshes.add(primitive.mesh().size(500., 500.));
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
+    let material = materials.add(Color::srgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 

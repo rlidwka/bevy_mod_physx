@@ -61,7 +61,7 @@ pub enum GeometryInner {
     // thus a lot of complications here
     Plane {
         plane: PxPlaneGeometry,
-        normal: Direction3d,
+        normal: Dir3,
     },
 
     // for convexmesh and triangle mesh we have to own the mesh,
@@ -94,7 +94,7 @@ impl From<PxSphereGeometry> for Geometry {
 impl From<PxPlaneGeometry> for Geometry {
     fn from(value: PxPlaneGeometry) -> Self {
         // makes more sense to default normal to Y axis (ground), but physx defaults to X axis
-        Self { obj: GeometryInner::Plane { plane: value, normal: Direction3d::X } }
+        Self { obj: GeometryInner::Plane { plane: value, normal: Dir3::X } }
     }
 }
 
@@ -183,7 +183,7 @@ impl Geometry {
         note = "please use Bevy's `Plane3d` primitive (e.g. using `Geometry::from`)"
     )]
     pub fn halfspace(outward_normal: Vec3) -> Self {
-        Plane3d::new(outward_normal).into()
+        Plane3d::new(outward_normal, Default::default()).into()
     }
 
     #[deprecated(
