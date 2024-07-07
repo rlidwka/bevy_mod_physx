@@ -1,3 +1,13 @@
+## 0.6.0 - bevy 0.14 - 2024-07-07
+
+### Added
+
+ - added functions to create geometry from bevy mesh, [#8](https://github.com/rlidwka/bevy_mod_physx/pull/8)
+
+### Changed
+
+ - updated Bevy to 0.14
+
 ## 0.5.0 - bevy 0.13 - 2024-03-03
 
 ### Changed
