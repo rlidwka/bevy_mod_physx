@@ -267,13 +267,13 @@ impl Plugin for PhysicsCore {
     fn finish(&self, app: &mut App) {
         let mut physics = bpx::Physics::new(&self.foundation);
 
-        let wake_sleep_callback = app.world.remove_resource::<crate::plugins::sleep::WakeSleepCallback>();
+        let wake_sleep_callback = app.world_mut().remove_resource::<crate::plugins::sleep::WakeSleepCallback>();
         let scene = bpx::Scene::new(&mut physics, &self.scene, wake_sleep_callback.map(|x| x.0));
 
         app.insert_resource(scene);
 
         let default_material = DefaultMaterialHandle(
-            app.world.resource_mut::<Assets<bpx::Material>>()
+            app.world_mut().resource_mut::<Assets<bpx::Material>>()
                 .add(physics.create_material(0.5, 0.5, 0.6, ()).unwrap())
         );
         app.insert_resource(default_material);

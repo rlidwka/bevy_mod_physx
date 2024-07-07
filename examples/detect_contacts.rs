@@ -136,8 +136,8 @@ fn init_materials(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.insert_resource(DemoMaterials {
-        normal: materials.add(Color::rgb(0.8, 0.7, 0.6)),
-        highlighted: materials.add(Color::rgb(0.3, 0.4, 0.9)),
+        normal: materials.add(Color::srgb(0.8, 0.7, 0.6)),
+        highlighted: materials.add(Color::srgb(0.3, 0.4, 0.9)),
     });
 }
 
@@ -151,7 +151,7 @@ fn spawn_plane(
 ) {
     let primitive = Plane3d::default();
     let mesh = meshes.add(primitive.mesh().size(500., 500.));
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
+    let material = materials.add(Color::srgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -222,7 +222,7 @@ fn spawn_dynamic(
 ) {
     let primitive = Sphere::new(1.25);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));

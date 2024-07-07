@@ -50,7 +50,7 @@ fn spawn_table(
 
     let primitive = Cuboid::new(SIZE, THICKNESS, SIZE);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
+    let material = materials.add(Color::srgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -72,7 +72,7 @@ fn spawn_table(
 
     let primitive = Cuboid::new(SIZE + THICKNESS, SIDE_HEIGHT, THICKNESS);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
+    let material = materials.add(Color::srgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -108,7 +108,7 @@ fn spawn_pyramid(
 ) {
     let primitive = Sphere::new(BALL_SIZE);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));
@@ -149,7 +149,7 @@ fn spawn_kinematic(
 ) {
     let primitive = Cuboid::new(CUE_SIZE, CUE_SIZE, CUE_SIZE);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.));

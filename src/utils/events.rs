@@ -11,7 +11,7 @@
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
 
-use bevy::ecs::event::event_update_system;
+// use bevy::ecs::event::event_update_system;
 use bevy::prelude::*;
 
 use crate::{PhysicsSchedule, PhysicsSet};
@@ -25,36 +25,38 @@ pub trait AppExtensions {
     /// Note that user setups may run physics any number of times per frame
     /// (more than once or less than once are both possible).
     /// Thus, all events must be handled in physics schedule, so they won't be missed.
+    //#[deprecated(note = "bevy 0.14 reworked event cleanup, so this probably no longer works (please confirm)")]
     fn add_physics_event<T: Event>(&mut self) -> &mut Self;
 
     // Allows you to create bevy events using mpsc Sender.
     fn add_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
 
     /// Allows you to create bevy events in [PhysicsSchedule] using mpsc Sender.
+    //#[deprecated(note = "bevy 0.14 reworked event cleanup, so this probably no longer works (please confirm)")]
     fn add_physics_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
 }
 
 impl AppExtensions for App {
     fn add_physics_event<T: Event>(&mut self) -> &mut Self {
-        if !self.world.contains_resource::<Events<T>>() {
+        if !self.world().contains_resource::<Events<T>>() {
             self.init_resource::<Events<T>>();
-            self.add_systems(PhysicsSchedule, (
-                event_update_system::<T>,
-            ).before(PhysicsSet::Create));
+            // self.add_systems(PhysicsSchedule, (
+            //     event_update_system::<T>,
+            // ).before(PhysicsSet::Create));
         }
         self
     }
 
     fn add_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self {
         assert!(
-            !self.world.contains_resource::<ChannelReceiver<T>>(),
+            !self.world().contains_resource::<ChannelReceiver<T>>(),
             "this event channel is already initialized",
         );
 
         self.add_event::<T>();
         self.add_systems(PhysicsSchedule, (
             channel_to_event::<T>,
-        ).after(event_update_system::<T>).before(PhysicsSet::Create));
+        )/*.after(event_update_system::<T>)*/.before(PhysicsSet::Create));
 
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self
@@ -62,14 +64,14 @@ impl AppExtensions for App {
 
     fn add_physics_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self {
         assert!(
-            !self.world.contains_resource::<ChannelReceiver<T>>(),
+            !self.world().contains_resource::<ChannelReceiver<T>>(),
             "this event channel is already initialized",
         );
 
         self.add_physics_event::<T>();
         self.add_systems(PhysicsSchedule, (
             channel_to_event::<T>,
-        ).after(event_update_system::<T>).before(PhysicsSet::Create));
+        )/*.after(event_update_system::<T>)*/.before(PhysicsSet::Create));
 
         self.insert_resource(ChannelReceiver(Mutex::new(receiver)));
         self

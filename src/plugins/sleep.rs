@@ -83,7 +83,7 @@ impl Plugin for SleepPlugin {
 
         let (wake_sleep_sender, wake_sleep_receiver) = channel();
 
-        app.world.insert_resource(WakeSleepCallback(OnWakeSleep::new(move |actors, is_waking| {
+        app.world_mut().insert_resource(WakeSleepCallback(OnWakeSleep::new(move |actors, is_waking| {
             let entities = actors.iter().map(|actor| {
                 actor.cast_map(
                     |articulation| *articulation.get_user_data(),
@@ -102,7 +102,7 @@ impl Plugin for SleepPlugin {
         // Resource shall be consumed when creating physics scene.
         // If it doesn't, it means sleep plugin is loaded after scene is created,
         // which shouldn't happen.
-        assert!(!app.world.contains_resource::<WakeSleepCallback>());
+        assert!(!app.world().contains_resource::<WakeSleepCallback>());
     }
 }
 

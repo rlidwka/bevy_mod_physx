@@ -29,7 +29,7 @@ fn spawn_plane(
 ) {
     let primitive = Plane3d::default();
     let mesh = meshes.add(primitive.mesh().size(500., 500.));
-    let material = materials.add(Color::rgb(0.3, 0.5, 0.3));
+    let material = materials.add(Color::srgb(0.3, 0.5, 0.3));
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
@@ -59,7 +59,7 @@ fn spawn_stacks(
 
     let primitive = Cuboid::from_size(Vec3::splat(WIDTH));
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
 
@@ -106,7 +106,7 @@ fn spawn_dynamic(
 
     let primitive = Sphere::new(RADIUS);
     let mesh = meshes.add(primitive);
-    let material = materials.add(Color::rgb(0.8, 0.7, 0.6));
+    let material = materials.add(Color::srgb(0.8, 0.7, 0.6));
 
     let px_geometry = px_geometries.add(primitive);
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
