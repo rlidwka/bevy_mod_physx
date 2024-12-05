@@ -34,11 +34,10 @@ fn spawn_plane(
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             geometry: px_geometry,
@@ -64,7 +63,11 @@ fn spawn_stacks(
     let px_geometry = px_geometries.add(primitive);
 
     for i in 0..5 {
-        commands.spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., -1.25 * i as f32)))
+        commands.spawn((
+            Name::new(format!("Stack {i}")),
+            Transform::from_xyz(0., 0., -1.25 * i as f32),
+            Visibility::default(),
+        ))
             .with_children(|builder| {
                 for i in 0..SIZE {
                     for j in 0..SIZE-i {
@@ -75,12 +78,11 @@ fn spawn_stacks(
                         );
 
                         builder.spawn_empty()
-                            .insert(PbrBundle {
-                                mesh: mesh.clone(),
-                                material: material.clone(),
+                            .insert((
+                                Mesh3d::from(mesh.clone()),
+                                MeshMaterial3d::from(material.clone()),
                                 transform,
-                                ..default()
-                            })
+                            ))
                             .insert(bpx::RigidBody::Dynamic)
                             .insert(MassProperties::density(10.))
                             .insert(bpx::Shape {
@@ -114,12 +116,11 @@ fn spawn_dynamic(
     let transform = Transform::from_xyz(0., 5., 12.5);
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
             transform,
-            ..default()
-        })
+        ))
         .insert(bpx::RigidBody::Dynamic)
         .insert(MassProperties::density(10.))
         .insert(bpx::Shape {
@@ -133,18 +134,21 @@ fn spawn_dynamic(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(0., 0., 0.),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_xyz(-32.5, 13.6, 18.8).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(-32.5, 13.6, 18.8).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
-        ..default()
-    })
-    .insert(Name::new("Light"));
+    commands.spawn((
+        Name::new("Light"),
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+    ));
 }

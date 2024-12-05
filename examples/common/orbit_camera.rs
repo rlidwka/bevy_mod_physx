@@ -18,13 +18,9 @@ impl Plugin for OrbitCameraPlugin {
     }
 }
 
-#[derive(Bundle, Default)]
-pub struct OrbitCameraBundle {
-    pub orbit_camera: OrbitCamera,
-    pub camera3d: Camera3dBundle,
-}
 
 #[derive(Debug, Component, Reflect)]
+#[require(Camera3d, Msaa)]
 pub struct OrbitCamera {
     pub zoom_sensitivity: f32,
     pub rotate_sensitivity: f32,
@@ -114,20 +110,20 @@ fn apply_camera_controls(
     for ev in gamepad_events.read() {
         match ev {
             GamepadEvent::Axis(ev) => {
-                match ev.axis_type {
-                    GamepadAxisType::LeftStickX => gamepad_state.left_stick_x = ev.value,
-                    GamepadAxisType::LeftStickY => gamepad_state.left_stick_y = ev.value,
-                    GamepadAxisType::RightStickX => gamepad_state.right_stick_x = ev.value,
-                    GamepadAxisType::RightStickY => gamepad_state.right_stick_y = ev.value,
+                match ev.axis {
+                    GamepadAxis::LeftStickX => gamepad_state.left_stick_x = ev.value,
+                    GamepadAxis::LeftStickY => gamepad_state.left_stick_y = ev.value,
+                    GamepadAxis::RightStickX => gamepad_state.right_stick_x = ev.value,
+                    GamepadAxis::RightStickY => gamepad_state.right_stick_y = ev.value,
                     _ => {}
                 }
             }
 
             GamepadEvent::Button(ev) => {
-                match ev.button_type {
-                    GamepadButtonType::LeftTrigger | GamepadButtonType::LeftTrigger2 =>
+                match ev.button {
+                    GamepadButton::LeftTrigger | GamepadButton::LeftTrigger2 =>
                         gamepad_state.left_trigger = ev.value,
-                    GamepadButtonType::RightTrigger | GamepadButtonType::RightTrigger2 =>
+                    GamepadButton::RightTrigger | GamepadButton::RightTrigger2 =>
                         gamepad_state.right_trigger = ev.value,
                     _ => {}
                 }
@@ -142,8 +138,8 @@ fn apply_camera_controls(
         }
     }
 
-    let gamepad_axis_multiplier = time.delta_seconds() * 1000.;
-    let gamepad_zoom_multiplier = time.delta_seconds() * 40.;
+    let gamepad_axis_multiplier = time.delta_secs() * 1000.;
+    let gamepad_zoom_multiplier = time.delta_secs() * 40.;
 
     if gamepad_state.right_stick_x != 0. || gamepad_state.right_stick_y != 0. {
         events.push(MyEvent::Rotate((
@@ -203,7 +199,7 @@ fn update_camera(
     mut camera_query: Query<(Entity, &mut OrbitCamera)>,
     time: Res<Time>,
 ) {
-    let delta = time.delta_seconds();
+    let delta = time.delta_secs();
     let focus_rotation = Quat::IDENTITY;
 
     for (entity, mut camera) in camera_query.iter_mut() {

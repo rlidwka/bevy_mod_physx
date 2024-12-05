@@ -54,7 +54,8 @@ fn spawn_long_chain(
         let mut builder = commands.spawn_empty();
         builder
             .insert(bpx::RigidBody::ArticulationLink)
-            .insert(SpatialBundle::from_transform(Transform::from_translation(position)))
+            .insert(Transform::from_translation(position))
+            .insert(Visibility::default())
             .insert(Damping {
                 linear: 0.1,
                 angular: 0.1,
@@ -69,12 +70,11 @@ fn spawn_long_chain(
             })
             .insert(MassProperties::mass(SEGMENT_MASS))
             .with_children(|builder| {
-                builder.spawn(PbrBundle {
-                    mesh: mesh.clone(),
-                    material: material.clone(),
-                    transform: Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
-                    ..default()
-                });
+                builder.spawn((
+                    Mesh3d::from(mesh.clone()),
+                    MeshMaterial3d::from(material.clone()),
+                    Transform::from_rotation(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2)),
+                ));
             });
 
         if let Some(parent_link) = parent_link {
@@ -134,12 +134,11 @@ fn spawn_long_chain(
 
     commands.spawn_empty()
         .insert(bpx::RigidBody::ArticulationLink)
-        .insert(PbrBundle {
-            mesh: box_mesh,
-            material: box_material,
-            transform: Transform::from_translation(position),
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(box_mesh.clone()),
+            MeshMaterial3d::from(box_material.clone()),
+            Transform::from_translation(position),
+        ))
         .insert(Damping {
             linear: 0.1,
             angular: 0.1,
@@ -187,12 +186,11 @@ fn spawn_obstacle(
     let transform = Transform::from_xyz(10., 21., 0.);
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
             transform,
-            ..default()
-        })
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             material: px_material,
@@ -217,11 +215,10 @@ fn spawn_plane(
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             geometry: px_geometry,
@@ -233,17 +230,22 @@ fn spawn_plane(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(10., 17., 0.)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(10., 17., 0.),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_xyz(24.5, 17.3, 26.4).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(24.5, 17.3, 26.4).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
-        ..default()
-    }).insert(Name::new("Light"));
+
+    commands.spawn((
+        Name::new("Light"), 
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+    ));
 }

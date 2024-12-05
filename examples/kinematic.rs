@@ -55,12 +55,11 @@ fn spawn_table(
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            transform: Transform::from_xyz(0., -THICKNESS / 2., 0.),
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+            Transform::from_xyz(0., -THICKNESS / 2., 0.),
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             geometry: px_geometry,
@@ -78,16 +77,15 @@ fn spawn_table(
 
     for side in 0..4 {
         commands.spawn_empty()
-            .insert(PbrBundle {
-                mesh: mesh.clone(),
-                material: material.clone(),
-                transform: Transform {
+            .insert((
+                Mesh3d::from(mesh.clone()),
+                MeshMaterial3d::from(material.clone()),
+                Transform {
                     translation: Quat::from_rotation_y((side + 1) as f32 * FRAC_PI_2) * Vec3::new(SIZE / 2., THICKNESS / 2., 0.),
                     rotation: Quat::from_rotation_y(side as f32 * FRAC_PI_2),
                     scale: Vec3::ONE,
                 },
-                ..default()
-            })
+            ))
             .insert(bpx::RigidBody::Static)
             .insert(bpx::Shape {
                 geometry: px_geometry.clone(),
@@ -119,12 +117,11 @@ fn spawn_pyramid(
             let y = (dy as f32 - dx as f32 / 2.) * BALL_SIZE * 2.;
 
             commands.spawn_empty()
-                .insert(PbrBundle {
-                    mesh: mesh.clone(),
-                    material: material.clone(),
-                    transform: Transform::from_xyz(x, BALL_SIZE / 2., y),
-                    ..default()
-                })
+                .insert((
+                    Mesh3d::from(mesh.clone()),
+                    MeshMaterial3d::from(material.clone()),
+                    Transform::from_xyz(x, BALL_SIZE / 2., y),
+                ))
                 .insert(bpx::RigidBody::Dynamic)
                 .insert(bpx::Shape {
                     material: px_material.clone(),
@@ -156,11 +153,10 @@ fn spawn_kinematic(
     let transform = Transform::from_xyz(0., BALL_SIZE, 0.);
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+        ))
         .insert(bpx::RigidBody::Dynamic)
         .insert(bpx::Shape {
             material: px_material,
@@ -185,7 +181,7 @@ fn move_kinematic(
     let Ok(mut kinematic) = kinematic.get_single_mut() else { return; };
 
     for (camera, camera_transform) in &cameras {
-        let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else { continue; };
+        let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position).ok() else { continue; };
 
         unsafe extern "C" fn raycast_filter(
             actor: *const PxRigidActor,
@@ -215,17 +211,22 @@ fn move_kinematic(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(0., 0., 0.),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(-11., 55., 0.)).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_translation(Vec3::new(-11., 55., 0.)).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
-        ..default()
-    }).insert(Name::new("Light"));
+    commands.spawn((
+        Name::new("Light"), 
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+    ));
 }
+

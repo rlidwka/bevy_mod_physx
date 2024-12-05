@@ -17,10 +17,10 @@ fn main() {
 
 fn setup_graphics(mut commands: Commands) {
     // Add a camera so we can see the debug-render.
-    commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(-3.0, 3.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..Default::default()
-    });
+    commands.spawn((
+        Camera3d::default(),
+        Transform::from_xyz(-3.0, 3.0, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+    ));
 }
 
 fn setup_physics(
@@ -37,7 +37,8 @@ fn setup_physics(
             material: materials.add(Material::new(&mut physics, 0.5, 0.5, 0.6)),
             ..default()
         },
-        SpatialBundle::from_transform(Transform::from_xyz(0.0, -2.0, 0.0)),
+        Transform::from_xyz(0.0, -2.0, 0.0),
+        Visibility::default(),
     ));
 
     // Create the bouncing ball.
@@ -48,6 +49,7 @@ fn setup_physics(
             material: materials.add(Material::new(&mut physics, 0.5, 0.5, 0.6)),
             ..default()
         },
-        SpatialBundle::from_transform(Transform::from_xyz(0.0, 4.0, 0.0)),
+        Transform::from_xyz(0.0, 4.0, 0.0),
+        Visibility::default(),
     ));
 }

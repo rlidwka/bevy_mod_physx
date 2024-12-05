@@ -391,7 +391,7 @@ pub fn run_physics_schedule(world: &mut World) {
         }
 
         TimestepMode::Variable { max_dt, time_scale, substeps } => {
-            let bevy_delta = world.resource::<Time>().delta_seconds();
+            let bevy_delta = world.resource::<Time>().delta_secs();
             let mut pxdelta = world.resource_mut::<BevyTimeDelta>();
             pxdelta.0 += bevy_delta * time_scale;
 
@@ -406,7 +406,7 @@ pub fn run_physics_schedule(world: &mut World) {
         }
 
         TimestepMode::Interpolated { dt, time_scale, substeps } => {
-            let bevy_delta = world.resource::<Time>().delta_seconds();
+            let bevy_delta = world.resource::<Time>().delta_secs();
             let mut pxdelta = world.resource_mut::<BevyTimeDelta>();
             pxdelta.0 += bevy_delta * time_scale;
 

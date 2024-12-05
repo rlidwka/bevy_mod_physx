@@ -47,7 +47,6 @@ impl Plugin for DemoUtils {
             color: Color::WHITE,
             brightness: 1.0 / 5.0f32,
         });
-        app.insert_resource(Msaa::default());
 
         // using 4096x4096 shadow maps to get the best possible quality
         // for demos, but it's not great for performance

@@ -38,11 +38,8 @@ pub fn spawn_scene(
             material: px_materials.add(bpx::Material::new(&mut physics, 0., 0., 1.)),
             ..default()
         },
-        PbrBundle {
-            mesh: meshes.add(primitive.mesh().size(1000., 1000.)),
-            material: materials.add(Color::srgb(0.3, 0.5, 0.3)),
-            ..default()
-        }
+        Mesh3d::from(meshes.add(primitive.mesh().size(1000., 1000.))),
+        MeshMaterial3d::from(materials.add(StandardMaterial::from(Color::srgb(0.3, 0.5, 0.3)))),
     ));
 
     let primitive_root = Cuboid::from_size(Vec3::splat(0.5));
@@ -58,12 +55,15 @@ pub fn spawn_scene(
     };
 
     let root = commands.spawn((
-        PbrBundle {
-            mesh: root_mesh,
-            material: bevy_material.clone(),
-            transform: Transform::from_xyz(0.0, 0.5, 0.0),
-            ..default()
-        },
+        // PbrBundle {
+        //     mesh: root_mesh,
+        //     material: bevy_material.clone(),
+        //     transform: Transform::from_xyz(0.0, 0.5, 0.0),
+        //     ..default()
+        // },
+        Mesh3d::from(root_mesh),
+        MeshMaterial3d::from(bevy_material.clone()),
+        Transform::from_xyz(0.0, 0.5, 0.0),
         bpx::RigidBody::ArticulationLink,
         bpx::Shape {
             geometry: root_geometry,
@@ -74,12 +74,9 @@ pub fn spawn_scene(
 
     let drive_cfg = PxArticulationDrive { stiffness: 1000.0, damping: 100.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let part_1 = commands.spawn((
-        PbrBundle {
-            mesh: part_mesh.clone(),
-            material: bevy_material.clone(),
-            transform: Transform::from_xyz(0.0, 1.5, 0.0),
-            ..default()
-        },
+        Mesh3d::from(part_mesh.clone()),
+        MeshMaterial3d::from(bevy_material.clone()),
+        Transform::from_xyz(0.0, 1.5, 0.0),
         bpx::RigidBody::ArticulationLink,
         bpx::Shape {
             geometry: part_geometry.clone(),
@@ -106,12 +103,9 @@ pub fn spawn_scene(
 
     let drive_cfg = PxArticulationDrive { stiffness: 100.0, damping: 10.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let _part_2_1 = commands.spawn((
-        PbrBundle {
-            mesh: part_mesh.clone(),
-            material: bevy_material.clone(),
-            transform: Transform::from_xyz(0.0, 2.0, 0.0),
-            ..default()
-        },
+        Mesh3d::from(part_mesh.clone()),
+        MeshMaterial3d::from(bevy_material.clone()),
+        Transform::from_xyz(0.0, 2.0, 0.0),
         bpx::RigidBody::ArticulationLink,
         bpx::Shape {
             geometry: part_geometry.clone(),
@@ -139,12 +133,9 @@ pub fn spawn_scene(
 
     let drive_cfg = PxArticulationDrive { stiffness: 100.0, damping: 10.0, maxForce: 100.0, driveType: ArticulationDriveType::Acceleration };
     let _part_2_2 = commands.spawn((
-        PbrBundle {
-            mesh: part_mesh.clone(),
-            material: bevy_material.clone(),
-            transform: Transform::from_xyz(0.0, 2.0, 0.0),
-            ..default()
-        },
+        Mesh3d::from(part_mesh.clone()),
+        MeshMaterial3d::from(bevy_material.clone()),
+        Transform::from_xyz(0.0, 2.0, 0.0),
         bpx::RigidBody::ArticulationLink,
         bpx::Shape {
             geometry: part_geometry.clone(),
@@ -173,17 +164,22 @@ pub fn spawn_scene(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
+        // .spawn(SpatialBundle::from_transform(Transform::from_xyz(0., 0., 0.)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(0., 0., 0.),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_xyz(0.0, 2.5, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(0.0, 2.5, 10.0).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4)),
-        ..default()
-    }).insert(Name::new("Light"));
+    commands.spawn((
+        Name::new("Light"),
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_rotation_x(-std::f32::consts::FRAC_PI_4)),
+    ));
 }

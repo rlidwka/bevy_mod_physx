@@ -66,11 +66,10 @@ fn spawn_plane(
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             geometry: px_geometry,
@@ -108,12 +107,9 @@ fn spawn_cubes(
                 let z = k as f32 * shift - centerz + offset;
 
                 commands.spawn((
-                    PbrBundle {
-                        mesh: mesh.clone(),
-                        material: material.clone(),
-                        transform: Transform::from_xyz(x, y, z),
-                        ..default()
-                    },
+                    Mesh3d::from(mesh.clone()),
+                    MeshMaterial3d::from(material.clone()),
+                    Transform::from_xyz(x, y, z),
                     RigidBody::Dynamic,
                     bpx::Shape {
                         geometry: px_geometry.clone(),
@@ -135,7 +131,7 @@ fn hover_reset(
 ) {
     for entity in highlighted.iter() {
         commands.entity(entity)
-            .insert(materials.normal.clone())
+            .insert(MeshMaterial3d::from(materials.normal.clone()))
             .remove::<Highlighted>();
     }
 }
@@ -152,12 +148,12 @@ fn hover_highlight(
     let Some(cursor_position) = window.cursor_position() else { return; };
 
     for (camera, camera_transform) in &cameras {
-        let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position) else { continue; };
+        let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position).ok() else { continue; };
 
         if let Some(hit) = scene.raycast(ray, f32::MAX, &default()) {
             if highlighable.get(hit.actor).is_ok() {
                 commands.entity(hit.actor)
-                    .insert(materials.highlighted.clone())
+                    .insert(MeshMaterial3d::from(materials.highlighted.clone()))
                     .insert(Highlighted);
             }
         }
@@ -166,17 +162,21 @@ fn hover_highlight(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(-29., 8.5, -17.2)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(-29., 8.5, -17.2),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_xyz(-61., 47., 82.).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(-61., 47., 82.).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
-        ..default()
-    }).insert(Name::new("Light"));
+    commands.spawn((
+        Name::new("Light"), 
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+    ));
 }

@@ -156,11 +156,10 @@ fn spawn_plane(
     let px_material = px_materials.add(bpx::Material::new(&mut physics, 0.5, 0.5, 0.6));
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
+        ))
         .insert(bpx::RigidBody::Static)
         .insert(bpx::Shape {
             geometry: px_geometry,
@@ -195,12 +194,9 @@ fn spawn_tiles(
             let z = j as f32 * shift - centerz;
 
             commands.spawn((
-                PbrBundle {
-                    mesh: mesh.clone(),
-                    material: material.clone(),
-                    transform: Transform::from_xyz(x, y, z),
-                    ..default()
-                },
+                Mesh3d::from(mesh.clone()),
+                MeshMaterial3d::from(material.clone()),
+                Transform::from_xyz(x, y, z),
                 RigidBody::Static,
                 bpx::Shape {
                     geometry: px_geometry.clone(),
@@ -230,12 +226,11 @@ fn spawn_dynamic(
     let transform = Transform::from_xyz(0., 5., 32.5);
 
     commands.spawn_empty()
-        .insert(PbrBundle {
-            mesh,
-            material,
+        .insert((
+            Mesh3d::from(mesh.clone()),
+            MeshMaterial3d::from(material.clone()),
             transform,
-            ..default()
-        })
+        ))
         .insert(bpx::RigidBody::Dynamic)
         .insert(MassProperties::density(10.))
         .insert(bpx::Shape {
@@ -249,20 +244,25 @@ fn spawn_dynamic(
 
 fn spawn_camera_and_light(mut commands: Commands) {
     commands
-        .spawn(SpatialBundle::from_transform(Transform::from_xyz(-21., 0., 0.)))
+        .spawn((
+            Name::new("Camera"),
+            Transform::from_xyz(-21., 0., 0.),
+            Visibility::default(),
+        ))
         .with_children(|builder| {
-            builder.spawn(Camera3dBundle {
-                transform: Transform::from_translation(Vec3::new(-41.7, 33., 0.)).looking_at(Vec3::ZERO, Vec3::Y),
-                ..default()
-            });
-        })
-        .insert(Name::new("Camera"));
+            builder.spawn((
+                Camera3d::default(),
+                Transform::from_translation(Vec3::new(-41.7, 33., 0.)).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
-    commands.spawn(DirectionalLightBundle {
-        transform: Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
-        ..default()
-    }).insert(Name::new("Light"));
+    commands.spawn((
+        Name::new("Light"), 
+        DirectionalLight::default(),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
+    ));
 }
+
 
 fn highlight_on_hit(
     mut commands: Commands,
@@ -274,7 +274,7 @@ fn highlight_on_hit(
         for entity in [ event.actor0, event.actor1 ] {
             if highlighable.get(entity).is_ok() {
                 commands.entity(entity)
-                    .insert(materials.highlighted.clone())
+                    .insert(MeshMaterial3d::from(materials.highlighted.clone()))
                     .insert(Highlighted);
             }
         }
