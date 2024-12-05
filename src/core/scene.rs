@@ -180,7 +180,7 @@ impl<'t, T> SceneRwLockReadGuard<'t, T> {
     }
 }
 
-impl<'t, T> Drop for SceneRwLockReadGuard<'t, T> {
+impl<T> Drop for SceneRwLockReadGuard<'_, T> {
     fn drop(&mut self) {
         if let Some(scene) = self.scene {
             unsafe { PxScene_unlockRead_mut(scene) }
@@ -205,7 +205,7 @@ impl<'t, T> SceneRwLockWriteGuard<'t, T> {
     }
 }
 
-impl<'t, T> Drop for SceneRwLockWriteGuard<'t, T> {
+impl<T> Drop for SceneRwLockWriteGuard<'_, T> {
     fn drop(&mut self) {
         if let Some(scene) = self.scene {
             unsafe { PxScene_unlockWrite_mut(scene) }
