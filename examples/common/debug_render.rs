@@ -35,13 +35,13 @@ fn display_debug_render_ui(
     mut settings: ResMut<DebugRenderSettings>,
 ) {
     const TOOLTIP_MARGIN: f32 = 10.;
-    let ctx = egui_contexts.ctx_mut();
+    let Some(egui_ctx) = egui_contexts.try_ctx_mut() else { return; };
     Window::new("debug_render_ui")
         .anchor(Align2::RIGHT_TOP, egui::vec2(-TOOLTIP_MARGIN, TOOLTIP_MARGIN))
         .title_bar(false)
         .auto_sized()
         .resizable(false)
-        .show(ctx, |ui| {
+        .show(egui_ctx, |ui| {
             macro_rules! checkbox {
                 ($setting: ident, $desc: literal) => {
                     let orig_value = settings.$setting > 0.;

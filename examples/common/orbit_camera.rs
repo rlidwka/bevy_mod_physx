@@ -82,7 +82,7 @@ fn apply_camera_controls(
     mut egui_contexts: EguiContexts,
     mut camera_query: Query<&mut OrbitCamera>,
 ) {
-    let egui_ctx = egui_contexts.ctx_mut();
+    let Some(egui_ctx) = egui_contexts.try_ctx_mut() else { return; };
     if egui_ctx.wants_pointer_input() { return; }
 
     enum MyEvent {
