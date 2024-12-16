@@ -38,6 +38,7 @@ pub use crate::plugins::articulation::{
 };
 
 pub use crate::plugins::damping::Damping;
+#[cfg(feature = "debug-render")]
 pub use crate::plugins::debug_render::DebugRenderSettings;
 pub use crate::plugins::external_force::ExternalForce;
 pub use crate::plugins::kinematic::Kinematic;

@@ -5,6 +5,7 @@
 //!
 pub mod articulation;
 pub mod damping;
+#[cfg(feature = "debug-render")]
 pub mod debug_render;
 pub mod external_force;
 pub mod kinematic;

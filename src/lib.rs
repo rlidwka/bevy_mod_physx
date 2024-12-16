@@ -146,11 +146,11 @@ pub struct PhysicsPlugins;
 
 impl PluginGroup for PhysicsPlugins {
     fn build(self) -> PluginGroupBuilder {
-        PluginGroupBuilder::start::<Self>()
+        let mut group = PluginGroupBuilder::start::<Self>();
+        group = group
             .add(PhysicsCore::default())
             .add(crate::plugins::articulation::ArticulationPlugin)
             .add(crate::plugins::damping::DampingPlugin)
-            .add(crate::plugins::debug_render::DebugRenderPlugin)
             .add(crate::plugins::external_force::ExternalForcePlugin)
             .add(crate::plugins::kinematic::KinematicPlugin)
             .add(crate::plugins::mass_properties::MassPropertiesPlugin)
@@ -159,7 +159,11 @@ impl PluginGroup for PhysicsPlugins {
             .add(crate::plugins::shape_offsets::ShapeOffsetsPlugin)
             .add(crate::plugins::sleep::SleepPlugin)
             .add(crate::plugins::velocity::VelocityPlugin)
-            .add(crate::plugins::lock_flags::LockFlagsPlugin)
+            .add(crate::plugins::lock_flags::LockFlagsPlugin);
+        #[cfg(feature = "debug-render")] {
+            group = group.add(crate::plugins::debug_render::DebugRenderPlugin);
+        }
+        group
     }
 }
 
