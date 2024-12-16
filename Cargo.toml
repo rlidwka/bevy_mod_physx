@@ -1,6 +1,6 @@
 [package]
 name = "bevy_mod_physx"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Alex Kocharin <alex@kocharin.ru>"]
 description = "PhysX plugin for Bevy"
 documentation = "https://docs.rs/bevy_mod_physx"
@@ -28,7 +28,8 @@ physx-sys = "0.11.5"
 serde = { version = "1", features = ["derive"], optional = true }
 
 [dev-dependencies.bevy]
-version = "*"
+# cargo is expected to pick up the same version as above
+version = ">= 0.0.0"
 default-features = false
 features = [
     "bevy_core_pipeline", "bevy_gilrs", "bevy_pbr", "bevy_window", "bevy_winit", "tonemapping_luts", "x11"

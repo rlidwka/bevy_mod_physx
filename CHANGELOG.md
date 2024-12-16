@@ -1,3 +1,10 @@
+## 0.7.0 - bevy 0.15 - 2024-12-16
+
+### Changed
+
+ - updated Bevy to 0.15
+ - disabled bevy's default-features, enabling only features this crate needs
+
 ## 0.6.0 - bevy 0.14 - 2024-07-07
 
 ### Added
