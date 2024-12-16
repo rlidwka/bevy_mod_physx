@@ -1,6 +1,5 @@
 //! Defines characteristics of collision shapes (geometry, material).
 use bevy::prelude::*;
-use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::traits::Class;
 use physx_sys::PxPhysics_createShape_mut;
@@ -32,7 +31,6 @@ impl Default for Shape {
 #[derive(Component, Deref, DerefMut)]
 pub struct ShapeHandle {
     #[deref]
-    #[deref_mut]
     handle: SceneRwLock<Owner<PxShape>>,
     // we want to specify outward normal for PxPlane specifically, so need to return transform for this
     pub custom_xform: Transform,

@@ -1,6 +1,5 @@
 //! Abstract singleton factory class used for instancing objects in the Physics SDK.
 use bevy::prelude::*;
-use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx_sys::{PxErrorCode, PxTolerancesScale};
 

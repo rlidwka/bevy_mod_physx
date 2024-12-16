@@ -2,7 +2,6 @@
 use std::ptr::null;
 
 use bevy::prelude::*;
-use derive_more::{Deref, DerefMut};
 use physx::prelude::*;
 use physx::scene::{
     FrictionType,
@@ -166,7 +165,6 @@ impl<T> SceneRwLock<T> {
 #[derive(Deref, DerefMut)]
 pub struct SceneRwLockReadGuard<'t, T> {
     #[deref]
-    #[deref_mut]
     payload: &'t T,
     scene: Option<*mut physx_sys::PxScene>,
 }
@@ -191,7 +189,6 @@ impl<T> Drop for SceneRwLockReadGuard<'_, T> {
 #[derive(Deref, DerefMut)]
 pub struct SceneRwLockWriteGuard<'t, T> {
     #[deref]
-    #[deref_mut]
     payload: &'t mut T,
     scene: Option<*mut physx_sys::PxScene>,
 }
