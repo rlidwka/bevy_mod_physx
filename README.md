@@ -81,7 +81,8 @@ fn setup_physics(
 
 |[]()           |[]()                                                                                                    |[]()          |[]()           |
 |---------------|--------------------------------------------------------------------------------------------------------|--------------|---------------|
-| published     | [0.7.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.15    | PhysX 5       |
+| published     | [0.8.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.16    | PhysX 5       |
+|               | [0.7.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.15    | PhysX 5       |
 |               | [0.6.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.14    | PhysX 5       |
 |               | [0.5.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.13    | PhysX 5       |
 |               | [0.4.x](https://crates.io/crates/bevy_mod_physx)                                                       | Bevy 0.12    | PhysX 5       |
