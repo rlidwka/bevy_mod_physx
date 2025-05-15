@@ -44,8 +44,8 @@ impl Plugin for DemoUtils {
 
         app.insert_resource(ClearColor(Color::srgb(0., 0., 0.)));
         app.insert_resource(AmbientLight {
-            color: Color::WHITE,
             brightness: 1.0 / 5.0f32,
+            ..default()
         });
 
         // using 4096x4096 shadow maps to get the best possible quality
@@ -53,7 +53,7 @@ impl Plugin for DemoUtils {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 });
 
         // log fps to console
-        app.add_plugins(FrameTimeDiagnosticsPlugin);
+        app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         app.add_plugins(LogDiagnosticsPlugin {
             wait_duration: Duration::from_millis(1000),
             filter: Some(vec![FrameTimeDiagnosticsPlugin::FPS]),
@@ -61,6 +61,9 @@ impl Plugin for DemoUtils {
         });
 
         app.add_plugins(OrbitCameraPlugin);
+        app.add_plugins(bevy_inspector_egui::bevy_egui::EguiPlugin {
+            enable_multipass_for_primary_context: false,
+        });
         app.add_plugins(
             bevy_inspector_egui::quick::WorldInspectorPlugin::default()
                 .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),

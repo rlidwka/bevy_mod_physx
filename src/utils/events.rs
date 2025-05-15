@@ -86,5 +86,5 @@ fn channel_to_event<T: Event>(
     // thus we always expect to get this lock
     let events = receiver.lock().expect("unable to acquire mutex lock");
 
-    writer.send_batch(events.try_iter());
+    writer.write_batch(events.try_iter());
 }

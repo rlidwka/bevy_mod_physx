@@ -175,10 +175,10 @@ fn move_kinematic(
     surface: Query<Entity, With<Surface>>,
     mut kinematic: Query<&mut Kinematic, With<PlayerControlled>>,
 ) {
-    let Ok(window) = window.get_single() else { return; };
+    let Ok(window) = window.single() else { return; };
     let Some(cursor_position) = window.cursor_position() else { return; };
-    let Ok(surface_entity) = surface.get_single() else { return; };
-    let Ok(mut kinematic) = kinematic.get_single_mut() else { return; };
+    let Ok(surface_entity) = surface.single() else { return; };
+    let Ok(mut kinematic) = kinematic.single_mut() else { return; };
 
     for (camera, camera_transform) in &cameras {
         let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position).ok() else { continue; };
@@ -224,9 +224,8 @@ fn spawn_camera_and_light(mut commands: Commands) {
         });
 
     commands.spawn((
-        Name::new("Light"), 
+        Name::new("Light"),
         DirectionalLight::default(),
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
     ));
 }
-

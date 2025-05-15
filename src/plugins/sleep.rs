@@ -112,7 +112,7 @@ pub fn sleep_marker_sync(
 ) {
     for WakeSleepEvent { entities, is_waking } in events.read() {
         for entity in entities.iter() {
-            let Some(mut cmd) = commands.get_entity(*entity) else { continue; };
+            let Ok(mut cmd) = commands.get_entity(*entity) else { continue; };
             if *is_waking {
                 cmd.remove::<Sleeping>();
             } else {

@@ -27,7 +27,7 @@ fn main() {
         .add_plugins(common::DemoUtils) // optional
         .add_systems(Startup, (
             init_materials,
-            apply_deferred,
+            ApplyDeferred,
             (
                 spawn_plane,
                 spawn_cubes,
@@ -144,7 +144,7 @@ fn hover_highlight(
     cameras: Query<(&Camera, &GlobalTransform)>,
     highlighable: Query<(), With<Highlightable>>,
 ) {
-    let Ok(window) = window.get_single() else { return; };
+    let Ok(window) = window.single() else { return; };
     let Some(cursor_position) = window.cursor_position() else { return; };
 
     for (camera, camera_transform) in &cameras {
@@ -175,7 +175,7 @@ fn spawn_camera_and_light(mut commands: Commands) {
         });
 
     commands.spawn((
-        Name::new("Light"), 
+        Name::new("Light"),
         DirectionalLight::default(),
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
     ));

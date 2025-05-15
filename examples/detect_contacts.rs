@@ -119,7 +119,7 @@ fn main() {
         .add_physics_event_channel(mpsc_receiver)
         .add_systems(Startup, (
             init_materials,
-            apply_deferred,
+            ApplyDeferred,
             (
                 spawn_plane,
                 spawn_tiles,
@@ -257,7 +257,7 @@ fn spawn_camera_and_light(mut commands: Commands) {
         });
 
     commands.spawn((
-        Name::new("Light"), 
+        Name::new("Light"),
         DirectionalLight::default(),
         Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -1.2, -0.2, 0.)),
     ));

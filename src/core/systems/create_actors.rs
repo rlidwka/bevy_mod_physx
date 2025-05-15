@@ -50,7 +50,7 @@ fn find_and_attach_nested_shapes<T: RigidActor<Shape = PxShape>>(
         found_shapes.push((entity, shape_cfg.clone(), gtransform.copied()));
     } else if let Some(children) = children {
         // children, possibly multiple shapes
-        for child in children.iter().copied() {
+        for child in children.iter() {
             let Ok((_entity, bpactor, _children, shape_cfg, gtransform)) = query.get(child) else { continue; };
 
             // if we find Actor which is not the current one (level > 0), don't add its shapes

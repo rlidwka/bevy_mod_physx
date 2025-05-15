@@ -17,7 +17,7 @@ pub fn sync_transform_dynamic(
         &mut RigidDynamicHandle,
         &mut Transform,
         &GlobalTransform,
-        Option<&Parent>,
+        Option<&ChildOf>,
     )>,
     // TODO:
     // Or<(Changed<Transform>, Without<Sleeping>)>>,
@@ -34,7 +34,7 @@ pub fn sync_transform_dynamic(
             let new_gxform = actor_handle.get_global_pose().to_bevy();
             let mut new_xform = new_gxform;
 
-            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(p.parent()).ok()) {
                 let (_scale, inv_rotation, inv_translation) =
                     parent_transform.affine().inverse().to_scale_rotation_translation();
 
@@ -59,7 +59,7 @@ pub fn sync_transform_articulation_links(
         &mut ArticulationLinkHandle,
         &mut Transform,
         &GlobalTransform,
-        Option<&Parent>,
+        Option<&ChildOf>,
     )>,
 ) {
     // this function does two things: sets physx property (if changed) or writes it back (if not);
@@ -79,7 +79,7 @@ pub fn sync_transform_articulation_links(
             let new_gxform = actor_handle.get_global_pose().to_bevy();
             let mut new_xform = new_gxform;
 
-            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(**p).ok()) {
+            if let Some(parent_transform) = parent.and_then(|p| global_transforms.get(p.parent()).ok()) {
                 let (_scale, inv_rotation, inv_translation) =
                     parent_transform.affine().inverse().to_scale_rotation_translation();
 

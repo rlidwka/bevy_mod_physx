@@ -28,7 +28,7 @@
 use std::time::Duration;
 
 use bevy::app::PluginGroupBuilder;
-use bevy::ecs::schedule::{ScheduleLabel, SystemSetConfigs};
+use bevy::ecs::schedule::{InternedSystemSet, ScheduleConfigs, ScheduleLabel};
 use bevy::prelude::*;
 use physx::prelude::*;
 
@@ -102,7 +102,7 @@ pub enum PhysicsSet {
 }
 
 impl PhysicsSet {
-    pub fn sets(sync_first: bool) -> SystemSetConfigs {
+    pub fn sets(sync_first: bool) -> ScheduleConfigs<InternedSystemSet> {
         if sync_first {
             // sync is placed first to match debug visualization,
             // some users may want to place sync last to get transform data faster
@@ -237,7 +237,7 @@ impl Plugin for PhysicsCore {
 
         // add all systems to the set
         app.add_systems(PhysicsSchedule, (
-            bevy::transform::systems::propagate_transforms,
+            // bevy::transform::systems::propagate_transforms,
             bevy::transform::systems::sync_simple_transforms,
         ).in_set(PhysicsSet::PropagateTransforms));
 
@@ -253,7 +253,7 @@ impl Plugin for PhysicsCore {
         ).in_set(PhysicsSet::Simulate));
 
         app.add_systems(PhysicsSchedule, (
-            apply_deferred,
+            ApplyDeferred,
         ).in_set(PhysicsSet::SimulateFlush));
 
         app.add_systems(PhysicsSchedule, (
@@ -261,7 +261,7 @@ impl Plugin for PhysicsCore {
         ).in_set(PhysicsSet::Create));
 
         app.add_systems(PhysicsSchedule, (
-            apply_deferred,
+            ApplyDeferred,
         ).in_set(PhysicsSet::CreateFlush));
 
         // add scheduler

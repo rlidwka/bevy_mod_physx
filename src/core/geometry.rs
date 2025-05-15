@@ -333,7 +333,7 @@ impl Geometry {
     ///
     ///  - scale - Scaling factor (use `Vec3::splat(2)` to scale up 2x).
     ///  - rotation - The orientation of the scaling axes (usually `Quat::IDENTITY`,
-    ///               ignored for HeightField).
+    ///    ignored for HeightField).
     ///
     pub fn with_scale(mut self, scale: Vec3, rotation: Quat) -> Self {
         let new_scale = unsafe { PxMeshScale_new_3(scale.to_physx_sys().as_ptr(), rotation.to_physx().as_ptr()) };

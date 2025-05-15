@@ -17,7 +17,7 @@
 //! }));
 //! ```
 use std::borrow::Cow;
-use std::ffi::CString;
+use std::ffi::CStr;
 
 use bevy::prelude::*;
 use physx::traits::Class;
@@ -30,10 +30,10 @@ use physx_sys::{
 use crate::prelude::{Scene, *};
 
 #[derive(Resource)]
-pub struct NameFormatter(pub fn(Entity, Option<&Name>) -> Cow<'static, CString>);
+pub struct NameFormatter(pub fn(Entity, Option<&Name>) -> Cow<'static, CStr>);
 
 #[derive(Component)]
-struct PxName(Cow<'static, CString>);
+struct PxName(Cow<'static, CStr>);
 
 pub struct NamePlugin;
 
