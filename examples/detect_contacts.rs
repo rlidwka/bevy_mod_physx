@@ -41,7 +41,7 @@ unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) 
     PxFilterFlags::empty()
 }
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct CollisionEvent {
     actor0: Entity,
     actor1: Entity,
@@ -267,7 +267,7 @@ fn spawn_camera_and_light(mut commands: Commands) {
 fn highlight_on_hit(
     mut commands: Commands,
     materials: Res<DemoMaterials>,
-    mut events: EventReader<CollisionEvent>,
+    mut events: MessageReader<CollisionEvent>,
     highlighable: Query<(), With<Highlightable>>,
 ) {
     for event in events.read() {

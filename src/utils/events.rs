@@ -3,7 +3,7 @@
 //! This crate doesn't add any events, but you can easily add your own (e.g. collisions).
 //!
 //! This extension introduces event channels, on one side of which is `mpsc::Sender<T>`,
-//! and on another side is bevy's `EventReader<T>`, and it automatically bridges between the two.
+//! and on another side is bevy's `MessageReader<T>`, and it automatically bridges between the two.
 //! This feature is needed to get information from physx callbacks to bevy world.
 //!
 //! See discussion in <https://github.com/bevyengine/bevy/issues/8983>.
@@ -26,20 +26,20 @@ pub trait AppExtensions {
     /// (more than once or less than once are both possible).
     /// Thus, all events must be handled in physics schedule, so they won't be missed.
     //#[deprecated(note = "bevy 0.14 reworked event cleanup, so this probably no longer works (please confirm)")]
-    fn add_physics_event<T: Event>(&mut self) -> &mut Self;
+    fn add_physics_event<T: Message>(&mut self) -> &mut Self;
 
     // Allows you to create bevy events using mpsc Sender.
-    fn add_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
+    fn add_event_channel<T: Message>(&mut self, receiver: Receiver<T>) -> &mut Self;
 
     /// Allows you to create bevy events in [PhysicsSchedule] using mpsc Sender.
     //#[deprecated(note = "bevy 0.14 reworked event cleanup, so this probably no longer works (please confirm)")]
-    fn add_physics_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self;
+    fn add_physics_event_channel<T: Message>(&mut self, receiver: Receiver<T>) -> &mut Self;
 }
 
 impl AppExtensions for App {
-    fn add_physics_event<T: Event>(&mut self) -> &mut Self {
-        if !self.world().contains_resource::<Events<T>>() {
-            self.init_resource::<Events<T>>();
+    fn add_physics_event<T: Message>(&mut self) -> &mut Self {
+        if !self.world().contains_resource::<Messages<T>>() {
+            self.init_resource::<Messages<T>>();
             // self.add_systems(PhysicsSchedule, (
             //     event_update_system::<T>,
             // ).before(PhysicsSet::Create));
@@ -47,13 +47,13 @@ impl AppExtensions for App {
         self
     }
 
-    fn add_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self {
+    fn add_event_channel<T: Message>(&mut self, receiver: Receiver<T>) -> &mut Self {
         assert!(
             !self.world().contains_resource::<ChannelReceiver<T>>(),
             "this event channel is already initialized",
         );
 
-        self.add_event::<T>();
+        self.add_message::<T>();
         self.add_systems(PhysicsSchedule, (
             channel_to_event::<T>,
         )/*.after(event_update_system::<T>)*/.before(PhysicsSet::Create));
@@ -62,7 +62,7 @@ impl AppExtensions for App {
         self
     }
 
-    fn add_physics_event_channel<T: Event>(&mut self, receiver: Receiver<T>) -> &mut Self {
+    fn add_physics_event_channel<T: Message>(&mut self, receiver: Receiver<T>) -> &mut Self {
         assert!(
             !self.world().contains_resource::<ChannelReceiver<T>>(),
             "this event channel is already initialized",
@@ -78,9 +78,9 @@ impl AppExtensions for App {
     }
 }
 
-fn channel_to_event<T: Event>(
+fn channel_to_event<T: Message>(
     receiver: Res<ChannelReceiver<T>>,
-    mut writer: EventWriter<T>,
+    mut writer: MessageWriter<T>,
 ) {
     // this should be the only system working with the receiver,
     // thus we always expect to get this lock

@@ -1,8 +1,8 @@
 mod common;
 
 use bevy::prelude::*;
-use bevy::render::mesh::Indices;
-use bevy::render::render_asset::RenderAssetUsages;
+use bevy::mesh::Indices;
+use bevy::asset::RenderAssetUsages;
 use bevy::render::render_resource::PrimitiveTopology;
 use bevy_mod_physx::core::geometry::GeometryInner;
 use bevy_mod_physx::prelude::{self as bpx, *};

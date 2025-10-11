@@ -15,7 +15,8 @@ use std::time::Duration;
 
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::input::common_conditions::input_toggle_active;
-use bevy::pbr::DirectionalLightShadowMap;
+use bevy::light::DirectionalLightShadowMap;
+use bevy::platform::collections::HashSet;
 use bevy::prelude::*;
 use bevy_mod_physx::prelude::*;
 
@@ -56,14 +57,12 @@ impl Plugin for DemoUtils {
         app.add_plugins(FrameTimeDiagnosticsPlugin::default());
         app.add_plugins(LogDiagnosticsPlugin {
             wait_duration: Duration::from_millis(1000),
-            filter: Some(vec![FrameTimeDiagnosticsPlugin::FPS]),
+            filter: Some(HashSet::from([FrameTimeDiagnosticsPlugin::FPS])),
             ..default()
         });
 
         app.add_plugins(OrbitCameraPlugin);
-        app.add_plugins(bevy_inspector_egui::bevy_egui::EguiPlugin {
-            enable_multipass_for_primary_context: false,
-        });
+        app.add_plugins(bevy_inspector_egui::bevy_egui::EguiPlugin::default());
         app.add_plugins(
             bevy_inspector_egui::quick::WorldInspectorPlugin::default()
                 .run_if(input_toggle_active(!INSPECTOR_STARTS_HIDDEN, KeyCode::F12)),

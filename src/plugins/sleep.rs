@@ -32,7 +32,7 @@ pub struct Sleeping;
 #[derive(Resource)]
 pub(crate) struct WakeSleepCallback(pub(crate) OnWakeSleep);
 
-#[derive(Event)]
+#[derive(Message)]
 pub struct WakeSleepEvent {
     pub entities: Vec<Entity>,
     pub is_waking: bool,
@@ -108,7 +108,7 @@ impl Plugin for SleepPlugin {
 
 pub fn sleep_marker_sync(
     mut commands: Commands,
-    mut events: EventReader<WakeSleepEvent>,
+    mut events: MessageReader<WakeSleepEvent>,
 ) {
     for WakeSleepEvent { entities, is_waking } in events.read() {
         for entity in entities.iter() {

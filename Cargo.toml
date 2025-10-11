@@ -17,7 +17,7 @@ name = "bevy_mod_physx"
 path = "src/lib.rs"
 
 [dependencies.bevy]
-version = "0.16.0"
+version = "0.17.2"
 default-features = false
 features = ["bevy_asset", "bevy_log", "bevy_render"]
 
@@ -36,7 +36,7 @@ features = [
 ]
 
 [dev-dependencies.bevy-inspector-egui]
-version = "0.31.0"
+version = "0.34.0"
 default-features = false
 features = ["bevy_image", "bevy_pbr", "bevy_render", "egui_clipboard"]
 

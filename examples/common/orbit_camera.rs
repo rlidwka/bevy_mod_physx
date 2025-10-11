@@ -73,16 +73,16 @@ struct GamepadState {
 
 #[allow(clippy::too_many_arguments)]
 fn apply_camera_controls(
-    mut scroll_events: EventReader<MouseWheel>,
-    mut move_events: EventReader<MouseMotion>,
-    mut gamepad_events: EventReader<GamepadEvent>,
+    mut scroll_events: MessageReader<MouseWheel>,
+    mut move_events: MessageReader<MouseMotion>,
+    mut gamepad_events: MessageReader<GamepadEvent>,
     mut gamepad_state: Local<GamepadState>,
     time: Res<Time>,
     buttons: Res<ButtonInput<MouseButton>>,
     mut egui_contexts: EguiContexts,
     mut camera_query: Query<&mut OrbitCamera>,
 ) {
-    let Some(egui_ctx) = egui_contexts.try_ctx_mut() else { return; };
+    let Ok(egui_ctx) = egui_contexts.ctx_mut() else { return; };
     if egui_ctx.wants_pointer_input() { return; }
 
     enum MyEvent {

@@ -1,14 +1,17 @@
 use bevy::prelude::*;
-use bevy_inspector_egui::bevy_egui::EguiContexts;
+use bevy_inspector_egui::bevy_egui::{EguiContexts, EguiPrimaryContextPass};
 use bevy_inspector_egui::egui::{self, Align2, Window};
 use bevy_mod_physx::prelude::*;
+
+// add this import via a dev-dep on bevy_egui = "0.27" (compatible with your setup)
+// use bevy_egui::{EguiPrimaryContextPass, EguiStartupSet};
 
 pub struct DebugRenderPlugin;
 
 impl Plugin for DebugRenderPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, debug_render_toggle);
-        app.add_systems(Update, display_debug_render_ui);
+        app.add_systems(EguiPrimaryContextPass, display_debug_render_ui);
 
         app.insert_resource(DebugRenderSettings {
             scale: 0., // global toggle for everything
@@ -22,11 +25,7 @@ fn debug_render_toggle(
     mut settings: ResMut<DebugRenderSettings>,
 ) {
     if input.just_pressed(KeyCode::F11) {
-        if settings.scale == 0. {
-            settings.scale = 1.;
-        } else {
-            settings.scale = 0.;
-        }
+        settings.scale = if settings.scale == 0. { 1. } else { 0. };
     }
 }
 
@@ -35,7 +34,8 @@ fn display_debug_render_ui(
     mut settings: ResMut<DebugRenderSettings>,
 ) {
     const TOOLTIP_MARGIN: f32 = 10.;
-    let Some(egui_ctx) = egui_contexts.try_ctx_mut() else { return; };
+    let Ok(egui_ctx) = egui_contexts.ctx_mut() else { return; };
+
     Window::new("debug_render_ui")
         .anchor(Align2::RIGHT_TOP, egui::vec2(-TOOLTIP_MARGIN, TOOLTIP_MARGIN))
         .title_bar(false)

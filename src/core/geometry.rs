@@ -18,7 +18,7 @@ use std::ffi::c_void;
 use std::sync::{Arc, Mutex};
 
 use bevy::prelude::*;
-use bevy::render::mesh::{Indices, VertexAttributeValues};
+use bevy::mesh::{Indices, VertexAttributeValues};
 use physx::convex_mesh::ConvexMesh;
 use physx::cooking::{
     self,
