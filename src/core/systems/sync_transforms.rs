@@ -66,8 +66,8 @@ pub fn sync_transform_articulation_links(
     // we need it to happen inside a single system to avoid change detection loops, but
     // user will experience 1-tick delay on any changes
     for (mut root, mut actor, mut xform, gxform, parent) in actors.iter_mut() {
-        if root.is_some() && *gxform != actor.predicted_gxform {
-            let mut root_handle = root.as_mut().unwrap().get_mut(&mut scene);
+        if let Some(root) = root.as_mut() && *gxform != actor.predicted_gxform {
+            let mut root_handle = root.get_mut(&mut scene);
             //actor.get_mut(&mut scene).set_global_pose(&gxform.to_physx(), true);
             root_handle.set_root_global_pose(&gxform.to_physx());
             unsafe {

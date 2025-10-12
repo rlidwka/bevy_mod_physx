@@ -29,22 +29,19 @@ pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -
             // SAFETY: assume that every shape in physx scene is created by us,
             // with our prototype and userdata; and that physx returns proper concrete type
             let actor: &PxRigidDynamic = unsafe { &*(actor as *const _) };
-            let entity = *actor.get_user_data();
-            entity
+            *actor.get_user_data()
         }
         ConcreteType::RigidStatic => {
             // SAFETY: assume that every shape in physx scene is created by us,
             // with our prototype and userdata; and that physx returns proper concrete type
             let actor: &PxRigidStatic = unsafe { &*(actor as *const _) };
-            let entity = *actor.get_user_data();
-            entity
+            *actor.get_user_data()
         }
         ConcreteType::ArticulationLink => {
             // SAFETY: assume that every shape in physx scene is created by us,
             // with our prototype and userdata; and that physx returns proper concrete type
             let actor: &PxArticulationLink = unsafe { &*(actor as *const _) };
-            let entity = *actor.get_user_data();
-            entity
+            *actor.get_user_data()
         }
         // SAFETY: actor must be either dynamic, static, or articulation
         _ => unreachable!()

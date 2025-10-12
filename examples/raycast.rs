@@ -150,12 +150,10 @@ fn hover_highlight(
     for (camera, camera_transform) in &cameras {
         let Some(ray) = camera.viewport_to_world(camera_transform, cursor_position).ok() else { continue; };
 
-        if let Some(hit) = scene.raycast(ray, f32::MAX, &default()) {
-            if highlighable.get(hit.actor).is_ok() {
-                commands.entity(hit.actor)
-                    .insert(MeshMaterial3d::from(materials.highlighted.clone()))
-                    .insert(Highlighted);
-            }
+        if let Some(hit) = scene.raycast(ray, f32::MAX, &default()) && highlighable.get(hit.actor).is_ok() {
+            commands.entity(hit.actor)
+                .insert(MeshMaterial3d::from(materials.highlighted.clone()))
+                .insert(Highlighted);
         }
     }
 }
