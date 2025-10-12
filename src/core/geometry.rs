@@ -356,13 +356,13 @@ impl Geometry {
     ///
     pub fn with_tight_bounds(mut self, tight_bounds: bool) -> Self {
         match &mut self.obj {
-            GeometryInner::ConvexMesh { ref mut flags, .. } => {
+            GeometryInner::ConvexMesh { flags, .. } => {
                 flags.set(ConvexMeshGeometryFlags::TightBounds, tight_bounds);
             }
-            GeometryInner::TriangleMesh { ref mut flags, .. } => {
+            GeometryInner::TriangleMesh { flags, .. } => {
                 flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
             }
-            GeometryInner::HeightField { ref mut flags, .. } => {
+            GeometryInner::HeightField { flags, .. } => {
                 flags.set(MeshGeometryFlags::TightBounds, tight_bounds);
             }
             _ => {
@@ -381,10 +381,10 @@ impl Geometry {
     /// the Geometry Query section of the PhysX user guide.
     pub fn with_double_sided(mut self, double_sided: bool) -> Self {
         match &mut self.obj {
-            GeometryInner::TriangleMesh { ref mut flags, .. } => {
+            GeometryInner::TriangleMesh { flags, .. } => {
                 flags.set(MeshGeometryFlags::DoubleSided, double_sided);
             }
-            GeometryInner::HeightField { ref mut flags, .. } => {
+            GeometryInner::HeightField { flags, .. } => {
                 flags.set(MeshGeometryFlags::DoubleSided, double_sided);
             }
             _ => {

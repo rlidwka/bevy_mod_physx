@@ -29,16 +29,18 @@ struct Highlightable;
 struct Highlighted;
 
 unsafe extern "C" fn simulation_filter_shader(s: *mut FilterShaderCallbackInfo) -> PxFilterFlags {
-    let s = &mut *s as &mut FilterShaderCallbackInfo;
-    let pair_flags = &mut *(s.pairFlags) as &mut PxPairFlags;
+    unsafe {
+        let s = &mut *s as &mut FilterShaderCallbackInfo;
+        let pair_flags = &mut *(s.pairFlags) as &mut PxPairFlags;
 
-    *pair_flags = PxPairFlags::SolveContact |
-        PxPairFlags::DetectDiscreteContact |
-        PxPairFlags::NotifyTouchFound |
-        PxPairFlags::NotifyTouchLost |
-        PxPairFlags::NotifyContactPoints;
+        *pair_flags = PxPairFlags::SolveContact |
+            PxPairFlags::DetectDiscreteContact |
+            PxPairFlags::NotifyTouchFound |
+            PxPairFlags::NotifyTouchLost |
+            PxPairFlags::NotifyContactPoints;
 
-    PxFilterFlags::empty()
+        PxFilterFlags::empty()
+    }
 }
 
 #[derive(Message)]

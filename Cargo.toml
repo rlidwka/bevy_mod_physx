@@ -10,7 +10,7 @@ readme = "README.md"
 keywords = ["bevy", "physx", "gamedev", "physics"]
 license = "MIT"
 categories = ["game-development", "simulation"]
-edition = "2021"
+edition = "2024"
 
 [lib]
 name = "bevy_mod_physx"

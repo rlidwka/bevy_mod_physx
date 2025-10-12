@@ -60,6 +60,8 @@ pub unsafe fn get_actor_entity_from_ptr(actor: *const physx_sys::PxRigidActor) -
 /// When resolving collisions, you should check PxContactPairFlags::RemovedShapeX
 /// before executing this function.
 pub unsafe fn get_shape_entity_from_ptr(shape: *const physx_sys::PxShape) -> Entity {
-    let shape = &*(shape as *const PxShape);
-    *shape.get_user_data()
+    unsafe {
+        let shape = &*(shape as *const PxShape);
+        *shape.get_user_data()
+    }
 }
