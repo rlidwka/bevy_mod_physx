@@ -1,3 +1,10 @@
+## 0.9.0 - bevy 0.17 - 2025-10-12
+
+### Changed
+
+ - updated Bevy to 0.17
+ - changed Rust edition to 2024
+
 ## 0.8.0 - bevy 0.16 - 2025-05-15
 
 ### Changed
